@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T03:35:00+02:00","sprint_id":"S-15","milestone":"done","verdict":"PASS","last_capture":"MAIN_v1 + INTRODUCTION_v1 + DISCUSSION_v1 scritti","next_action":"sessione completa — S-13+S-15 done"}
+{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T03:41:00+02:00","sprint_id":"S-14","milestone":"done","verdict":"PASS","last_capture":".pre-commit-config.yaml YAML valid, README aggiornato","next_action":"idle"}
