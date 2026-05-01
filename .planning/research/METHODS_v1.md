@@ -148,6 +148,18 @@ La directory del soggetto fsaverage è configurabile tramite la variabile d'ambi
 
 La connettività funzionale (FC) quantifica le relazioni statistiche tra i time course di coppie di ROI, tipicamente nel dominio della frequenza. A differenza della connettività strutturale (trattografia DTI), la FC riflette il coupling funzionale dinamico tra aree cerebrali durante un compito o in resting state.
 
+### 5.0 Il problema del spatial leakage dopo inversione
+
+Anche dopo la proiezione sorgente con metodi come dSPM o sLORETA, il segnale stimato in un vertice corticale non è localizzato con precisione assoluta: contiene contributi da vertici anatomicamente vicini per via dello *spread spaziale* intrinseco all'operatore inverso. Questo fenomeno — noto come *spatial leakage* o *field spread* (Schoffelen & Gross, 2009) — produce correlazioni spurie tra ROI adiacenti indipendentemente dalla loro connettività funzionale reale.
+
+Nagy et al. (2024) hanno recentemente quantificato l'entità del leakage residuo post-inversione dSPM su template fsaverage, trovando che coppie di ROI a distanza inferiore a 3 cm possono presentare correlazioni spurie fino a ρ = 0.4–0.6 per metriche sensibili all'ampiezza o alla fase istantanea (coherence, PLV). Il problema è particolarmente rilevante per atlanti ad alta risoluzione (Schaefer-200, 200 ROI) dove molte ROI adiacenti si trovano entro questa soglia critica.
+
+Le metriche basate sulla fase con *lag non-zero* sono robuste al leakage perché sfruttano il principio seguente: la propagazione istantanea del volume conduction non introduce sfasamenti temporali tra sorgenti (Im[S_xy] = 0 per leakage puro). La Imaginary Coherence (Nolte et al., 2004) sfrutta questa proprietà estraendo solo la parte immaginaria del cross-spettro **S_xy(f)**. Il Weighted PLI e il debiased wPLI² (Vinck et al., 2011) estendono questo principio pesando i lag di fase per la loro magnitudine, ottenendo stime meno distorte con campioni finiti.
+
+Per la connettività a livello di ampiezza (envelope correlation), Colclough et al. (2015) propongono l'ortogonalizzazione simmetrica multivariata come alternativa al filtraggio di fase — tecnica non adottata nella presente pipeline (che si concentra su metriche spettrali di fase) ma rilevante per futuri studi di resting-state.
+
+La strategia adottata in questo lavoro risolve il problema in due modi complementari: (i) utilizzando wPLI e wPLI² come metriche primarie nelle analisi principali, e (ii) includendo metriche non robuste (Coh, PLV) nel benchmark come confronto controllato — consentendo di quantificare empiricamente l'impatto del leakage residuo sulle performance di classificazione.
+
 ### 5.1 Metriche implementate
 
 Il modulo `connectivity/fc_dispatcher.py` implementa sette metriche di connettività, tutte basate su `mne_connectivity.spectral_connectivity_epochs()` (MNE-Connectivity v0.8). Le metriche operano nello spazio spettrale: dato il cross-spettro **S_xy(f) = E[X(f) Y*(f)]** tra due segnali x e y alla frequenza f, le metriche si differenziano per quale proprietà di **S_xy** misurano.
