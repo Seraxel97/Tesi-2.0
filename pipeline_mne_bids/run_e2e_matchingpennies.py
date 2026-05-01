@@ -138,9 +138,10 @@ def run_e2e(
 
     tc_list: list[np.ndarray] = []
     names_: list[str] = []
-    for i, ep in enumerate(epochs):
+    for i in range(len(epochs)):
+        evoked = epochs[i].average()
         stc = mne.minimum_norm.apply_inverse(
-            ep.average(), inv_op, lambda2=lambda2, method=inv_method, verbose=False
+            evoked, inv_op, lambda2=lambda2, method=inv_method, verbose=False
         )
         tc_i, names_ = extract_tc(stc, atlas, src)
         tc_list.append(tc_i)
