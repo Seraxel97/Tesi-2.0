@@ -11,13 +11,13 @@
 
 ## 1. Top-5 configurazioni FC — metriche complete
 
-| Rank | Metric | Band | Atlas | Algo | BA | Acc | F1 macro | MCC | vs chance |
-|------|--------|------|-------|------|----|-----|----------|-----|-----------|
-| 1 | wpli | alpha | aparc | logreg | 0.500 | 0.500 | 0.467 | 0.000 | ±0.000 |
-| 2 | wpli | beta | aparc | logreg | 0.500 | 0.500 | 0.467 | 0.000 | ±0.000 |
-| 3 | plv | alpha | aparc | logreg | 0.500 | 0.500 | 0.467 | 0.000 | ±0.000 |
-| 4 | imcoh | alpha | aparc | logreg | 0.500 | 0.500 | 0.467 | 0.000 | ±0.000 |
-| 5 | wpli2_debiased | beta | aparc | logreg | 0.500 | 0.500 | 0.467 | 0.000 | ±0.000 |
+| Rank | Metric | Band | Atlas | Algo | BA | Acc | F1 macro | MCC | CM (pred→) | vs chance |
+|------|--------|------|-------|------|----|-----|----------|-----|-----------|-----------|
+| 1 | wpli | alpha | aparc | logreg | 0.500 | 0.600 | 0.375 | 0.000 | [[0,12],[0,18]] | ±0.000 |
+| 2 | wpli | beta | aparc | logreg | 0.500 | 0.600 | 0.375 | 0.000 | [[0,12],[0,18]] | ±0.000 |
+| 3 | plv | alpha | aparc | logreg | 0.500 | 0.600 | 0.375 | 0.000 | [[0,12],[0,18]] | ±0.000 |
+| 4 | imcoh | alpha | aparc | logreg | 0.500 | 0.600 | 0.375 | 0.000 | [[0,12],[0,18]] | ±0.000 |
+| 5 | wpli2_debiased | beta | aparc | logreg | 0.500 | 0.600 | 0.375 | 0.000 | [[0,12],[0,18]] | ±0.000 |
 
 > **N features per configurazione**: 2278 (68 ROI, upper triangle aparc). **N samples**: 30.
 
@@ -25,7 +25,7 @@ Tutte le configurazioni producono BA = 0.500 (chance level esatto). Questo è il
 
 ### 1.1 Causa: curse of dimensionality severo
 
-Con n_features = 2278 e n_samples = 30, il rapporto features/campioni è ~76:1. In questo regime, la regressione logistica con C=1.0 (regularization standard) non riesce ad apprendere alcuna struttura discriminante: lo spazio delle feature è talmente sovradimensionato rispetto ai campioni che il separatore lineare interpola il rumore piuttosto che il segnale. Il risultato è un classificatore che predice sistematicamente la classe maggioritaria (raised-right, 18/30) o alterna casualmente, producendo BA=0.50.
+Con n_features = 2278 e n_samples = 30, il rapporto features/campioni è ~76:1. In questo regime, la regressione logistica con C=1.0 (regularization standard) non riesce ad apprendere alcuna struttura discriminante: lo spazio delle feature è talmente sovradimensionato rispetto ai campioni che il separatore lineare interpola il rumore piuttosto che il segnale. Il risultato è un classificatore che predice **sempre la classe maggioritaria** (raised-right, 18/30): CM=[[0,12],[0,18]] — zero predizioni corrette per raised-left. Acc=0.60 (60% di raised-right nel dataset), BA=0.50 perché sensitivity=0% e specificity=100%.
 
 ### 1.2 Diagnosi tecnica: pipeline corretta
 
@@ -39,13 +39,13 @@ Il fatto che tutte le configurazioni producano *esattamente* BA=0.500 — anzich
 
 | Algoritmo | BA reale | BA shuffle (mean±std) | Gap (reale−shuffle) | Δ significativo? |
 |-----------|---------|----------------------|---------------------|-----------------|
-| logreg | 0.500 | 0.500 ± 0.031 | ±0.000 | No (N=1) |
-| svm | 0.500 | 0.500 ± 0.030 | ±0.000 | No (N=1) |
-| mlp | 0.500 | 0.499 ± 0.035 | ~0.001 | No (N=1) |
-| rf | 0.500 | 0.501 ± 0.028 | ~0.000 | No (N=1) |
-| gb | 0.500 | 0.500 ± 0.029 | ±0.000 | No (N=1) |
+| logreg | 0.500 | 0.500 ± 0.000 | 0.000 | No (N=1) |
+| svm | 0.500 | 0.500 ± 0.000 | 0.000 | No (N=1) |
+| mlp | 0.500 | 0.500 ± 0.000 | 0.000 | No (N=1) |
+| rf | 0.500 | 0.500 ± 0.000 | 0.000 | No (N=1) |
+| gb | 0.500 | 0.500 ± 0.000 | 0.000 | No (N=1) |
 
-> La deviazione standard del baseline (~0.030) riflette la variabilità naturale di StratifiedKFold k=3 con n_samples=30 — non la variabilità del segnale neurale.
+> **Nota**: std=0.000 per tutti gli shuffle riflette un comportamento deterministico: con 3 fold stratificati su 12/18 campioni, ogni fold di test ha 4/6 campioni e il classificatore predice sempre la classe maggioritaria → BA=0.5000 in ogni fold, in ogni shuffle.
 
 **Finding**: per tutti e 5 gli algoritmi, la performance reale coincide con il baseline di shuffle. Il gap è nullo o < 0.001, ben all'interno della variabilità del baseline. Questo conferma che la pipeline non introduce bias sistematici verso una classe, e che nessuna configurazione FC su N=1 / 30 epoch produce separabilità misurabile in questo regime.
 
