@@ -88,9 +88,17 @@ Tutte le altre decisioni (Q2–Q7) sono state chiuse autonomamente con default r
 
 | Nome | Ruolo | Path | Dimensione | Stato |
 |------|-------|------|------------|-------|
-| eeg_matchingpennies | Smoke test tecnico | `data/eeg_matchingpennies/` | 716 MB | ✅ integrato |
-| ds005385 (Dortmund Vital) | Candidato scientifico | `~/Scrivania/Tesi/data/ds005385/` | 21 GB | ⏸ attesa Q1 |
-| LEMON | Candidato scientifico | `~/Scrivania/Tesi/data/lemon/` | 65 GB | ⏸ attesa Q1 |
+| eeg_matchingpennies | Smoke test tecnico | `data/eeg_matchingpennies/` | 716 MB | integrato |
+| ds005385 (Dortmund Vital) | Dataset scientifico attivo | `data/raw/ds005385/` (symlink) | 21 GB | in corso — subset N=15 |
+
+**Current scientific run** (aggiornato 2026-05-01 T18:50):
+- Dataset: ds005385, task=RestingState, condizioni EO/EC (Q1 risolto)
+- Subset: N=15 soggetti, random seed=42 (vincolo operatore hard)
+- PILOT: 5 soggetti — sub-007, sub-010, sub-011, sub-026, sub-031
+- Symlink: `data/raw/ds005385` → `~/Scrivania/Tesi/data/ds005385/`
+- Config: `config/subjects_whitelist.py`, `config/labels_ds005385.py`
+- Struttura BIDS: `reports/DS005385_STRUCTURE.md`
+- Stato wave-scientific: S-100 done, S-100b done, S-101 gated (OPERATOR_APPROVE_5SUB)
 
 ---
 
@@ -106,6 +114,6 @@ Tutte le altre decisioni (Q2–Q7) sono state chiuse autonomamente con default r
 
 ## Prossimi passi
 
-1. **Rispondere a Q1** → sblocca S-07 e S-47 → permette Step 7 su dataset scientifico
+1. **Wave-scientific** → S-101 PILOT 5 sub (gated OPERATOR_APPROVE_5SUB) → S-103→S-107 step-by-step
 2. **Performance P0** → refactor `inverse_parcellation` con `apply_inverse_epochs()` batch (riduzione ~40%)
-3. Completare sprint finali: S-64 (archive), DR-FINAL-handover, DR-FINAL-validation
+3. Q1 risolta (2026-05-01): ds005385 scelto, subset N=15, seed=42

@@ -1,6 +1,6 @@
 # Tesi_2.0 — EEG Source-Space FC Pipeline
 
-![tests](https://img.shields.io/badge/tests-508%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-273%20passed-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-56%25-yellow)
 ![lint](https://img.shields.io/badge/lint-ruff-blue)
 ![docs](https://img.shields.io/badge/docs-pdoc-blue)
@@ -31,6 +31,31 @@ STEP 7  → verifica E2E + risultati finali
 ```
 
 Diagramma dettagliato: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
+Diagramma SVG: [docs/figures/architecture.svg](docs/figures/architecture.svg).
+
+---
+
+## Current dataset
+
+**Dataset scientifico**: ds005385 (Dortmund Vital Study), 200 soggetti totali, task=RestingState, conditions=EO/EC.
+
+| Parametro | Valore |
+|-----------|--------|
+| Dataset | ds005385 (Dortmund Vital Study) |
+| Soggetti totali | 200 |
+| Subset attivo | N=15 (vincolo operatore hard), random seed=42 |
+| PILOT | 5 sub: sub-007, sub-010, sub-011, sub-026, sub-031 |
+| Task | RestingState |
+| Condizioni | EO (Eyes Open), EC (Eyes Closed) |
+| Path symlink | `data/raw/ds005385` → `~/Scrivania/Tesi/data/ds005385/` |
+| Dimensione | 21 GB |
+
+Cross-reference:
+- Whitelist soggetti: `config/subjects_whitelist.py`
+- Label mapping EO/EC: `config/labels_ds005385.py`
+- Struttura BIDS analizzata: `reports/DS005385_STRUCTURE.md`
+
+Dataset smoke tecnico: `data/eeg_matchingpennies/` (7 soggetti, 61 canali) — usato per test pipeline.
 
 ---
 
@@ -111,7 +136,7 @@ Versioni attese:
 I comandi piu' comuni sono disponibili tramite `make`. Eseguire `make help` per la lista completa.
 
 ```bash
-make test        # pytest tests/ -v  (116 test, ~40s)
+make test        # pytest tests/ -v  (273 test)
 make lint        # ruff check + format --check
 make format      # ruff autofix + format
 make run-step1   # preprocessing matchingpennies sub-05
