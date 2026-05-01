@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T05:45:55+02:00","sprint_id":"S-25","milestone":"done","verdict":"PASS","last_capture":"BASELINE_COMPARISON.md 934w, BA=0.500 tutti (curse of dimensionality n=30 p=2278)","next_action":"idle"}
+{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T06:12:00+02:00","sprint_id":"S-26","milestone":"done","verdict":"PASS","last_capture":"6 file in reports/figures/ (5 placeholder + README.md)","next_action":"idle"}
