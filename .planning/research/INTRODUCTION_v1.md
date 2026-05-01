@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: introduction
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: S-36
+tags: [eeg, source-fc, ml]
+---
 # Introduction — Classificazione EEG Source-Level con Connettività Funzionale
 
 **Versione**: v1 — draft  

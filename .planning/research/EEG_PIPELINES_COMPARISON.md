@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: introduction
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: DR-RESEARCH-eeg-fc-pipelines-soa
+tags: [eeg, source-fc, ml]
+---
 # EEG FC Pipeline Comparison — State of the Art
 
 **Data**: 2026-05-01  

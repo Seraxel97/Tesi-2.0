@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: introduction
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: S-35
+tags: [eeg, source-fc, ml]
+---
 # Related Work — EEG Source-Level FC Pipelines
 
 **Versione**: v1  

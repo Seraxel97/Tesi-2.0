@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: manuscript
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: S-15
+tags: [eeg, source-fc, ml]
+---
 # Main — Classificazione EEG Source-Level con Connettività Funzionale
 ## Skeleton del manoscritto — v1
 

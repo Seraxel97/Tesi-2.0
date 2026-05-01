@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: references
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: DR-RESEARCH-fc-leakage
+tags: [eeg, source-fc, ml]
+---
 # References — Spatial Leakage & Source-Level FC
 
 **Sprint**: DR-RESEARCH-fc-leakage-2024  

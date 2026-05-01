@@ -1,3 +1,12 @@
+---
+type: thesis-section
+status: draft
+section: references
+project: Tesi_2.0
+last_review: 2026-05-01
+sprint: DR-RESEARCH-permutation
+tags: [eeg, source-fc, ml]
+---
 # References — Permutation Testing & Statistical Significance
 
 **Sprint**: DR-RESEARCH-permutation-significance  
