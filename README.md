@@ -1,9 +1,12 @@
 # Tesi_2.0 — EEG Source-Space FC Pipeline
 
-![tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-508%20passed-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-56%25-yellow)
 ![lint](https://img.shields.io/badge/lint-ruff-blue)
+![docs](https://img.shields.io/badge/docs-pdoc-blue)
 ![python](https://img.shields.io/badge/python-3.13-blue)
 ![mne](https://img.shields.io/badge/mne-1.11.0-green)
+![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 Estensione modulare di `mne-bids-pipeline` con parcellazione atlastica, connettivita funzionale
 e classificazione ML. Progetto di tesi magistrale.
@@ -219,3 +222,9 @@ source reconstruction e connettivita funzionale.
 
 Progetto sviluppato come **estensione modulare** di mne-bids-pipeline, non come pipeline standalone.
 Ogni step usa esclusivamente le librerie del vincolo 2 (PROGRESS.md §Vincoli OBBLIGATORI).
+
+---
+
+## Keywords
+
+eeg, source-reconstruction, functional-connectivity, machine-learning, mne-python, mne-bids-pipeline, classification, eyes-closed, eyes-open, wpli, plv, coherence, group-kfold, permutation-testing, neuromaps, schaefer-atlas, freesurfer, dspm, parcellation
