@@ -9,7 +9,8 @@ import numpy as np
 from connectivity.fc_dispatcher import compute_fc
 from features.dispatcher import build_X
 from ml_training.ml_dispatcher import run_all_algorithms
-from pipeline_mne_bids.run_e2e_matchingpennies import _build_y, _write_report
+from pipeline_mne_bids.run_e2e.exec import _build_y
+from pipeline_mne_bids.run_e2e.report import write_report as _write_report
 
 # ── fixtures sintetiche ────────────────────────────────────────────────────────
 
@@ -39,9 +40,7 @@ def test_e2e_x_shape_consistent_with_fc() -> None:
     """X ha le colonne FC corrette (upper triangle)."""
     n_fc_per_band = _N_LAB * (_N_LAB - 1) // 2
     n_bands = len(_FC)
-    X_fc_only, names_fc = build_X(
-        _LABEL_TC, _SFREQ, _FC, include_univariate=False
-    )
+    X_fc_only, names_fc = build_X(_LABEL_TC, _SFREQ, _FC, include_univariate=False)
     assert X_fc_only.shape[1] == n_bands * n_fc_per_band
 
 
@@ -103,12 +102,14 @@ def test_build_y_label_map() -> None:
     ch_names = [f"EEG{i:03d}" for i in range(n_ch)]
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
 
-    events = np.array([
-        [100, 0, 1],
-        [200, 0, 2],
-        [300, 0, 3],
-        [400, 0, 4],
-    ])
+    events = np.array(
+        [
+            [100, 0, 1],
+            [200, 0, 2],
+            [300, 0, 3],
+            [400, 0, 4],
+        ]
+    )
     event_id = {
         "raised-left/match-false": 1,
         "raised-left/match-true": 2,

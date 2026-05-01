@@ -17,6 +17,7 @@ import pstats
 import time
 from pathlib import Path
 
+import mne
 import numpy as np
 
 from connectivity.fc_dispatcher import compute_fc
@@ -43,7 +44,7 @@ _LABEL_MAP = {
 }
 
 
-def _build_y(epochs) -> np.ndarray:  # type: ignore[no-untyped-def]
+def _build_y(epochs: mne.Epochs) -> np.ndarray:
     event_ids_inv = {v: k for k, v in epochs.event_id.items()}
     return np.array(
         [_LABEL_MAP.get(event_ids_inv.get(ev, ""), -1) for ev in epochs.events[:, 2]],
