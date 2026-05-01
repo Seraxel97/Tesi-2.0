@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T09:28:05+02:00","sprint_id":"DR-VAULT-heartbeat-pattern","milestone":"done","verdict":"PASS","last_capture":"hb_lib +3 API, 17/17 PASS, report confronto claude-ops v3 schema","next_action":"idle"}
+{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T09:56:40+02:00","sprint_id":"S-41","milestone":"done","verdict":"PASS","last_capture":"bootstrap_ci + cohen_d + statistical_power, 14/14 PASS in 6.7s","next_action":"idle"}

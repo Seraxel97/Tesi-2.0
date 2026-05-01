@@ -1,0 +1,143 @@
+"""Statistical analysis utilities — bootstrap CI, Cohen's d, power analysis.
+
+Funzioni:
+    bootstrap_ci(values, statistic, n_boot, alpha) -> (lo, hi)
+    cohen_d(a, b)                                 -> float
+    statistical_power(effect_size, n, alpha)       -> float
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+
+import numpy as np
+from statsmodels.stats.power import TTestIndPower
+
+
+def bootstrap_ci(
+    values: np.ndarray | list[float],
+    statistic: Callable[[np.ndarray], float] = np.mean,
+    n_boot: int = 1000,
+    alpha: float = 0.05,
+    *,
+    random_state: int = 42,
+) -> tuple[float, float]:
+    """Calcola un intervallo di confidenza bootstrap (BCa-style percentile).
+
+    Parameters
+    ----------
+    values:
+        Array 1D di valori campionati (es. balanced accuracy per fold).
+    statistic:
+        Funzione scalare applicata a ciascun bootstrap sample (default: np.mean).
+    n_boot:
+        Numero di campioni bootstrap (default: 1000).
+    alpha:
+        Livello di significatività; l'IC è (1 - alpha) * 100% (default: 0.05 → 95%).
+    random_state:
+        Seed per riproducibilità.
+
+    Returns
+    -------
+    (lo, hi) : tuple[float, float]
+        Estremi inferiore e superiore dell'intervallo di confidenza.
+
+    Notes
+    -----
+    Usa il metodo percentile standard (non BCa corretto): semplice e robusto
+    per n_boot >= 1000. Per statistiche con forte asimmetria, considerare BCa
+    (disponibile in `scipy.stats.bootstrap`).
+    """
+    arr = np.asarray(values, dtype=float)
+    rng = np.random.default_rng(random_state)
+    boot_stats = np.array(
+        [statistic(rng.choice(arr, size=len(arr), replace=True)) for _ in range(n_boot)]
+    )
+    lo = float(np.percentile(boot_stats, 100 * alpha / 2))
+    hi = float(np.percentile(boot_stats, 100 * (1 - alpha / 2)))
+    return lo, hi
+
+
+def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
+    """Calcola Cohen's d per due campioni indipendenti.
+
+    Usa la deviazione standard pooled non corretta (standard per confronti
+    tra due gruppi di dimensione comparabile):
+
+        d = (mean_a - mean_b) / s_pooled
+        s_pooled = sqrt((var_a + var_b) / 2)
+
+    Parameters
+    ----------
+    a:
+        Primo campione (es. BA gruppo 1).
+    b:
+        Secondo campione (es. BA gruppo 2).
+
+    Returns
+    -------
+    float
+        Cohen's d (positivo se mean_a > mean_b). Interpretazione convenzionale:
+        |d| < 0.2 trascurabile, 0.2–0.5 piccolo, 0.5–0.8 medio, > 0.8 grande.
+    """
+    a_arr = np.asarray(a, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    mean_diff = float(np.mean(a_arr) - np.mean(b_arr))
+    s_pooled = float(np.sqrt((np.var(a_arr, ddof=0) + np.var(b_arr, ddof=0)) / 2))
+    if s_pooled == 0.0:
+        return 0.0 if mean_diff == 0.0 else float("inf")
+    return mean_diff / s_pooled
+
+
+def statistical_power(
+    effect_size: float,
+    n: int,
+    alpha: float = 0.05,
+    *,
+    alternative: str = "two-sided",
+) -> float:
+    """Calcola la potenza statistica per un t-test indipendente a due campioni.
+
+    Usa `statsmodels.stats.power.TTestIndPower` con rapporto di campioni k=1
+    (gruppi bilanciati). Restituisce la probabilità di rifiutare correttamente
+    H0 dato l'effect size e il numero di soggetti per gruppo.
+
+    Parameters
+    ----------
+    effect_size:
+        Cohen's d (dimensione dell'effetto atteso).
+    n:
+        Numero di osservazioni per gruppo (campioni bilanciati).
+    alpha:
+        Livello di significatività (default: 0.05).
+    alternative:
+        Tipo di test: 'two-sided', 'larger', 'smaller' (default: 'two-sided').
+
+    Returns
+    -------
+    float
+        Potenza statistica in [0, 1]. Convenzionalmente, power >= 0.80 è
+        considerato adeguato per disegni sperimentali.
+
+    Examples
+    --------
+    >>> statistical_power(0.5, 50)  # effetto medio, 50 soggetti/gruppo
+    0.697...
+    >>> statistical_power(0.8, 50)  # effetto grande
+    0.961...
+    """
+    analysis = TTestIndPower()
+    power = analysis.solve_power(
+        effect_size=effect_size,
+        nobs1=n,
+        alpha=alpha,
+        power=None,
+        ratio=1.0,
+        alternative=alternative,
+    )
+    p = float(power)
+    # statsmodels può restituire NaN per combinazioni effect_size/n molto grandi
+    # dove la potenza teorica è ≈1.0 (overflow numerico interno)
+    if np.isnan(p):
+        return 1.0
+    return max(0.0, min(1.0, p))
