@@ -118,6 +118,31 @@ Risultati in: `reports/STEP4_DS005385_PILOT.md` (non ancora prodotto).
 
 ---
 
+## Fix S-101b (per-epoch STC) — in flight 2026-05-01
+
+**Issue identificato da S-104**: valori wPLI collassati a 1.0 (range fisiologico atteso: 0.05-0.50).
+
+**Root cause**: S-101 ha applicato `apply_inverse(evoked, ...)` producendo 1 STC per condizione
+(single evoked sample). Con un singolo campione non vi e' varianza di fase tra epoch, e la
+wPLI risulta sempre 1.0 per definizione.
+
+**Fix (S-101b)**: applicare `apply_inverse_epochs(epochs, ...)` → `list[STC]` per epoch,
+ripristinando la varianza di fase necessaria al calcolo di metriche di connettivita' funzionale.
+
+**Pipeline status post-fix atteso**:
+
+| Sprint | Descrizione | Output | Stato |
+|--------|-------------|--------|-------|
+| S-101b | Per-epoch STC su 5 PILOT sub | 5 sub x 2 cond = 10 file per-epoch STC | in flight |
+| S-103b | Parcellazione su per-epoch STC | 5 sub x 2 atlas x 2 cond = 20 file label_tc (n_epochs, n_labels, n_times) | pending S-101b |
+| S-104b | FC su per-epoch label_tc | 40 FC matrix con valori fisiologici (0.05-0.50) | pending S-103b |
+
+**Impatto**: i risultati di S-101/S-103/S-104 (STC evoked, label_ts evoked, wPLI=1.0) sono
+da considerare preliminari/non validi per l'analisi scientifica. Il fix S-101b produce output
+compatibili con il resto della pipeline.
+
+---
+
 ## Summary statistics
 
 | Metrica | Valore |
