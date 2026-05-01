@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T03:59:00+02:00","sprint_id":"S-17","milestone":"done","verdict":"PASS","last_capture":"cProfile 8.83s, bottleneck: _prepare_label_extraction 38% + prepare_inverse_operator 24%","next_action":"idle"}
+{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T04:28:10+02:00","sprint_id":"BAND-5-9-T01","milestone":"done","verdict":"PASS","last_capture":"mean vs mean_flip rho=0.33 FC, 9/68 label flipped, destrieux min_verts=2 warning","next_action":"idle"}
