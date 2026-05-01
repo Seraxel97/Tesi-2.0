@@ -1,4 +1,4 @@
-.PHONY: test lint format clean run-step1 run-step2 bench help
+.PHONY: test lint format clean run-step1 run-step2 bench help audit clean-cache
 
 PYTHON ?= python
 CONFIG_STEP1 = config/config_step1_matchingpennies.py
@@ -6,7 +6,7 @@ CONFIG_STEP2 = config/config_step2_source_matchingpennies.py
 DERIV = data/derivatives/mne-bids-pipeline
 
 help:
-	@echo "Targets: test, lint, format, run-step1, run-step2, bench, clean"
+	@echo "Targets: test, lint, format, run-step1, run-step2, bench, clean, audit, clean-cache"
 
 test:
 	pytest tests/ -v
@@ -20,14 +20,19 @@ format:
 	ruff format .
 
 run-step1:
-	mne_bids_pipeline --config $(CONFIG_STEP1) --steps preprocessing
+	$(PYTHON) -m cli.main step1 --config $(CONFIG_STEP1)
 
 run-step2:
-	mne_bids_pipeline --config $(CONFIG_STEP2) --steps preprocessing,sensor,source
-	$(PYTHON) source_reconstruction/finalize_inverse.py --subject 05 --task matchingpennies
+	$(PYTHON) -m cli.main step2 --config $(CONFIG_STEP2)
 
 bench:
-	$(PYTHON) pipeline_mne_bids/run_bench_matrix.py --out-json reports/BENCH_MATRIX_RESULTS.json
+	$(PYTHON) -m cli.main bench --output reports/BENCH_MATRIX_RESULTS.json
 
 clean:
 	rm -rf $(DERIV)/_cache __pycache__ .pytest_cache .ruff_cache
+
+audit:
+	bash scripts/repo_sanity.sh
+
+clean-cache:
+	rm -rf data/derivatives/_cache .joblib_cache
