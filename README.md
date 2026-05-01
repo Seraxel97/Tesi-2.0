@@ -1,4 +1,9 @@
-# Tesi_2.0 — EEG Source-Level Functional Connectivity for Cognitive Task Classification
+# Tesi_2.0 — EEG Source-Space FC Pipeline
+
+![tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![lint](https://img.shields.io/badge/lint-ruff-blue)
+![python](https://img.shields.io/badge/python-3.13-blue)
+![mne](https://img.shields.io/badge/mne-1.11.0-green)
 
 Estensione modulare di `mne-bids-pipeline` con parcellazione atlastica, connettivita funzionale
 e classificazione ML. Progetto di tesi magistrale.
@@ -28,15 +33,18 @@ Diagramma dettagliato: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
 
 ## Stato
 
-| Step | Stato |
-|------|-------|
-| STEP 1 — Preprocessing | DONE (2026-04-28) |
-| STEP 2 — Source reconstruction | DONE (2026-05-01) |
-| STEP 3 — Parcellazione | DONE (sprint S-01, 2026-05-01) |
-| STEP 4 — Connettivita | DONE (sprint S-02, 2026-05-01) |
-| STEP 5 — Features | DONE (sprint S-03, 2026-05-01) |
-| STEP 6 — ML | DONE (sprint S-04, 2026-05-01) |
-| STEP 7 — E2E | DONE (sprint S-05, 2026-05-01) |
+| Step | Titolo | Stato | Output principale | Sprint |
+|------|--------|-------|-------------------|--------|
+| 1 | Preprocessing | DONE 2026-04-28 | `data/derivatives/.../sub-05/eeg/*_clean_epo.fif` | baseline |
+| 2 | Source reconstruction | DONE 2026-05-01 | `*-inv.fif`, `*-stc-*-dSPM-{lh,rh}.stc` | baseline |
+| 3 | Parcellazione | DONE 2026-05-01 | `parcellation/extract_label_tc.py` (4 atlanti) | S-01 |
+| 4 | FC dispatcher | DONE 2026-05-01 | `connectivity/fc_dispatcher.py` (7 metriche) | S-02 |
+| 5 | Feature extraction | DONE 2026-05-01 | `features/dispatcher.py` | S-03 |
+| 6 | ML classification | DONE 2026-05-01 | `ml_training/ml_dispatcher.py` (5 algo, LOSO) | S-04 |
+| 7 | E2E smoke | DONE 2026-05-01 | `pipeline_mne_bids/run_e2e_matchingpennies.py` | S-05 |
+| 8 | Benchmark matrix | PENDING | `reports/BENCH_MATRIX_RESULTS.json` (700 run) | S-08 |
+| — | Vault integration | DONE 2026-05-01 | `070_THESIS/RESULTS_BASELINE.md` (Obsidian) | S-12 |
+| — | CI workflows | DONE 2026-05-01 | `.github/workflows/{lint,test,eeg-smoke}.yml` | DR-VAULT |
 
 Log dettagliato: [PROGRESS.md](PROGRESS.md).
 
@@ -97,25 +105,68 @@ Versioni attese:
 
 ## Quick start
 
-### STEP 1 — Preprocessing (matchingpennies sub-05)
+I comandi piu' comuni sono disponibili tramite `make`. Eseguire `make help` per la lista completa.
 
 ```bash
+make test        # pytest tests/ -v  (116 test, ~40s)
+make lint        # ruff check + format --check
+make format      # ruff autofix + format
+make run-step1   # preprocessing matchingpennies sub-05
+make run-step2   # source reconstruction + finalize inverse
+make bench       # benchmark matrix 700 run (stima ~2-3h con ottimizzazioni)
+make clean       # rimuove _cache, __pycache__, .pytest_cache, .ruff_cache
+```
+
+### STEP 1 — Preprocessing
+
+```bash
+make run-step1
+# oppure direttamente:
 mne_bids_pipeline --config config/config_step1_matchingpennies.py --steps preprocessing
 ```
 
-Output: `data/derivatives/mne-bids-pipeline/sub-05/eeg/`
+Output: `data/derivatives/mne-bids-pipeline/sub-05/eeg/*_clean_epo.fif`
 
 ### STEP 2 — Source reconstruction
 
 ```bash
-python source_reconstruction/finalize_inverse.py --subject 05 --task matchingpennies
+make run-step2
+# oppure direttamente:
+mne_bids_pipeline --config config/config_step2_source_matchingpennies.py \
+    --steps preprocessing,sensor,source
+python source_reconstruction/finalize_inverse.py \
+    --subject 05 --task matchingpennies \
+    --method dSPM --loose 0.2 --depth 0.8 --lambda2 0.111
 ```
 
-Output: `data/derivatives/mne-bids-pipeline/sub-05/eeg/*-stc-*.stc`
+Output: `data/derivatives/.../sub-05/eeg/*-stc-*-dSPM-{lh,rh}.stc`
 
-I passi successivi (STEP 3-7) vengono eseguiti tramite i moduli in
-`parcellation/`, `connectivity/`, `features/`, `ml_training/`. Vedere
-[docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md) per i comandi specifici.
+### Benchmark matrix (STEP 8)
+
+```bash
+python pipeline_mne_bids/run_bench_matrix.py \
+    --subject sub-05 \
+    --deriv data/derivatives/mne-bids-pipeline \
+    --sfreq-target 500 \
+    --n-epochs-max 0
+```
+
+Output: `reports/BENCH_MATRIX_RESULTS.json` + `reports/BENCH_MATRIX_SUMMARY.md`
+
+### E2E smoke completo
+
+```bash
+python pipeline_mne_bids/run_e2e_matchingpennies.py
+```
+
+### Test suite
+
+```bash
+pytest tests/ -v                          # suite completa
+pytest tests/test_e2e_smoke_minimal.py    # smoke sintetico CI-safe (no dataset)
+```
+
+Diagramma completo con input/output per step: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
 
 ---
 
@@ -143,12 +194,28 @@ Tesi_2.0/
 
 ## Riferimenti
 
-- Vault Obsidian: `[[070_THESIS/MNE_PROFESSOR_LINKS]]` (5 link professorali canonici).
-- MNE-Python docs: https://mne.tools/stable/
-- mne-bids-pipeline docs: https://mne-bids-pipeline.readthedocs.io/
-- mne-connectivity: https://mne.tools/mne-connectivity/
-- mne-features: https://mne.tools/mne-features/
-- neuromaps: https://netneurolab.github.io/neuromaps/
+### Documentazione progetto
+
+- Pipeline overview: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md)
+- Metodi step-by-step: [reports/STEP2_PROPOSAL.md](reports/STEP2_PROPOSAL.md), [reports/STEP3_PROPOSAL.md](reports/STEP3_PROPOSAL.md)
+- Benchmark design: [.planning/BENCH_DESIGN.md](.planning/BENCH_DESIGN.md)
+- Risultati baseline: `Obsidian: [[070_THESIS/RESULTS_BASELINE]]`
+
+### Vault Obsidian (link professorali)
+
+`[[070_THESIS/MNE_PROFESSOR_LINKS]]` — 5 link canonici del professore su MNE,
+source reconstruction e connettivita funzionale.
+
+### Librerie
+
+| Libreria | Docs |
+|----------|------|
+| MNE-Python 1.11.0 | https://mne.tools/stable/ |
+| mne-bids-pipeline 1.10.1 | https://mne-bids-pipeline.readthedocs.io/ |
+| mne-connectivity 0.8 | https://mne.tools/mne-connectivity/ |
+| mne-features 0.3.2 | https://mne.tools/mne-features/ |
+| neuromaps 0.0.5 | https://netneurolab.github.io/neuromaps/ |
+| scikit-learn 1.8.0 | https://scikit-learn.org/stable/ |
 
 Progetto sviluppato come **estensione modulare** di mne-bids-pipeline, non come pipeline standalone.
 Ogni step usa esclusivamente le librerie del vincolo 2 (PROGRESS.md §Vincoli OBBLIGATORI).
