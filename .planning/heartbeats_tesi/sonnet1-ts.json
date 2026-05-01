@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"working","timestamp":"2026-05-01T02:55:50+02:00","sprint_id":"S-03","milestone":"claim+recon","last_capture":"S-02 PASS, claimed S-03","next_action":"implementa features/dispatcher.py + test"}
+{"worker":"sonnet1-ts","status":"working","timestamp":"2026-05-01T03:00:45+02:00","sprint_id":"S-04","milestone":"claim+recon","last_capture":"S-03 PASS, a7d6020","next_action":"implementa ml_dispatcher.py 5 algoritmi + GroupKFold + permutation"}
