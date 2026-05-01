@@ -120,6 +120,34 @@ La balanced accuracy è preferita all'accuracy classica perché è robusta a cla
 
 ---
 
+## 5. Bootstrap Confidence Intervals su Balanced Accuracy
+
+La balanced accuracy (BA) è riportata con intervallo di confidenza al 95% calcolato
+via **bootstrap BCa** (bias-corrected accelerated, 1000 ricampionamenti) sui valori
+per-fold. Il bootstrap BCa è preferito al CI normale per due ragioni:
+
+1. Con N fold piccoli (tipicamente 5–20), la distribuzione campionaria della BA è
+   asimmetrica e potenzialmente non-normale (Hesterberg 2015).
+2. Il livello del caso teorico (50% per classificazione binaria bilanciata) può essere
+   fuorviante con dataset piccoli; il CI bootstrap fornisce una stima empirica della
+   variabilità (Combrisson & Jerbi 2015).
+
+**Implementazione** (`analysis/stats_utility.py`, S-41):
+
+```python
+from analysis.stats_utility import ci_bootstrap
+ci_low, ci_high = ci_bootstrap(ba_per_fold, n_bootstrap=1000, ci=0.95, method="bca")
+```
+
+**Reporting standard**:
+
+> "Balanced accuracy (BA) è riportata come media ± CI 95% BCa bootstrap su fold LOSO
+> (1000 ricampionamenti). La significatività statistica è valutata tramite permutation
+> test (1000 permutazioni) con correzione FDR-BH [Efron 1979, Hesterberg 2015,
+> Combrisson & Jerbi 2015]."
+
+---
+
 ## Riferimenti
 
 - Gemein, L.A.W., et al. (2023). Machine learning-based diagnostics of EEG pathology. *Sensors*, 23(9), 4544.
@@ -130,5 +158,10 @@ La balanced accuracy è preferita all'accuracy classica perché è robusta a cla
 - Varoquaux, G., et al. (2017). Assessing and tuning brain decoders. *NeuroImage*, 159.
 - Salzberg, S.L. (1997). On comparing classifiers. *Machine Learning*, 26, 251–256.
 - Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate. *Journal of the Royal Statistical Society B*, 57(1).
+- Efron, B. (1979). Bootstrap Methods: Another Look at the Jackknife. *The Annals of Statistics*, 7(1), 1–26.
+- Hesterberg, T.C. (2015). What Teachers Should Know About the Bootstrap. *The American Statistician*, 69(4), 371–386.
+- Combrisson, E., & Jerbi, K. (2015). Exceeding chance level by chance. *Journal of Neuroscience Methods*, 250, 126–136.
+
+> BibTeX entries completi in `.planning/research/REFS_BOOTSTRAP.md` e `bibliografia.bib`.
 
 > BibTeX entries completi in `.planning/research/REFS_LOSO_CV.md`.

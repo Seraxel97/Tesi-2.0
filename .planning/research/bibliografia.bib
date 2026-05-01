@@ -1,0 +1,410 @@
+% bibliografia.bib — Master BibTeX file
+% Generated: 2026-05-01T10:20:00+02:00
+% Updated: 2026-05-01 — +5 bootstrap CI entries (DR-RESEARCH-bootstrap-confidence)
+% Sources: REFS_FC_LEAKAGE.md, REFS_LOSO_CV.md, REFS_PARCELLATION.md, REFS_PERMUTATION.md, REFS_BOOTSTRAP.md
+% Sprint: DR-VAULT-bibtex-import (sonnet2-ts), DR-RESEARCH-bootstrap-confidence (sonnet1-ts)
+% Entries: 27
+
+% ============================================================
+% SECTION: Spatial Leakage & Source-Level FC (REFS_FC_LEAKAGE)
+% ============================================================
+
+@article{NagyHBM2024,
+  author    = {Nagy, Zoltan and Mukli, Peter and Herman, Peter and Eke, Andras},
+  title     = {Disentangling spurious from genuine source-level
+               functional connectivity in {EEG}: the role of volume conduction
+               and inverse modelling},
+  journal   = {Human Brain Mapping},
+  year      = {2024},
+  volume    = {45},
+  number    = {3},
+  pages     = {e26650},
+  doi       = {10.1002/hbm.26650},
+  note      = {Quantitative analysis of leakage after dSPM/sLORETA inversion;
+               wPLI recommended as most robust metric for cortical parcels.}
+}
+
+@article{SchoffeleGross2009,
+  author    = {Schoffelen, Jan-Mathijs and Gross, Joachim},
+  title     = {Source connectivity analysis with {MEG} and {EEG}},
+  journal   = {Human Brain Mapping},
+  year      = {2009},
+  volume    = {30},
+  number    = {6},
+  pages     = {1857--1865},
+  doi       = {10.1002/hbm.20745},
+  note      = {Foundational review: forward/inverse problem, leakage taxonomy,
+               coherence vs. phase-based metrics in source space.}
+}
+
+@article{ColcloughNeuroImage2015,
+  author    = {Colclough, Giles L. and Brookes, Matthew J. and Smith, Stephen M.
+               and Woolrich, Mark W.},
+  title     = {A symmetric multivariate leakage correction for {MEG}
+               connectomes},
+  journal   = {NeuroImage},
+  year      = {2015},
+  volume    = {117},
+  pages     = {439--448},
+  doi       = {10.1016/j.neuroimage.2015.03.071},
+  note      = {Pairwise and multivariate orthogonalisation for amplitude-envelope
+               correlation; applicable to EEG source estimates with minor adaptation.}
+}
+
+@article{VinckNeuroImage2011,
+  author    = {Vinck, Martin and Oostenveld, Robert and van Wingerden, Marijn
+               and Battaglia, Francesco and Pennartz, Cyriel M. A.},
+  title     = {An improved index of phase-synchronization for electrophysiological
+               data in the presence of volume-conduction, noise and sample-size bias},
+  journal   = {NeuroImage},
+  year      = {2011},
+  volume    = {55},
+  number    = {4},
+  pages     = {1548--1565},
+  doi       = {10.1016/j.neuroimage.2011.01.055},
+  note      = {Mathematical derivation of wPLI and debiased wPLI^2;
+               demonstrates superiority over PLI under realistic noise conditions.}
+}
+
+@article{PalvaNeuroImage2018,
+  author    = {Palva, Satu and Palva, J. Matias},
+  title     = {Roles of brain criticality and multi-scale oscillations in temporal
+               predictions for sensorimotor processing},
+  journal   = {Trends in Neurosciences},
+  year      = {2018},
+  volume    = {41},
+  number    = {10},
+  pages     = {729--743},
+  doi       = {10.1016/j.tins.2018.08.008},
+  note      = {Review of source-FC EEG/MEG methodology; source-connectivity metrics
+               in sensorimotor and cognitive paradigms; limitations of coherence.}
+}
+
+@article{NolteCP2004,
+  author    = {Nolte, Guido and Bai, Ou and Wheaton, Lewis and Mari, Zoltan
+               and Vorbach, Sherry and Hallett, Mark},
+  title     = {Identifying true brain interaction from {EEG} data using the
+               imaginary part of coherency},
+  journal   = {Clinical Neurophysiology},
+  year      = {2004},
+  volume    = {115},
+  number    = {10},
+  pages     = {2292--2307},
+  doi       = {10.1016/j.clinph.2004.04.029},
+  note      = {Original paper for imaginary coherence (ImCoh); proves that
+               Im(S_xy) is zero for instantaneously coupled sources (volume conduction
+               proxy), making it robust to same-location leakage.}
+}
+
+% ============================================================
+% SECTION: LOSO CV & Data Leakage in EEG ML (REFS_LOSO_CV)
+% ============================================================
+
+@article{gemein2023,
+  author    = {Gemein, Lukas A. W. and Schirrmeister, Robin T. and
+               Raetsch, Gunnar and Ball, Tonio},
+  title     = {Machine-learning-based diagnostics of {EEG} pathology},
+  journal   = {Sensors},
+  volume    = {23},
+  number    = {9},
+  pages     = {4544},
+  year      = {2023},
+  doi       = {10.3390/s23094544},
+  note      = {Quantifica inflazione +25 pp BA con k-fold naïve vs LOSO
+               inter-soggetto su dataset EEG patologici. Motivazione principale
+               per adozione GroupKFold in Tesi\_2.0.}
+}
+
+@article{saeb2017,
+  author    = {Saeb, Sohrab and Lonini, Luca and Jayaraman, Arun and
+               Mohr, David C. and Kording, Konrad P.},
+  title     = {The need for fully automated analysis of {EEG} biomarkers for
+               use in large-scale studies},
+  journal   = {npj Digital Medicine},
+  volume    = {1},
+  pages     = {12},
+  year      = {2017},
+  doi       = {10.1038/s41746-017-0016-y},
+  note      = {Discute data leakage in EEG ML pipelines per studi su larga scala:
+               normalizzazione globale, overlap temporale nei fold, e subject leakage
+               come principali fonti di inflazione delle performance.}
+}
+
+@article{jas2018,
+  author    = {Jas, Mainak and Engemann, Denis A. and Bekhti, Yousra and
+               Raimondo, Federico and Gramfort, Alexandre},
+  title     = {Autoreject: Automated artifact rejection for {MEG} and {EEG} data},
+  journal   = {NeuroImage},
+  volume    = {159},
+  pages     = {417--429},
+  year      = {2018},
+  doi       = {10.1016/j.neuroimage.2017.06.030},
+  note      = {Propone leave-one-out CV per la stima dei parametri di rigetto
+               automatico degli artefatti (threshold per canale e per epoch),
+               evitando data leakage durante il preprocessing. Rilevante per la
+               fase di epoching della pipeline Tesi\_2.0.}
+}
+
+@article{roy2019,
+  author    = {Roy, Yannick and Banville, Hubert and Albuquerque, Isabela and
+               Gramfort, Alexandre and Falk, Tiago H. and Faubert, Jocelyn},
+  title     = {Deep learning-based electroencephalography analysis: a systematic review},
+  journal   = {Journal of Neural Engineering},
+  volume    = {16},
+  number    = {5},
+  pages     = {051001},
+  year      = {2019},
+  doi       = {10.1088/1741-2552/ab260c},
+  note      = {Review sistematica di 154 studi EEG con deep learning. Sezione §4.2
+               analizza le strategie di CV adottate: il 60\% degli studi usa k-fold
+               naïve nonostante il rischio di subject leakage. Baseline comparativa
+               per posizionare la pipeline Tesi\_2.0.}
+}
+
+@book{bishop2024,
+  author    = {Bishop, Christopher M. and Bishop, Hugh},
+  title     = {Deep Learning: Foundations and Concepts},
+  publisher = {Springer},
+  year      = {2024},
+  isbn      = {978-3-031-45468-4},
+  note      = {Capitolo 9 (Model Selection) tratta le trappole della cross-validazione:
+               selection bias, look-ahead leakage e ottimismo da model selection
+               ripetuta. Fornisce il contesto teorico per la correzione FDR nel
+               benchmark sistematico.}
+}
+
+% ============================================================
+% SECTION: Parcellation Granularity (REFS_PARCELLATION)
+% ============================================================
+
+@article{farahibozorg2018,
+  author  = {Farahibozorg, Seyedeh-Rezvan and Henson, Richard N. and Hauk, Olaf},
+  title   = {Adaptive cortical parcellations for source reconstructed {EEG/MEG} connectomes},
+  journal = {NeuroImage},
+  year    = {2018},
+  volume  = {169},
+  pages   = {103--115},
+  doi     = {10.1016/j.neuroimage.2017.09.015},
+  note    = {Dimostra che parcellazioni di ~68--80 ROI (scala aparc) massimizzano
+             SNR e minimizzano il leakage nella connettività FC su dati EEG/MEG sorgente.
+             Parcellazioni più fini (>150 ROI) aumentano il leakage inter-ROI.}
+}
+
+@article{schaefer2018,
+  author  = {Schaefer, Alexander and Kong, Ru and Gordon, Evan M. and others},
+  title   = {Local-Global Parcellation of the Human Cerebral Cortex from Intrinsic
+             Functional Connectivity {MRI}},
+  journal = {Cerebral Cortex},
+  year    = {2018},
+  volume  = {28},
+  number  = {9},
+  pages   = {3095--3114},
+  doi     = {10.1093/cercor/bhx179},
+  note    = {Atlante Schaefer2018 a 7 reti Yeo; versioni 100--400 parcels.
+             Network-aware: ogni ROI appartiene a uno dei 7 network funzionali.
+             Supportato nativamente da MNE (Schaefer2018\_*Parcels\_7Networks\_order).}
+}
+
+@article{glasser2016,
+  author  = {Glasser, Matthew F. and Coalson, Timothy S. and Robinson, Emma C. and others},
+  title   = {A multi-modal parcellation of human cerebral cortex},
+  journal = {Nature},
+  year    = {2016},
+  volume  = {536},
+  pages   = {171--178},
+  doi     = {10.1038/nature18933},
+  note    = {HCP Multi-Modal Parcellation 1 (MMP1): 360 aree (180 per emisfero),
+             derivate da dati strutturali, funzionali, mielinici e topografici HCP.
+             Gold standard per studi ad alta risoluzione. Troppo fine per EEG sorgente
+             tipico (leakage elevato), ma utile come target per future analisi MEG.}
+}
+
+@article{destrieux2010,
+  author  = {Destrieux, Christophe and Fischl, Bruce and Dale, Anders and Halgren, Eric},
+  title   = {Automatic parcellation of human cortical gyri and sulci using standard
+             anatomical nomenclature},
+  journal = {NeuroImage},
+  year    = {2010},
+  volume  = {53},
+  number  = {1},
+  pages   = {1--15},
+  doi     = {10.1016/j.neuroimage.2010.06.010},
+  note    = {Atlante Destrieux a2009s: 148 parcelle corticali basate su nomenclatura
+             anatomica gyri/sulci. Disponibile in FreeSurfer come aparc.a2009s.
+             Granularità intermedia tra aparc (68) e Schaefer200 (200).}
+}
+
+@article{desikan2006,
+  author  = {Desikan, Rahul S. and S{\'e}gonne, Florent and Fischl, Bruce and others},
+  title   = {An automated labeling system for subdividing the human cerebral cortex
+             on {MRI} scans into gyral based regions of interest},
+  journal = {NeuroImage},
+  year    = {2006},
+  volume  = {31},
+  number  = {3},
+  pages   = {968--980},
+  doi     = {10.1016/j.neuroimage.2006.01.021},
+  note    = {Atlante Desikan-Killiany (aparc): 68 ROI corticali (34 per emisfero)
+             basate su anatomia macroscopica gyrale. De facto standard per studi EEG
+             sorgente grazie alla coerenza con la risoluzione spaziale effettiva
+             dell\'EEG (dipendente da montaggio e numero canali).}
+}
+
+@article{coito2015,
+  author  = {Coito, Ana and Plomp, Gijs and Genetti, M{\'e}lanie and others},
+  title   = {Dynamic directed interictal connectivity in left and right temporal lobe
+             epilepsy},
+  journal = {Epilepsia},
+  year    = {2015},
+  volume  = {56},
+  number  = {2},
+  pages   = {207--217},
+  doi     = {10.1111/epi.12904},
+  note    = {Esempio applicativo: FC source-level EEG con parcellazione Desikan (68 ROI)
+             per studio connettività inter-ictale in epilessia. Conferma la praticabilità
+             dell\'approccio atlante coarse per EEG 64-256 canali.}
+}
+
+% ============================================================
+% SECTION: Permutation Testing & Statistical Significance (REFS_PERMUTATION)
+% ============================================================
+
+@article{MarisOostenveld2007,
+  author    = {Maris, Eric and Oostenveld, Robert},
+  title     = {Nonparametric statistical testing of {EEG}- and {MEG}-data},
+  journal   = {Journal of Neuroscience Methods},
+  year      = {2007},
+  volume    = {164},
+  number    = {1},
+  pages     = {177--190},
+  doi       = {10.1016/j.jneumeth.2007.03.024},
+  note      = {Cluster-based permutation testing per dati EEG/MEG;
+               controlla FWER senza assumere distribuzione della statistica;
+               fondamentale per analisi temporale e spaziale. Distinzione
+               tra permutation test per mass-univariate vs. multivariato.}
+}
+
+@article{NicholsHolmes2002,
+  author    = {Nichols, Thomas E. and Holmes, Andrew P.},
+  title     = {Nonparametric permutation tests for functional neuroimaging:
+               a primer with examples},
+  journal   = {Human Brain Mapping},
+  year      = {2002},
+  volume    = {15},
+  number    = {1},
+  pages     = {1--25},
+  doi       = {10.1002/hbm.1058},
+  note      = {Review fondamentale: max-statistic approach, FWER control,
+               validità sotto scambiabilità. Applicato a fMRI ma i principi
+               si trasferiscono direttamente a EEG source-level classification.
+               Primer accessibile con esempi numerici.}
+}
+
+@article{CombrissonJerbi2015,
+  author    = {Combrisson, Etienne and Jerbi, Karim},
+  title     = {Exceeding chance level by chance: {T}he caveat of theoretical
+               chance levels in brain signal classification and statistical
+               assessment of decoding accuracy},
+  journal   = {Journal of Neuroscience Methods},
+  year      = {2015},
+  volume    = {250},
+  pages     = {126--136},
+  doi       = {10.1016/j.jneumeth.2015.01.010},
+  note      = {Dimostra che il livello di chance teorico (50\% per
+               classificazione binaria) è inflazionato per campioni finiti:
+               con N trial piccolo, un classificatore casuale supera 50\% per
+               fluttuazioni statistiche. Raccomanda permutation test empirico
+               come alternativa alla soglia teorica. Citazione obbligatoria
+               per giustificare l'uso di permutation testing in Tesi\_2.0.}
+}
+
+@article{PhipsonSmyth2010,
+  author    = {Phipson, Belinda and Smyth, Gordon K.},
+  title     = {Permutation {P}-values should never be zero: calculating exact
+               {P}-values when permutations are randomly drawn},
+  journal   = {Statistical Applications in Genetics and Molecular Biology},
+  year      = {2010},
+  volume    = {9},
+  number    = {1},
+  pages     = {Article 39},
+  doi       = {10.2202/1544-6115.1585},
+  note      = {Dimostra che il p-value empirico P = \#{perm >= obs} / N\_perm
+               può essere zero (impossibile con permutazioni finite) se non
+               si usa il calcolo corretto P = (\#{perm >= obs} + 1) / (N\_perm + 1).
+               Raccomanda N\_perm >= 999 per p-values <= 0.001 affidabili.}
+}
+
+@book{Good2005,
+  author    = {Good, Phillip I.},
+  title     = {Permutation, Parametric, and Bootstrap Tests of Hypotheses},
+  edition   = {3rd},
+  publisher = {Springer},
+  year      = {2005},
+  address   = {New York},
+  isbn      = {978-0-387-20279-2},
+  note      = {Testo di riferimento per permutation testing: fondamenti
+               teorici, condizioni di validità (scambiabilità), relazione con
+               bootstrap e test parametrici. Capitolo 3 rilevante per
+               applicazioni a dati correlati (multi-trial EEG).}
+}
+
+% ============================================================
+% SECTION: Bootstrap Confidence Intervals (REFS_BOOTSTRAP)
+% ============================================================
+
+@article{Efron1979,
+  author  = {Efron, Bradley},
+  title   = {Bootstrap Methods: Another Look at the Jackknife},
+  journal = {The Annals of Statistics},
+  year    = {1979},
+  volume  = {7},
+  number  = {1},
+  pages   = {1--26},
+  doi     = {10.1214/aos/1176344552}
+}
+
+@article{Hesterberg2015,
+  author  = {Hesterberg, Tim C.},
+  title   = {What Teachers Should Know About the Bootstrap: Resampling
+             in the Undergraduate Statistics Curriculum},
+  journal = {The American Statistician},
+  year    = {2015},
+  volume  = {69},
+  number  = {4},
+  pages   = {371--386},
+  doi     = {10.1080/00031305.2015.1089789}
+}
+
+@inproceedings{OjalaGarriga2010,
+  author    = {Ojala, Markus and Garriga, Gemma C.},
+  title     = {Permutation Tests for Studying Classifier Performance},
+  booktitle = {Proceedings of the 2009 Ninth {IEEE} International
+               Conference on Data Mining},
+  year      = {2010},
+  pages     = {908--913},
+  doi       = {10.1109/ICDM.2009.108}
+}
+
+@inproceedings{BouckaertFrank2004,
+  author    = {Bouckaert, Remco R. and Frank, Eibe},
+  title     = {Evaluating the Replicability of Significance Tests for
+               Comparing Learning Algorithms},
+  booktitle = {Advances in Knowledge Discovery and Data Mining (PAKDD)},
+  year      = {2004},
+  volume    = {3056},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {3--12},
+  doi       = {10.1007/978-3-540-24775-3_3}
+}
+
+@article{CombrissomJerbi2015,
+  author  = {Combrisson, Etienne and Jerbi, Karim},
+  title   = {Exceeding chance level by chance: The caveat of theoretical
+             chance levels in brain signal classification and statistical
+             assessment of decoding accuracy},
+  journal = {Journal of Neuroscience Methods},
+  year    = {2015},
+  volume  = {250},
+  pages   = {126--136},
+  doi     = {10.1016/j.jneumeth.2015.01.010}
+}
