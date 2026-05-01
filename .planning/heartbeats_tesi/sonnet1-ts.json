@@ -1,1 +1,1 @@
-{"worker":"sonnet1-ts","status":"working","timestamp":"2026-05-01T03:08:00+02:00","sprint_id":"S-08","milestone":"claim","last_capture":"S-05 PASS c710791 — S-01..S-05 chain completa","next_action":"claim S-08 bench matrix + run_bench_matrix.py"}
+{"worker":"sonnet1-ts","status":"done","timestamp":"2026-05-01T03:31:10+02:00","sprint_id":"S-13","milestone":"done","verdict":"PASS","last_capture":"METHODS_v1.md 4619 parole, 9 sezioni paper-style","next_action":"auto-claim S-15 (manuscript skeleton, deps=[S-13])"}
