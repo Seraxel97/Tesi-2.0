@@ -13,6 +13,33 @@ La scelta della strategia di cross-validazione è una delle decisioni metodologi
 
 L'entità del bias è stata quantificata empiricamente: Gemein et al. (2023, *Sensors*) hanno riscontrato un'inflazione media della balanced accuracy di **+25 punti percentuali** con k-fold naïve rispetto a LOSO inter-soggetto su dataset EEG comparabili. Questo valore supera le differenze tipiche tra algoritmi, rendendo la strategia di CV il fattore più determinante per la validità dei risultati. GroupKFold assegna gli interi soggetti a fold distinti, eliminando il subject leakage e prevenendo anche il *temporal leakage* tra trial adiacenti dello stesso soggetto.
 
+### 1.1 Why not standard k-fold for EEG?
+
+Standard k-fold is inappropriate for multi-subject EEG for three compounding reasons.
+
+**Subject leakage (+25 pp inflation, Gemein et al. 2023)**: When trials from the same
+subject appear in both training and test folds, the classifier learns subject-specific
+scalp topography rather than generalizable neural signatures. Saeb et al. (2017) further
+show that global normalization applied before splitting introduces an additional leakage
+channel: test-set statistics contaminate the scaler fitted on training data.
+
+**Temporal leakage**: In continuous EEG recordings, adjacent trials share filter state
+and slow cortical drifts. Standard k-fold may place temporally neighboring trials on
+opposite sides of the train/test boundary. Jas et al. (2018) demonstrate this in the
+context of artifact rejection thresholds and recommend leave-one-subject-out schemes
+even during preprocessing.
+
+**Selection bias from model search (Bishop & Bishop 2024, §9)**: When CV is used to
+both select hyperparameters and estimate generalization, the test error is optimistically
+biased. This bias compounds across the 700 configurations of the benchmark matrix. FDR
+correction (Benjamini-Hochberg 1995) controls the expected proportion of false positives,
+but only if the null distribution is correctly estimated — requiring a leakage-free CV
+procedure as the base.
+
+Roy et al. (2019, *Journal of Neural Engineering*) surveyed 154 EEG deep-learning studies
+and found that 60% used naive k-fold despite known leakage risks. The present pipeline
+explicitly adopts GroupKFold and documents the choice with quantitative justification.
+
 ---
 
 ## 2. Protocollo adottato in Tesi_2.0
@@ -52,6 +79,20 @@ Con 1000 permutazioni, la risoluzione del p-value è 0.001. Il seed del generato
 
 Il permutation test è applicato al dataset multi-soggetto finale. Sul dataset di sviluppo singolo-soggetto viene omesso per mancanza di potenza statistica.
 
+### 4.1 Rationale: perché il permutation test è necessario
+
+**Il livello di chance teorico non è sufficiente.** La soglia del 50% per classificazione binaria è valida solo asintoticamente. Combrisson & Jerbi (2015) dimostrano che con campioni finiti tipici dell'EEG (N = 50–200 trial per soggetto), un classificatore casuale supera il 50% con probabilità non trascurabile: con N = 50 trial, il 5° percentile superiore della distribuzione casuale è ~62%. Usare 50% come soglia di significatività porta quindi a tassi di falsi positivi reali molto superiori al 5% nominale. Questo problema è particolarmente acuto nel presente benchmark, dove si confrontano 700 configurazioni con dataset mono-soggetto (N piccolo per classe).
+
+**La distribuzione null empirica è la soluzione.** Il permutation test costruisce la distribuzione null dell'accuracy permutando le etichette — preservando la struttura di feature, gruppi e splits — e calcola quante permutazioni producono accuracy ≥ al risultato osservato. Questa procedura è non-parametrica (non assume gaussianità della distribuzione della statistica), valida sotto la sola condizione di scambiabilità delle osservazioni sotto H0 (Nichols & Holmes, 2002; Good, 2005), e applicabile a qualsiasi metrica di classificazione.
+
+**Numero minimo di permutazioni e calcolo corretto del p-value.** Phipson & Smyth (2010) mostrano che il p-value empirico #{perm ≥ obs} / N_perm può apparentemente essere zero per N_perm piccoli, il che è statisticamente impossibile (un p-value esatto non può essere 0 con permutazioni finite). La formula corretta, che evita questo artefatto, è:
+
+**p = (#{perm ≥ obs} + 1) / (N_perm + 1)**
+
+Con N_perm = 1000, la risoluzione minima è p = 1/1001 ≈ 0.001, sufficiente per testare a α = 0.05 con potenza adeguata. Phipson & Smyth raccomandano N_perm ≥ 999 come minimo per p-values ≤ 0.001 affidabili.
+
+**FDR correction obbligatoria per test multipli.** Con 700 test nel benchmark, la probabilità di almeno un falso positivo usando soglia α = 0.05 individuale senza correzione è 1 − (0.95)^700 ≈ 1.0 (certezza pratica di falsi positivi). La correzione FDR Benjamini-Hochberg (§5) è obbligatoria per mantenere un tasso di falsi positivi controllato sull'insieme del benchmark. La scelta FDR rispetto a Bonferroni è motivata dalla natura esplorativa del confronto: si accetta un numero limitato di falsi positivi (FDR ≤ 5%) per non perdere associazioni reali (Maris & Oostenveld, 2007).
+
 ---
 
 ## 5. Reporting
@@ -72,7 +113,13 @@ La balanced accuracy è preferita all'accuracy classica perché è robusta a cla
 
 ## Riferimenti
 
-- Gemein, L.A.W., et al. (2023). Machine learning-based diagnostics of EEG pathology. *Sensors*, 23(9).
+- Gemein, L.A.W., et al. (2023). Machine learning-based diagnostics of EEG pathology. *Sensors*, 23(9), 4544.
+- Saeb, S., et al. (2017). The need for fully automated analysis of EEG biomarkers. *npj Digital Medicine*, 1, 12.
+- Jas, M., et al. (2018). Autoreject: Automated artifact rejection for MEG and EEG data. *NeuroImage*, 159, 417–429.
+- Roy, Y., et al. (2019). Deep learning-based electroencephalography analysis: a systematic review. *Journal of Neural Engineering*, 16(5), 051001.
+- Bishop, C.M., & Bishop, H. (2024). *Deep Learning: Foundations and Concepts*. Springer.
 - Varoquaux, G., et al. (2017). Assessing and tuning brain decoders. *NeuroImage*, 159.
 - Salzberg, S.L. (1997). On comparing classifiers. *Machine Learning*, 26, 251–256.
 - Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate. *Journal of the Royal Statistical Society B*, 57(1).
+
+> BibTeX entries completi in `.planning/research/REFS_LOSO_CV.md`.
