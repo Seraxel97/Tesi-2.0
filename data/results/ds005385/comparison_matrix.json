@@ -1,0 +1,90 @@
+{
+  "description": "comparison matrix atlas\u00d7metric\u00d7clf \u2014 ds005385 PILOT n=10",
+  "note": "risultati INDICATIVI \u2014 5-fold LOSO 1 test sample per fold",
+  "matrix": {
+    "aparc": {
+      "wpli": {
+        "logreg": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 1.0,
+          "f1": 0.5333
+        },
+        "svm_rbf": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 0.0,
+          "f1": 0.6667
+        },
+        "lda": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 0.8,
+          "f1": 0.5333
+        }
+      },
+      "coh": {
+        "logreg": {
+          "acc": 0.8,
+          "bal_acc": 0.8,
+          "auc": 1.0,
+          "f1": 0.7333
+        },
+        "svm_rbf": {
+          "acc": 0.8,
+          "bal_acc": 0.8,
+          "auc": 0.4,
+          "f1": 0.7333
+        },
+        "lda": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 1.0,
+          "f1": 0.6667
+        }
+      }
+    },
+    "schaefer100": {
+      "wpli": {
+        "logreg": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 1.0,
+          "f1": 0.5333
+        },
+        "svm_rbf": {
+          "acc": 0.6,
+          "bal_acc": 0.6,
+          "auc": 0.0,
+          "f1": 0.6
+        },
+        "lda": {
+          "acc": 0.7,
+          "bal_acc": 0.7,
+          "auc": 0.8,
+          "f1": 0.5333
+        }
+      },
+      "coh": {
+        "logreg": {
+          "acc": 0.9,
+          "bal_acc": 0.9,
+          "auc": 1.0,
+          "f1": 0.9333
+        },
+        "svm_rbf": {
+          "acc": 0.8,
+          "bal_acc": 0.8,
+          "auc": 0.2,
+          "f1": 0.7333
+        },
+        "lda": {
+          "acc": 0.8,
+          "bal_acc": 0.8,
+          "auc": 0.8,
+          "f1": 0.8667
+        }
+      }
+    }
+  }
+}

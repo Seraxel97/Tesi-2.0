@@ -1,25 +1,25 @@
 # Scientific Pipeline Status — ds005385 PILOT
 
-**Timestamp**: 2026-05-01T19:08:00+02:00
-**Sprint**: S-112 (sonnet3-ts)
-**Dataset**: ds005385 (Dortmund Vital Study) — subset N=15, seed=42
-**PILOT subjects**: sub-007, sub-010, sub-011, sub-026, sub-031
-**Atlases**: aparc (68 ROI), schaefer100 (100 ROI)
+**Timestamp**: 2026-05-02T15:28:00Z  
+**Sprint**: S-107 (sonnet1-ts) — AGGIORNAMENTO FINALE  
+**Dataset**: ds005385 (Dortmund Vital Study) — subset N=15, seed=42  
+**PILOT subjects**: sub-007, sub-010, sub-011, sub-026, sub-031  
+**Atlases**: aparc (68 ROI), schaefer100 (100 ROI)  
 **Conditions**: EO (Eyes Open), EC (Eyes Closed)
 
 ---
 
-## Stato step — overview
+## Stato step — overview (AGGIORNATO)
 
 | Step | Descrizione | Soggetti | Stato | Sprint | Note |
 |------|-------------|----------|-------|--------|------|
-| 1 | Preprocessing raw BIDS | 5 PILOT | completato | S-100, S-100b | Dati raw accessibili via symlink, EO/EC mapping validato |
-| 2 | Source reconstruction (dSPM) | 5 PILOT | completato | S-101 | 20 STC file, 415 MB |
-| 3 | Parcellazione atlastica | 5 x 2 atlas x 2 cond | completato | S-103 | 20 .npz file, 3.1 MB |
-| 4 | FC spettrale (wPLI + coh) | 5 x 2 atlas x 2 cond | in corso | S-104 | claimed sonnet1-ts |
-| 5 | Feature extraction | — | in attesa | S-105 | gate: S-104 done |
-| 6 | ML classification | — | in attesa | S-106 | gate: S-105 done |
-| 7 | E2E validation + report | — | in attesa | S-107 | gate: S-106 done |
+| 1 | Preprocessing raw BIDS | 5 PILOT | ✅ completato | S-100, S-100b | EO/EC mapping validato |
+| 2b | Source reconstruction per-epoch (dSPM) | 5 PILOT | ✅ completato | S-101b | 10 stcs.npz → cleanup post S-103b |
+| 3b | Parcellazione per-epoch | 5×2×2 | ✅ completato | S-103b | 20 label_tc (n_ep,n_lbl,n_t) |
+| 4b | FC spettrale per-epoch (wPLI+coh) | 5×2×2×2 | ✅ completato | S-104b | 40 fc_matrix, wPLI 0.12-0.21 |
+| 5 | Feature extraction upper-triangle | 4 atlas×metric | ✅ completato | S-105 | X(10,2278/4950), NaN=0 |
+| 6 | ML classification LOSO | 4×3 combos | ✅ completato | S-106 | best: schaefer100×coh×LogReg 0.90 |
+| 7 | Esperimenti confronto | aggregazione | ✅ completato | S-107 | comparison_matrix.json + report |
 
 ---
 
@@ -143,19 +143,53 @@ compatibili con il resto della pipeline.
 
 ---
 
-## Summary statistics
+## STEP 5-7 — Feature Extraction + ML + Esperimenti (COMPLETATI)
+
+### STEP 5 — Feature Extraction (S-105)
+
+Upper-triangle flatten su fc_matrix (n_labels, n_labels).
+
+| File | Shape | NaN | Range |
+|------|-------|-----|-------|
+| X_aparc_wpli_alpha.npz | (10, 2278) | 0 | [0.016, 0.808] |
+| X_aparc_coh_alpha.npz | (10, 2278) | 0 | [0.010, 0.979] |
+| X_schaefer100_wpli_alpha.npz | (10, 4950) | 0 | [0.011, 0.878] |
+| X_schaefer100_coh_alpha.npz | (10, 4950) | 0 | [0.009, 0.992] |
+
+y=[0,1,0,1,0,1,0,1,0,1] (EO=0, EC=1), groups=[0,0,1,1,2,2,3,3,4,4] LOSO-ready.
+
+### STEP 6 — ML Classification LOSO (S-106)
+
+LogReg / SVM-RBF / LDA. 5-fold LOSO. n=10 — INDICATIVO.
+
+| Atlas | Metric | Best clf | Bal.Acc |
+|-------|--------|----------|---------|
+| aparc | wpli | pari 0.700 | 0.700 |
+| aparc | coh | logreg/svm_rbf | 0.800 |
+| schaefer100 | wpli | logreg/lda | 0.700 |
+| schaefer100 | coh | **logreg** | **0.900** |
+
+### STEP 7 — Esperimenti confronto (S-107)
+
+Aggregazione in `data/results/ds005385/comparison_matrix.json`.
+Report completo: `reports/EXPERIMENTS_MINIMAL.md`.
+
+**Winning config**: schaefer100 × coh × LogisticRegression (bal_acc=0.900).
+
+---
+
+## Summary statistics — FINALE
 
 | Metrica | Valore |
 |---------|--------|
-| Soggetti PILOT completati (STEP 1-3) | 5 / 5 |
-| Atlases | 2 (aparc, schaefer100) |
+| Soggetti PILOT | 5 (sub-007/010/011/026/031) |
+| Atlases | 2 (aparc 68 ROI, schaefer100 100 ROI) |
 | Condizioni | 2 (EO, EC) |
-| STC file prodotti (STEP 2) | 20 (5 sub x 2 cond x 2 emisferi) |
-| .npz label_ts prodotti (STEP 3) | 20 / 20 |
-| Disk usage STEP 2 (STC) | ~415 MB (5 x 83 MB) |
-| Disk usage STEP 3 (label_ts) | 3.1 MB |
-| Disk usage totale PILOT (STEP 2+3) | ~418 MB |
-| Wall-clock STEP 2 | 28.7s |
-| Wall-clock STEP 3 | 5.2s |
-| Step 4 | in corso (S-104) |
-| Step 5-7 | pending gate operatore |
+| label_tc .npz (STEP 3b) | 20 / 20 |
+| FC matrices (STEP 4b) | 40 / 40 |
+| Feature matrices X | 4 (aparc/schaefer100 × wpli/coh) |
+| ML combos testati | 12 (4 × 3 clf) |
+| Best config | schaefer100 × coh × LogReg bal=0.90 |
+| Wall-clock totale pipeline | ~6 min (S-101b→S-107) |
+| Verdict pipeline | **PASS** ✅ |
+| Next step | full run N=15→179 con best config |
