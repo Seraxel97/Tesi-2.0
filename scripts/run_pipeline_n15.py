@@ -286,6 +286,8 @@ def main() -> None:
     ap.add_argument("--step5-only", action="store_true",
                     help="Run only Step 5 (feature extraction). Step 6+7 handled by sonnet-tesi-2.")
     ap.add_argument("--force", action="store_true", help="Force recompute even if X exists")
+    ap.add_argument("--n-perm", type=int, default=1000, dest="n_perm",
+                    help="Number of permutations for p-value (default: 1000)")
     args = ap.parse_args()
 
     subjects = SUBJECT_WHITELIST
@@ -306,7 +308,8 @@ def main() -> None:
             print("       Riesegui senza --step5-only quando S-FC-EXTEND è completato.")
             return
 
-        print(f"Step 6+7: {len(x_files)} X file trovati → avvio aggregate (192 combos, n_perm=1000)")
+        _n_perm = args.n_perm  # default=1000 (paper-grade); usa --n-perm 100 per test rapidi
+        print(f"Step 6+7: {len(x_files)} X file trovati → avvio aggregate (192 combos, n_perm={_n_perm})")
         agg = aggregate_classify_n15(
             features_dir=FEAT_DIR,
             out_dir=RESULTS_DIR,
@@ -314,7 +317,7 @@ def main() -> None:
             metrics=METRICS,
             bands=list(BANDS.keys()),
             classifiers=["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"],
-            n_permutations=1000,
+            n_permutations=_n_perm,
             random_state=42,
         )
         winner = agg.get("winner") or {}
