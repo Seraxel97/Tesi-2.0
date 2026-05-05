@@ -179,29 +179,31 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
     lines += [
         "", "---", "",
         "## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test", "",
-        "| Atlas | Metric | Classifier | Bal.Acc | CI 95% | p_perm | Sig |",
-        "|-------|--------|------------|---------|--------|--------|-----|",
+        "| Atlas | Metric | Band | Classifier | Bal.Acc | CI 95% | p_perm | Sig |",
+        "|-------|--------|------|------------|---------|--------|--------|-----|",
     ]
     for r in results:
-        ci = r.get("ci_95", [float("nan"), float("nan")])
-        sig = "✅" if r.get("p_value", 1.0) < 0.05 else "❌"
+        ci = [r.get("ci_lo", float("nan")), r.get("ci_hi", float("nan"))]
+        sig = "✅" if r.get("p_perm", 1.0) < 0.05 else "❌"
         lines.append(
-            f"| {r.get('atlas','?')} | {r.get('metric','?')} | {r.get('classifier','?')} "
-            f"| **{r.get('balanced_accuracy', float('nan')):.3f}** "
+            f"| {r.get('atlas','?')} | {r.get('metric','?')} | {r.get('band','?')} "
+            f"| {r.get('classifier','?')} "
+            f"| **{r.get('ba_mean', float('nan')):.3f}** ±{r.get('ba_std', float('nan')):.3f}"
             f"| [{ci[0]:.3f}, {ci[1]:.3f}] "
-            f"| {r.get('p_value', float('nan')):.3f} | {sig} |"
+            f"| {r.get('p_perm', float('nan')):.3f} | {sig} |"
         )
 
     w_atlas = winner.get("atlas", "?")
     w_metric = winner.get("metric", "?")
     w_clf = winner.get("classifier", "?")
-    w_bal = winner.get("balanced_accuracy", float("nan"))
-    w_p = winner.get("p_value", float("nan"))
-    w_ci = winner.get("ci_95", [float("nan"), float("nan")])
+    w_bal = winner.get("ba_mean", float("nan"))
+    w_p = winner.get("p_perm", float("nan"))
+    w_ci = [winner.get("ci_lo", float("nan")), winner.get("ci_hi", float("nan"))]
 
     pilot_schaefer_coh_logreg = next(
-        (r.get("balanced_accuracy") for r in results
-         if r.get("atlas") == "schaefer100" and r.get("metric") == "coh" and r.get("classifier") == "logreg"),
+        (r.get("ba_mean") for r in results
+         if r.get("atlas") == "schaefer100" and r.get("metric") == "coh"
+         and r.get("classifier") == "logreg" and r.get("band") == "alpha"),
         float("nan")
     )
 
@@ -240,8 +242,8 @@ def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
     winner = agg.get("winner") or {}
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     w = f"{winner.get('atlas','?')} × {winner.get('metric','?')} × {winner.get('classifier','?')}"
-    w_bal = winner.get("balanced_accuracy", float("nan"))
-    w_p = winner.get("p_value", float("nan"))
+    w_bal = winner.get("ba_mean", float("nan"))
+    w_p = winner.get("p_perm", float("nan"))
 
     content = f"""# Scientific Pipeline Status — ds005385 N=15 FULL RUN
 
@@ -297,16 +299,27 @@ def main() -> None:
     print(f"\nStep 5 DONE in {total_s:.1f}s — {n_new} nuovi X, {len(step5_results)-n_new} skip")
 
     if not args.step5_only:
-        # Step 6+7 via aggregate_classify_n15 — chiamato esternamente da sonnet-tesi-2
-        print("Step 6+7: delegato a sonnet-tesi-2 (S-ML-EXTEND). Usa --step5-only per solo Step 5.")
+        # Trigger guard: S-FC-EXTEND deve aver prodotto ≥30 X files
+        x_files = list(FEAT_DIR.glob("X_*.npz"))
+        if len(x_files) < 30:
+            print(f"[WARN] Solo {len(x_files)} X file — S-FC-EXTEND non ancora done (≥30 richiesti).")
+            print("       Riesegui senza --step5-only quando S-FC-EXTEND è completato.")
+            return
+
+        print(f"Step 6+7: {len(x_files)} X file trovati → avvio aggregate (192 combos, n_perm=1000)")
         agg = aggregate_classify_n15(
             features_dir=FEAT_DIR,
             out_dir=RESULTS_DIR,
-            n_permutations=100,
+            atlases=ATLASES,
+            metrics=METRICS,
+            bands=list(BANDS.keys()),
+            classifiers=["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"],
+            n_permutations=1000,
             random_state=42,
         )
         winner = agg.get("winner") or {}
-        print(f"Winner: {winner.get('atlas')} × {winner.get('metric')} × {winner.get('classifier')}")
+        print(f"Winner: {winner.get('atlas')} × {winner.get('metric')} × {winner.get('classifier')}"
+              f" — BA={winner.get('ba_mean', float('nan')):.3f} p={winner.get('p_perm', float('nan')):.4f}")
         write_report(subjects, step5_results, agg, total_s)
         update_status(subjects, agg, total_s)
 
