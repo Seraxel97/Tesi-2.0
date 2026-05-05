@@ -1,7 +1,7 @@
 # Tesi_2.0 — Tracking progresso
 
 **Path**: `/home/seraxel/Scrivania/Tesi_2.0/`  
-**Ultimo aggiornamento**: 2026-05-01 (S-66, sonnet1-ts)
+**Ultimo aggiornamento**: 2026-05-05 (S-PERF-INVPARC, sonnet-tesi-2)
 
 ---
 
@@ -74,7 +74,7 @@ Tutte le altre decisioni (Q2–Q7) sono state chiuse autonomamente con default r
 ### Reports notevoli
 - `reports/PERF_BASELINE.json` — timing baseline + CI thresholds
 - `reports/INTEGRATION_TEST.md` — E2E integration report
-- `reports/PERF_BENCHMARK.md` — step-level benchmark (bottleneck: inverse_parcellation 55%)
+- `reports/PERF_BENCHMARK.md` — step-level benchmark (post-refactor: inverse_parcellation 3.58x speedup)
 - `.planning/SESSION_SUMMARY_2026-05-01.md` — session summary completo
 
 ### Research/docs
