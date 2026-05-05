@@ -167,12 +167,21 @@ def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def _compute_hashes(features_dir: Path, atlases: list[str], metrics: list[str], band: str) -> dict:
+def _compute_hashes(
+    features_dir: Path,
+    atlases: list[str],
+    metrics: list[str],
+    band: str,
+    *,
+    bands: list[str] | None = None,
+) -> dict:
+    _bands = bands if bands is not None else [band]
     hashes: dict[str, str] = {}
-    for a in atlases:
-        for m in metrics:
-            key = f"{a}_{m}_{band}"
-            hashes[key] = _file_hash(features_dir / f"X_{a}_{m}_{band}.npz")
+    for _b in _bands:
+        for a in atlases:
+            for m in metrics:
+                key = f"{a}_{m}_{_b}"
+                hashes[key] = _file_hash(features_dir / f"X_{a}_{m}_{_b}.npz")
     return hashes
 
 
@@ -182,6 +191,7 @@ def aggregate_classify_n15(
     atlases: list[str] | None = None,
     metrics: list[str] | None = None,
     band: str = "alpha",
+    bands: list[str] | None = None,
     classifiers: list[str] | None = None,
     n_permutations: int = 1000,
     random_state: int = 42,
@@ -229,12 +239,13 @@ def aggregate_classify_n15(
     """
     atlases = atlases or ["aparc", "schaefer100"]
     metrics = metrics or ["wpli", "coh"]
-    classifiers = classifiers or ["logreg", "svm_rbf", "lda"]
+    classifiers = classifiers or ["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"]
+    _bands = bands if bands is not None else [band]
     features_dir = Path(features_dir)
     out_dir = Path(out_dir)
     out_path = out_dir / "comparison_matrix_N15.json"
 
-    hashes = _compute_hashes(features_dir, atlases, metrics, band)
+    hashes = _compute_hashes(features_dir, atlases, metrics, band, bands=bands)
 
     # Idempotency check
     if out_path.exists():
@@ -252,38 +263,39 @@ def aggregate_classify_n15(
 
     all_results: list[AggResult] = []
 
-    for atlas in atlases:
-        for metric in metrics:
-            loaded = _load_features(features_dir, atlas, metric, band)
-            if loaded is None:
-                continue
-            X, y, groups = loaded
-            n_splits = int(len(np.unique(groups)))
+    for _band in _bands:
+        for atlas in atlases:
+            for metric in metrics:
+                loaded = _load_features(features_dir, atlas, metric, _band)
+                if loaded is None:
+                    continue
+                X, y, groups = loaded
+                n_splits = int(len(np.unique(groups)))
 
-            for clf_name in classifiers:
-                ba_mean, ba_std, ba_folds = _loso_cv(X, y, groups, clf_name, n_splits=n_splits)
-                ci_lo, ci_hi = bootstrap_ci(
-                    ba_folds, n_boot=1000, alpha=0.05, random_state=random_state,
-                )
-                p_perm = _permutation_p(
-                    X, y, groups, clf_name, ba_mean,
-                    n_permutations=n_permutations,
-                    n_splits=n_splits,
-                    random_state=random_state,
-                )
-                all_results.append(AggResult(
-                    atlas=atlas,
-                    metric=metric,
-                    band=band,
-                    classifier=clf_name,
-                    ba_mean=round(ba_mean, 4),
-                    ba_std=round(ba_std, 4),
-                    ci_lo=round(ci_lo, 4),
-                    ci_hi=round(ci_hi, 4),
-                    p_perm=round(p_perm, 4),
-                    n_subjects=n_splits,
-                    n_features=X.shape[1],
-                ))
+                for clf_name in classifiers:
+                    ba_mean, ba_std, ba_folds = _loso_cv(X, y, groups, clf_name, n_splits=n_splits)
+                    ci_lo, ci_hi = bootstrap_ci(
+                        ba_folds, n_boot=1000, alpha=0.05, random_state=random_state,
+                    )
+                    p_perm = _permutation_p(
+                        X, y, groups, clf_name, ba_mean,
+                        n_permutations=n_permutations,
+                        n_splits=n_splits,
+                        random_state=random_state,
+                    )
+                    all_results.append(AggResult(
+                        atlas=atlas,
+                        metric=metric,
+                        band=_band,
+                        classifier=clf_name,
+                        ba_mean=round(ba_mean, 4),
+                        ba_std=round(ba_std, 4),
+                        ci_lo=round(ci_lo, 4),
+                        ci_hi=round(ci_hi, 4),
+                        p_perm=round(p_perm, 4),
+                        n_subjects=n_splits,
+                        n_features=X.shape[1],
+                    ))
 
     if not all_results:
         return {"results": [], "winner": None, "output_path": str(out_path)}
@@ -294,7 +306,7 @@ def aggregate_classify_n15(
     payload = {
         "_hashes": hashes,
         "_meta": {
-            "band": band,
+            "bands": _bands,
             "n_permutations": n_permutations,
             "random_state": random_state,
             "n_subjects": winner.n_subjects,
