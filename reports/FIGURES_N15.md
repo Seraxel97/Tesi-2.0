@@ -1,13 +1,11 @@
 # N=15 Figures — Results Visualizations
 
-**Source**: `data/results/ds005385/comparison_matrix.json` (PILOT N=5 — validation run)  
-**Generated**: 2026-05-05T21:07+02:00  
-**Script**: `scripts/generate_figures.py`  
+**Source**: `data/results/ds005385/comparison_matrix_N15.json` (N=15 — FINAL)
+**Generated**: 2026-05-05T21:17+02:00
+**Script**: `scripts/generate_figures.py`
 **Sprint**: S-FIG-N15
 
-> **Nota**: Figures shown are from the PILOT N=5 validation run. Rerun with
-> `--comparison data/results/ds005385/comparison_matrix_N15.json` once
-> `aggregate_classify_n15` completes (Step 6 N=15).
+**Winner**: aparc × coh × svm_rbf — BA = 0.833, p_perm = 0.000, CI [0.700, 0.933]
 
 ---
 
@@ -15,11 +13,10 @@
 
 ![Balanced accuracy bar chart](figures/fig_balacc_bar.png)
 
-**Caption**: Balanced accuracy for each (atlas, metric, classifier) combination evaluated
-on the PILOT dataset (N=5, LOSO leave-one-subject-out). X-axis groups: atlas × metric
-(aparc/coh, aparc/wpli, schaefer100/coh, schaefer100/wpli). Error bars: 95% bootstrap CI
-(not available for PILOT schema — omitted). Dashed line at chance level (0.5). Best PILOT
-config: schaefer100 × coh × LogisticRegression (bal_acc = 0.90).
+**Caption**: Balanced accuracy for each (atlas, metric, classifier) combination,
+LOSO GroupKFold-15 (N=15 subjects, leave-one-subject-out). X-axis groups: atlas × metric.
+Error bars: 95% bootstrap CI. Dashed line at chance (0.5). Winner: aparc × coh × svm_rbf
+(BA = 0.833).
 
 ---
 
@@ -27,9 +24,9 @@ config: schaefer100 × coh × LogisticRegression (bal_acc = 0.90).
 
 ![Balanced accuracy heatmap](figures/fig_balacc_heatmap.png)
 
-**Caption**: Heatmap of balanced accuracy across all (atlas × metric) rows vs classifier
-columns. Color scale: viridis (0.4 → 1.0). Cell values annotated. Allows rapid visual
-identification of best-performing configurations across all axes simultaneously.
+**Caption**: Heatmap of balanced accuracy across all (atlas × metric) × classifier
+combinations. Color scale: viridis [0.4, 1.0]. Cell values annotated. Coherence (coh)
+consistently outperforms wPLI across classifiers; aparc atlas slightly favored.
 
 ---
 
@@ -37,10 +34,9 @@ identification of best-performing configurations across all axes simultaneously.
 
 ![p_perm bar chart](figures/fig_pperm_bar.png)
 
-**Caption**: −log₁₀(p_perm) per configuration. Red bars exceed the significance threshold
-p < 0.05 (dashed line at −log₁₀(0.05) ≈ 1.30). PILOT schema does not include permutation
-test — panel shows informational placeholder. N=15 rerun will populate this figure with
-empirical p-values from 1000 label permutations.
+**Caption**: −log₁₀(p_perm) per configuration (1000 label permutations). Red bars exceed
+p < 0.05 threshold (dashed at −log₁₀(0.05) ≈ 1.30). Several configs reach p = 0.000
+(plotted at −log₁₀(0.0001) = 4.0). Winner: aparc × coh × svm_rbf, p = 0.000.
 
 ---
 
@@ -48,10 +44,10 @@ empirical p-values from 1000 label permutations.
 
 ![Average FC matrices](figures/fig_fc_avg.png)
 
-**Caption**: Average coherence (coh, α band 8–13 Hz) matrices across all N=15 subjects,
-shown for each atlas (aparc 68 ROI, schaefer100 100 ROI) × condition (EO eyes-open,
-EC eyes-closed). Diagonal set to 0. Color scale: viridis [0, 1]. Shared colorbar (right).
-Visual inspection confirms expected EO > EC coherence pattern in frontal/occipital ROIs.
+**Caption**: Average coherence (coh, α band 8–13 Hz) across all N=15 subjects for each
+atlas (aparc 68 ROI, schaefer100 100 ROI) × condition (EO eyes-open, EC eyes-closed).
+Diagonal zeroed. Color scale: viridis [0, 1]. EO exhibits higher overall coherence than EC,
+consistent with the EO/EC classification performance observed.
 
 ---
 
@@ -59,11 +55,9 @@ Visual inspection confirms expected EO > EC coherence pattern in frontal/occipit
 
 ![PCA 2D scatter](figures/fig_X_pca2.png)
 
-**Caption**: Principal Component Analysis (PCA, 2 components) of the feature matrix
-`X_schaefer100_coh_alpha` (shape 30 × 4950, N=15 subjects × 2 conditions). Features
-StandardScaler-normalized before PCA. Color: EO (blue, y=0) vs EC (red, y=1). Each point
-is one subject × condition epoch. Separability along PC1/PC2 motivates the classification
-approach; tight EO/EC clusters confirm feature informativeness.
+**Caption**: PCA (2 components) of `X_schaefer100_coh_alpha` (30 × 4950, N=15 subjects ×
+2 conditions). Features StandardScaler-normalized. Color: EO (blue, y=0) vs EC (red, y=1).
+Partial separation along PC1 is visible, consistent with BA ~ 0.80 for this feature set.
 
 ---
 
@@ -71,29 +65,40 @@ approach; tight EO/EC clusters confirm feature informativeness.
 
 ![Summary table](figures/fig_summary_table.png)
 
-**Caption**: Top-3 configurations ranked by balanced accuracy. Highlighted row (green) =
-winner config. Columns: atlas, metric, classifier, BA (mean), 95% CI bootstrap, p_perm.
-CI and p_perm populated only for N=15 run.
+**Caption**: Top-3 configurations ranked by balanced accuracy (N=15 LOSO). Winner row
+highlighted in green. All top-3 configs reach p_perm = 0.000–0.030 (statistically
+significant at α = 0.05).
 
 ---
 
-## Re-run Instructions (N=15)
+## Summary Statistics
 
-Once `comparison_matrix_N15.json` is available:
+| Config | BA | BA std | CI 95% | p_perm |
+|--------|-----|--------|--------|--------|
+| aparc × coh × svm_rbf | **0.833** | 0.236 | [0.700, 0.933] | **0.000** |
+| aparc × coh × lda | 0.800 | 0.244 | [0.667, 0.933] | 0.000 |
+| aparc × coh × logreg | 0.767 | 0.299 | [0.600, 0.933] | 0.010 |
+
+## Re-run Instructions
+
+Script is idempotent — rerun without `--force` skips unchanged figures:
 
 ```bash
+# Full rerun (force regeneration)
 python scripts/generate_figures.py \
     --comparison data/results/ds005385/comparison_matrix_N15.json \
     --features-dir data/features/ds005385 \
     --fc-dir data/connectivity/ds005385 \
-    --out-dir reports/figures \
-    --force
-```
+    --out-dir reports/figures --force
 
-The `--force` flag overwrites cached figures. Without it, only stale figures are regenerated.
+# Incremental (only regenerate if inputs changed)
+python scripts/generate_figures.py \
+    --comparison data/results/ds005385/comparison_matrix_N15.json \
+    --out-dir reports/figures
+```
 
 ## Notes
 
 - All figures: 300 DPI, `bbox_inches='tight'`, Agg backend (headless).
-- Script is schema-agnostic: auto-detects PILOT vs N=15 format.
-- Idempotent: mtime-based skip if inputs unchanged (omit `--force`).
+- Schema: N=15 (`aggregate_classify_n15` output — results list with CI + p_perm).
+- Previous PILOT validation run overwritten by this N=15 final run.
