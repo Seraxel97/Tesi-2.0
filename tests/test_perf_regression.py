@@ -1,4 +1,4 @@
-"""S-59: Performance regression test — traccia tempi step nel tempo.
+"""S-59 + S-PERF-INVPARC: Performance regression test — traccia tempi step nel tempo.
 
 Usa dati sintetici per essere CI-friendly e rapido (< 30s).
 Confronta i tempi misurati contro le soglie in reports/PERF_BASELINE.json.
@@ -8,6 +8,7 @@ Step testati:
   - feature_extraction      (build_X, univariate off)
   - ml_single_algo_2fold    (LogReg, 2-fold)
   - e2e_synthetic_total     (tutti e tre in sequenza)
+  - inverse_parcellation    (batch apply_inverse_epochs + extract_tc_batch — reali sub-05, skip se mancanti)
 """
 
 from __future__ import annotations
@@ -125,4 +126,47 @@ def test_e2e_synthetic_total(synthetic_label_tc, synthetic_y, baselines):
     threshold = baselines["e2e_synthetic_total"]
     assert elapsed <= threshold, (
         f"E2E sintetico totale troppo lento: {elapsed:.2f}s > soglia {threshold}s"
+    )
+
+
+def test_inverse_parcellation_batch_speed(inv_path, epochs_path, baselines):
+    """Batch apply_inverse_epochs + extract_tc_batch su dati reali sub-05 (skip se assenti).
+
+    Soglia da PERF_BASELINE.json['thresholds_s']['inverse_parcellation'].
+    Baseline pre-refactor: 5.490s (loop per-epoch). Target post-refactor: 1.533s.
+    CI threshold: 2.5s (su 10 epoch, ~metà del benchmark standard di 20).
+    """
+    import warnings
+
+    import mne
+    import mne.minimum_norm
+
+    from parcellation.extract_label_tc import extract_tc_batch
+
+    inv_op = mne.minimum_norm.read_inverse_operator(str(inv_path), verbose=False)
+    epochs = mne.read_epochs(str(epochs_path), preload=True, verbose=False)
+    sfreq_orig = epochs.info["sfreq"]
+    epochs = epochs.decimate(int(sfreq_orig / 500.0))  # match benchmark sfreq=500 Hz
+    epochs = epochs[:10]
+    src = inv_op["src"]
+
+    t0 = time.perf_counter()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        stcs = list(
+            mne.minimum_norm.apply_inverse_epochs(
+                epochs, inv_op, lambda2=1.0 / 9.0, method="dSPM",
+                pick_ori=None, return_generator=False, verbose=False,
+            )
+        )
+    label_tc, names = extract_tc_batch(stcs, "aparc", src)
+    elapsed = time.perf_counter() - t0
+
+    assert label_tc.shape == (len(epochs), 68, len(epochs.times)), (
+        f"shape attesa ({len(epochs)}, 68, {len(epochs.times)}), trovata {label_tc.shape}"
+    )
+    assert len(names) == 68
+    threshold = baselines["inverse_parcellation"]
+    assert elapsed <= threshold, (
+        f"Batch inverse+parc troppo lento: {elapsed:.2f}s > soglia {threshold}s"
     )
