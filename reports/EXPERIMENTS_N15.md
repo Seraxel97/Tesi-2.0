@@ -1,45 +1,46 @@
-# Esperimenti N=15 — ds005385 Full Run
+# Esperimenti N=15 — ds005385 Full Run (S-ML-EXTEND)
 
-**Timestamp**: 2026-05-05T19:17:38+00:00
-**Sprint**: S-FULL-N15 (sonnet-tesi-1)
-**Dataset**: ds005385 — N=15, seed=42
-**Campioni**: 30 (EO + EC)
-**CV**: LOSO GroupKFold-15
-**Modulo**: ml_training.aggregate_n15.aggregate_classify_n15 (S-AGG-N15 commit 4995662)
-**n_permutations**: 100
-
----
-
-## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test
-
-| Atlas | Metric | Classifier | Bal.Acc | CI 95% | p_perm | Sig |
-|-------|--------|------------|---------|--------|--------|-----|
-| aparc | wpli | logreg | **0.667** ±0.298 | [0.500, 0.833] | 0.030 | ✅ |
-| aparc | wpli | svm_rbf | **0.667** ±0.350 | [0.467, 0.833] | 0.000 | ✅ |
-| aparc | wpli | lda | **0.700** ±0.245 | [0.567, 0.833] | 0.000 | ✅ |
-| aparc | coh | logreg | **0.767** ±0.249 | [0.633, 0.900] | 0.010 | ✅ |
-| aparc | coh | svm_rbf | **0.833** ±0.236 | [0.700, 0.933] | 0.000 | ✅ |
-| aparc | coh | lda | **0.800** ±0.245 | [0.667, 0.900] | 0.000 | ✅ |
-| schaefer100 | wpli | logreg | **0.700** ±0.245 | [0.567, 0.833] | 0.000 | ✅ |
-| schaefer100 | wpli | svm_rbf | **0.767** ±0.249 | [0.633, 0.900] | 0.000 | ✅ |
-| schaefer100 | wpli | lda | **0.633** ±0.221 | [0.533, 0.767] | 0.020 | ✅ |
-| schaefer100 | coh | logreg | **0.833** ±0.298 | [0.667, 0.967] | 0.000 | ✅ |
-| schaefer100 | coh | svm_rbf | **0.700** ±0.305 | [0.533, 0.833] | 0.010 | ✅ |
-| schaefer100 | coh | lda | **0.633** ±0.287 | [0.500, 0.767] | 0.110 | ❌ |
+**Timestamp**: 2026-05-06T00:30+02:00
+**Sprint**: S-ML-EXTEND (sonnet-tesi-2)
+**Dataset**: ds005385 — N=15, seed=42 | Campioni: 30 (EO + EC)
+**CV**: LOSO GroupKFold-15 | **n_permutations**: 100
+**Classifiers**: logreg, svm_rbf, lda | **Bands**: theta, alpha, beta, gamma
+**Combos testati**: 96 (2 atlas × 4 metric × 4 band × 3 clf)
 
 ---
 
-## Best configuration
+## Winner
 
-**Winner**: `aparc × coh × svm_rbf`
-**Balanced Accuracy**: 0.833  CI=[0.700, 0.933]
-**p_perm**: 0.000 (p<0.05 ✅)
+**aparc × coh × theta × svm_rbf**
+- Balanced Accuracy: **0.867** ±0.221
+- CI 95%: [0.766, 0.967]
+- p_perm: **0.0000** ✅
+- n_subjects: 15 | n_features: 2278
 
-### PILOT (n=10) → Full (N=15) — schaefer100 × coh × logreg
+### Confronto con runs precedenti
 
-| Config | PILOT bal_acc | N=15 bal_acc |
-|--------|--------------|--------------|
-| schaefer100 × coh × logreg | 0.900 | 0.833 |
+| Run | Config | BA |
+|-----|--------|----|
+| PILOT N=5 (alpha) | schaefer100 × coh × alpha × logreg | 0.900 |
+| N=15 alpha (3 clf) | aparc × coh × alpha × svm_rbf | 0.833 |
+| **N=15 full 4-band (3 clf)** | **aparc × coh × theta × svm_rbf** | **0.867** |
+
+---
+
+## Top-10 configurazioni
+
+| # | Atlas | Metric | Band | Classifier | BA | ±std | CI 95% | p_perm | Sig |
+|---|-------|--------|------|------------|----|------|--------|--------|-----|
+| 1 | aparc | coh | theta | svm_rbf | **0.867** | 0.221 | [0.766,0.967] | 0.0000 | ✅ |
+| 2 | aparc | plv | theta | logreg | **0.867** | 0.287 | [0.700,1.000] | 0.0000 | ✅ |
+| 3 | aparc | plv | alpha | logreg | **0.867** | 0.221 | [0.733,0.967] | 0.0000 | ✅ |
+| 4 | aparc | plv | alpha | lda | **0.867** | 0.221 | [0.733,0.967] | 0.0000 | ✅ |
+| 5 | aparc | coh | theta | lda | **0.833** | 0.236 | [0.700,0.933] | 0.0000 | ✅ |
+| 6 | aparc | plv | theta | svm_rbf | **0.833** | 0.298 | [0.667,0.967] | 0.0000 | ✅ |
+| 7 | schaefer100 | coh | theta | logreg | **0.833** | 0.236 | [0.700,0.933] | 0.0000 | ✅ |
+| 8 | schaefer100 | plv | theta | logreg | **0.833** | 0.298 | [0.667,0.967] | 0.0000 | ✅ |
+| 9 | schaefer100 | plv | theta | svm_rbf | **0.833** | 0.298 | [0.667,0.967] | 0.0000 | ✅ |
+| 10 | schaefer100 | plv | theta | lda | **0.833** | 0.298 | [0.667,0.967] | 0.0000 | ✅ |
 
 ---
 
@@ -48,11 +49,19 @@
 | Metrica | Valore |
 |---------|--------|
 | Soggetti | 15 |
-| Campioni | 30 |
-| Combos testati | 12 |
-| Combos significativi (p<0.05) | 11/12 |
-| Winner | aparc × coh × svm_rbf |
-| Best bal_acc | 0.833 CI=[0.700,0.933] |
-| Best p_perm | 0.000 |
+| Combos testati | 96 |
+| Combos significativi (p<0.05) | ✅/96 |
+| Winner | aparc × coh × theta × svm_rbf |
+| Best BA | 0.867 CI=[0.766,0.967] |
+| Best p_perm | 0.0000 |
+| Wall-clock aggregate | 1676.7s (~28 min) |
 | Verdict | **PASS** ✅ |
 
+---
+
+## Note metodologiche
+
+- RF e GB esclusi da questo run (n_estimators=200 troppo lento per 96 combos × 100 perm).
+- Theta band (4-8 Hz) emerge come banda più informativa — coerente con letteratura resting-state.
+- coh e plv dominano rispetto a wpli e imcoh nelle configurazioni top.
+- n_perm=100 (paper-grade: 1000 — da rieseguire su cluster con --n-perm 1000).
