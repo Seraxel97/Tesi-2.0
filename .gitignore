@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.DS_Store
+
+# CLI orchestration artifacts (not needed in remote)
+.planning/heartbeats_tesi/*.json
+.planning/orchestrators/*.json
+.claude/
+*.lock
+
+# Data: dataset raw + derivatives non vanno su remote (too big, public datasets)
+data/
+!data/.gitkeep
+!data/README.md

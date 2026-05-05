@@ -30,7 +30,6 @@ from typing import Literal
 import numpy as np
 from mne_connectivity import spectral_connectivity_epochs
 
-
 Metric = Literal["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"]
 
 DEFAULT_BANDS: dict[str, tuple[float, float]] = {
@@ -65,12 +64,16 @@ def compute_fc(
     Returns:
         dict {band_name: matrix_NxN} simmetrica per ogni banda.
     """
+    _VALID_METRICS = Metric.__args__  # type: ignore[attr-defined]
+    if metric not in _VALID_METRICS:
+        raise ValueError(
+            f"Unknown metric={metric!r}. Valid: {sorted(_VALID_METRICS)}"
+        )
     if label_tc.ndim != 3:
         raise ValueError(
             f"label_tc must be (n_epochs, n_labels, n_times), got shape {label_tc.shape}"
         )
     bands = bands or DEFAULT_BANDS
-    n_labels = label_tc.shape[1]
 
     out: dict[str, np.ndarray] = {}
     for band_name, (fmin, fmax) in bands.items():
@@ -85,15 +88,26 @@ def compute_fc(
             n_jobs=n_jobs,
             verbose=False,
         )
-        # con.get_data(output="dense") shape (n_labels, n_labels, n_freqs=1)
+        # get_data("dense") → (n_labels, n_labels, 1); lower triangle only, diag=0
         mat = con.get_data(output="dense").squeeze(-1)
-        # symmetrize: lower triangle only viene popolata; rifletto
+        # Symmetrize: mat (lower) + mat.T (upper) - diag (doubled by transpose, diag=0)
         mat = mat + mat.T - np.diag(np.diag(mat))
         out[band_name] = mat
     return out
 
 
 def save_fc(fc: dict[str, np.ndarray], names: list[str], out_path: str | Path) -> None:
+    """Salva le matrici FC su file .npz compresso.
+
+    Parameters
+    ----------
+    fc:
+        Output di compute_fc: {band_name: matrix_NxN}.
+    names:
+        Lista nomi ROI (N elementi).
+    out_path:
+        Path file output (.npz). La directory padre viene creata se assente.
+    """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(

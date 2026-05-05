@@ -1,0 +1,629 @@
+{
+  "timestamp": "2026-05-02T13:23:51.507463+00:00",
+  "results": [
+    {
+      "atlas": "aparc",
+      "metric": "wpli",
+      "clf": "logreg",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 1.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.5333,
+        "f1_std": 0.4522
+      },
+      "folds": [
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.024
+    },
+    {
+      "atlas": "aparc",
+      "metric": "wpli",
+      "clf": "svm_rbf",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.6667,
+        "f1_std": 0.3651
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.016
+    },
+    {
+      "atlas": "aparc",
+      "metric": "wpli",
+      "clf": "lda",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.8,
+        "roc_auc_std": 0.4,
+        "f1": 0.5333,
+        "f1_std": 0.4522
+      },
+      "folds": [
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.019
+    },
+    {
+      "atlas": "aparc",
+      "metric": "coh",
+      "clf": "logreg",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.8,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.8,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 1.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.7333,
+        "f1_std": 0.3887
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.074
+    },
+    {
+      "atlas": "aparc",
+      "metric": "coh",
+      "clf": "svm_rbf",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.8,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.8,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.4,
+        "roc_auc_std": 0.4899,
+        "f1": 0.7333,
+        "f1_std": 0.3887
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.016
+    },
+    {
+      "atlas": "aparc",
+      "metric": "coh",
+      "clf": "lda",
+      "X_shape": [
+        10,
+        2278
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 1.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.6667,
+        "f1_std": 0.3651
+      },
+      "folds": [
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.019
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "wpli",
+      "clf": "logreg",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 1.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.5333,
+        "f1_std": 0.4522
+      },
+      "folds": [
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.043
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "wpli",
+      "clf": "svm_rbf",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.6,
+        "accuracy_std": 0.2,
+        "balanced_accuracy": 0.6,
+        "balanced_accuracy_std": 0.2,
+        "roc_auc": 0.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.6,
+        "f1_std": 0.3266
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.021
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "wpli",
+      "clf": "lda",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.7,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.7,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.8,
+        "roc_auc_std": 0.4,
+        "f1": 0.5333,
+        "f1_std": 0.4522
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.022
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "coh",
+      "clf": "logreg",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.9,
+        "accuracy_std": 0.2,
+        "balanced_accuracy": 0.9,
+        "balanced_accuracy_std": 0.2,
+        "roc_auc": 1.0,
+        "roc_auc_std": 0.0,
+        "f1": 0.9333,
+        "f1_std": 0.1333
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.048
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "coh",
+      "clf": "svm_rbf",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.8,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.8,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.2,
+        "roc_auc_std": 0.4,
+        "f1": 0.7333,
+        "f1_std": 0.3887
+      },
+      "folds": [
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 0.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.022
+    },
+    {
+      "atlas": "schaefer100",
+      "metric": "coh",
+      "clf": "lda",
+      "X_shape": [
+        10,
+        4950
+      ],
+      "agg": {
+        "accuracy": 0.8,
+        "accuracy_std": 0.2449,
+        "balanced_accuracy": 0.8,
+        "balanced_accuracy_std": 0.2449,
+        "roc_auc": 0.8,
+        "roc_auc_std": 0.4,
+        "f1": 0.8667,
+        "f1_std": 0.1633
+      },
+      "folds": [
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 1.0,
+          "f1": 0.6666666666666666
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "roc_auc": 1.0,
+          "f1": 1.0
+        },
+        {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.0,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "elapsed_s": 0.027
+    }
+  ]
+}
