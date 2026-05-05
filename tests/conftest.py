@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+pytest_plugins = ["tests.fixtures.synthetic"]
+
 
 _BIDS_ROOT = Path("/home/seraxel/Scrivania/Tesi_2.0/data/eeg_matchingpennies")
 _DERIV = Path("/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline")

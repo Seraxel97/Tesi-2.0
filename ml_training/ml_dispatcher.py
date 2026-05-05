@@ -73,6 +73,11 @@ class CVResult:
 
 
 def _make_pipeline(algorithm: Algorithm) -> Pipeline:
+    _VALID = Algorithm.__args__  # type: ignore[attr-defined]
+    if algorithm not in _VALID:
+        raise ValueError(
+            f"Unknown algorithm={algorithm!r}. Valid: {sorted(_VALID)}"
+        )
     clf = _CLASSIFIERS[algorithm]
     return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
 
