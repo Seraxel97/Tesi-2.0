@@ -193,3 +193,44 @@ Report completo: `reports/EXPERIMENTS_MINIMAL.md`.
 | Wall-clock totale pipeline | ~6 min (S-101b→S-107) |
 | Verdict pipeline | **PASS** ✅ |
 | Next step | full run N=15→179 con best config |
+
+---
+
+## N=15 FULL RUN — Progress (live)
+
+**Last update**: 2026-05-05T20:35+02:00
+**Sprint**: S-FULL-N15 (sonnet-tesi-1) — completato Steps 1–5
+**Subset**: random_seed_42_N15
+
+### Sub processati per step
+
+| Step | PILOT (5) | Nuovi (10) | N=15 totale | % |
+|------|-----------|------------|-------------|---|
+| 2 — source recon evoked | 5/5 ✅ | 10/10 ✅ | 15/15 | 100% |
+| 2b — per-epoch STC | 5/5 ✅ | 10/10 ✅ | 15/15 | 100% (streaming, non salvati su disco) |
+| 3b — parcellazione per-epoch | 5/5 ✅ | 10/10 ✅ | 15/15 | 100% |
+| 4b — FC spettrale wPLI+coh | 5/5 ✅ | 10/10 ✅ | 15/15 | 100% |
+| 5 — feature extraction | 5/5 ✅ | 10/10 ✅ | 15/15 | 100% |
+| 6 — ML LOSO N=15 | — | — | pending | — |
+| 7 — esperimenti N=15 | — | — | pending | — |
+
+### File counts
+
+- `data/derivatives/.../sub-XXX/eeg/*stcs.npz`: 0 (STC streaming, non persistiti)
+- `data/label_ts/ds005385/*per-epoch.npz`: **60 / 60** ✅ (15 sub × 2 atlas × 2 cond)
+- `data/connectivity/ds005385/*per-epoch.npz`: **120 / 120** ✅ (15 × 2 × 2 × 2 metric)
+- `data/connectivity/ds005385/*.npz` totali: 160 (incl. 40 evoked PILOT)
+- `data/features/ds005385/X_*.npz`: **4 / 4** ✅
+- `data/features/ds005385/X_schaefer100_coh_alpha.npz` shape: **(30, 4950)** ← N=15 confermato
+
+### Best config (PILOT N=5 — current baseline)
+
+> schaefer100 × coh × LogisticRegression — bal_acc=0.900
+
+(N=15 LOSO results pendenti — `comparison_matrix_N15.json` da generare con `aggregate_n15.py`.)
+
+### Performance refactor (S-PERF-INVPARC, 2026-05-05)
+
+- `inverse_parcellation`: 5.490s → 1.533s (**3.58× speedup, -72%**)
+- Pipeline totale: 9.857s → 5.976s (**-39%**)
+- Test: 292/292 PASS
