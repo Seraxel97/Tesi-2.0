@@ -105,6 +105,48 @@ def extract_tc(
     return np.asarray(tc), names
 
 
+def extract_tc_batch(
+    stcs: list[mne.SourceEstimate],
+    atlas: AtlasName,
+    src: mne.SourceSpaces | str | Path,
+    *,
+    mode: str = "mean_flip",
+    subject: str = "fsaverage",
+) -> tuple[np.ndarray, list[str]]:
+    """Estrae time course per ROI da lista di STC in una sola call batch.
+
+    Più efficiente di chiamare extract_tc in loop: una sola invocazione a
+    mne.extract_label_time_course per tutti gli STC (prepara le label 1×).
+
+    Parameters
+    ----------
+    stcs:
+        Lista di SourceEstimate (uno per epoch).
+    atlas:
+        Chiave atlante.
+    src:
+        SourceSpaces o path a file .fif.
+    mode:
+        Modalità aggregazione MNE (default: "mean_flip").
+    subject:
+        Subject fsaverage per le label.
+
+    Returns
+    -------
+    tc : np.ndarray, shape (n_stcs, n_labels, n_times)
+    names : list[str]
+        Nomi label, ordinati come righe di tc[i].
+    """
+    if isinstance(src, (str, Path)):
+        src = mne.read_source_spaces(str(src), verbose=False)
+    labels = get_labels(atlas, subject=subject)
+    tc = mne.extract_label_time_course(
+        stcs, labels, src, mode=mode, allow_empty=True, verbose=False
+    )
+    names = [lbl.name for lbl in labels]
+    return np.stack(tc, axis=0), names
+
+
 def extract_tc_from_files(
     stc_path: str | Path,
     atlas: AtlasName,

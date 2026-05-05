@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+import warnings
 from pathlib import Path
 
 import mne
@@ -13,7 +14,7 @@ import numpy as np
 from connectivity.fc_dispatcher import compute_fc
 from features.dispatcher import build_X
 from ml_training.ml_dispatcher import run_all_algorithms
-from parcellation.extract_label_tc import extract_tc
+from parcellation.extract_label_tc import extract_tc_batch
 
 
 def _build_y(epochs: mne.Epochs) -> np.ndarray:
@@ -63,21 +64,22 @@ def benchmark_pipeline(
 
     n_epochs = len(epochs)
 
-    # Step 3: Inverse + parcellation
+    # Step 3: Inverse + parcellation (batch — apply_inverse_epochs 1×)
     t0 = time.time()
     inv_path = sub_eeg / f"{subject}_inv.fif"
     inv_op = mne.minimum_norm.read_inverse_operator(str(inv_path), verbose=False)
     src = inv_op["src"]
 
-    tc_list = []
-    for ep in epochs:
-        stc = mne.minimum_norm.apply_inverse(
-            ep.average(), inv_op, lambda2=1.0 / 9.0, method="dSPM", verbose=False
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        stcs = list(
+            mne.minimum_norm.apply_inverse_epochs(
+                epochs, inv_op, lambda2=1.0 / 9.0, method="dSPM",
+                pick_ori=None, return_generator=False, verbose=False,
+            )
         )
-        tc_i, _ = extract_tc(stc, atlas, src)
-        tc_list.append(tc_i)
 
-    label_tc = np.stack(tc_list, axis=0)
+    label_tc, _ = extract_tc_batch(stcs, atlas, src)
     timings["inverse_parcellation"] = round(time.time() - t0, 3)
 
     # Step 4: FC
