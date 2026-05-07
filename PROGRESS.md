@@ -165,3 +165,13 @@ Note:
 **Debito tecnico** (task per Fase 4 hardening):
 - `H-HARD-RUFF`: fix 25 errori ruff pre-esistenti (20/25 auto-fixable)
 - `H-HARD-PRECOMMIT`: installare pre-commit + verificare hook env
+
+---
+
+## 2026-05-07 — Fase 3 H-SCALE-01 done + Phase 3 batch CANCELLED (default conservative)
+
+- **H-SCALE-01** (commit `ceae34c`): `config/subjects_whitelist_n30.py` deterministic seed=42, hard-rule N=15 ⊂ N=30, hash `1594bf5d4914a864`, 9/9 test PASS, ruff 0. **15 nuovi sub** pescati: sub-012/014/015/032/034/038/040/048/076/082/091/136/171/187/200.
+- **Batch H-SCALE-02..05 ANNULLATO** (operator decision pending, default conservative applied 22:07 by opus-father). Razionale: direttiva operator TG 21:21 "Tesi a regime non intensivo, workspace da concludere e killare" + operator silence post-disambig deadline 21:55. Vedi `.planning/MSG_TO_FATHER_PHASE3_CANCELLED.md`.
+- **Workers**: opus1+sonnet1+haiku1-tesi tutti idle low-freq (HB 5min) — re-attivabili su richiesta NM-wake o operator.
+- **Stato tesi**: paper-grade N=15 BA=0.867 già disponibile (winner aparc×coh×theta×svm_rbf, CI95=[0.766, 0.967], p_perm=0.0000, 96-combo grid 96/96 REPLICABLE). Manuscript draft v1 presente. Sufficiente per discussione laurea con limiti N=15 esplicitati in Discussion.
+- **Re-attivazione futura**: SYNC_H-SCALE-02..05.md restano in `.planning/` come artefatti pronti. Path A integrale (~13h) o Path C ridimensionato (~6-7h riuso N=15) o Path D minimale (no batch, focus Fase 4 hardening + Fase 6 manuscript) — orch preference Path D allineato a "non-intensivo + concludere".
