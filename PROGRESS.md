@@ -1,7 +1,8 @@
 # Tesi_2.0 — Tracking progresso
 
-**Path**: `/home/seraxel/Scrivania/Tesi_2.0/`  
-**Ultimo aggiornamento**: 2026-05-05 (S-PERF-INVPARC, sonnet-tesi-2)
+**Path**: `/home/seraxel/Scrivania/Tesi_2.0/`
+**Ultimo aggiornamento**: 2026-05-07 (Fase 2 Cleanup DONE, sonnet1-tesi)
+**HEAD**: cb29346 (Fase 2 cleanup done)
 
 ---
 
@@ -117,3 +118,50 @@ Tutte le altre decisioni (Q2–Q7) sono state chiuse autonomamente con default r
 1. **Wave-scientific** → S-101 PILOT 5 sub (gated OPERATOR_APPROVE_5SUB) → S-103→S-107 step-by-step
 2. **Performance P0** → refactor `inverse_parcellation` con `apply_inverse_epochs()` batch (riduzione ~40%)
 3. Q1 risolta (2026-05-01): ds005385 scelto, subset N=15, seed=42
+
+---
+
+## 2026-05-07 — Recovery from Trash
+
+Incidente fake-init: una sessione orfana ha cestinato la repo verso le 17:42. Recovery eseguito da opus-father (Opzione A, 18:15): `cp -a` da Trash → `Tesi_2.0_RESTORED` → swap. HEAD ripristinato a `21bba74` (verificato). Master plan, STATE, PROGRESS, research draft, 273 test, bench results, derivatives N=15 — tutti presenti. Backup safety: `Tesi_2.0_HAIKU_FALSE_INIT/` + `Tesi_2.0_HAIKU_FALSE_INIT_20260507_181326/`. Trash NON svuotato (safety net 7gg). Dettagli in `.planning/MSG_TO_FATHER_20260507T1815_RECOVERY_DONE.md`.
+
+**Conseguenze**:
+- Vecchio `reports/FEATURES_AUDIT.md` di haiku1 (commit fasullo `f2a8220`) SCARTATO — era invalido (scritto sulla dir fake).
+- Re-spawn opus-orch-tesi con master plan come north star.
+- Workers attivi (tmux): `opus1-tesi` (Opus 4.7, complessi), `sonnet1-tesi` (Sonnet 4.6, usuali), `haiku1-tesi` (Haiku 4.5, atomici).
+- Avvio FASE 1 Audit (master plan §4) con 5 sprint H-AUDIT-01..05 (routing per modello).
+
+## 2026-05-07 — Fase 1 Audit DONE (5/5)
+
+Sprint H-AUDIT-01..05 completati. Output:
+
+| Sprint | Worker | Report | Commit |
+|--------|--------|--------|--------|
+| H-AUDIT-01 | opus1-tesi | `reports/PIPELINE_AUDIT.md` | (opus1-tesi) |
+| H-AUDIT-02 | opus1-tesi | `reports/PIPELINE_LEAKAGE_AUDIT.md` | 9241452 |
+| H-AUDIT-03 | sonnet1-tesi | `reports/DATASET_SUBJECT_AUDIT.md` | 25125e1 |
+| H-AUDIT-04 | sonnet1-tesi | `reports/BENCH_REPLICABILITY.md` | ca2f88e |
+| H-AUDIT-05 | haiku1-tesi | (vedi orch) | — |
+
+Risultati chiave:
+- Dataset ds005385: 200 totali, **179 validi** (EO+EC, no late_ses1), 15 N15_ACTIVE PASS, pool N=30 = 164 candidati.
+- Bench grid 96-combo: **96/96 REPLICABLE** (FC 960/960, X 32/32 NaN=0).
+- Winner `aparc×coh×theta×svm_rbf` BA=0.867 verificato REPLICABLE.
+
+## 2026-05-07 — Fase 2 Cleanup DONE
+
+Vedi `reports/CLEANUP_AUDIT_2026-05-07.md` per dettagli completi.
+
+**Bilancio recuperato**: ~700 MB (cache `__pycache__`) + ~4.2 GB (shadow `Tesi_2.0_HAIKU_FALSE_INIT*` archiviato da opus-father in `~/Scrivania/.archive/`) = **~4.9 GB totali**.
+
+**22 SYNC archiviati** in `.planning/archive/2026-05-07_phase2_cleanup/sprint_S/` (sprint S-100..S-116, S-47, S-FC-EXTEND, AGG/VALIDATE/ML/DOC/FIG-N15).
+
+Note:
+- Shadow `Tesi_2.0/` non è dentro repo — archiviato da father in `~/Scrivania/.archive/`.
+- 2 stray `.pyc` tracked in `config/` rimossi (commit cb29346 orch).
+- **Test post-cleanup**: pytest **247 PASS / 63 skip / 0 FAIL** (GREEN), ruff 25 errori pre-esistenti (non introdotti da Fase 2 — 0 .py toccati), pre-commit binary non installato (env issue).
+- **Next**: Fase 3 N=30 (gate ack opus-father; symlink `data/raw/ds005385` confermato disponibile 18:34).
+
+**Debito tecnico** (task per Fase 4 hardening):
+- `H-HARD-RUFF`: fix 25 errori ruff pre-esistenti (20/25 auto-fixable)
+- `H-HARD-PRECOMMIT`: installare pre-commit + verificare hook env
