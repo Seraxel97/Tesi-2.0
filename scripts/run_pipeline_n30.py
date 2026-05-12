@@ -483,12 +483,17 @@ def write_final_report(subjects: list[str], agg: dict, wall_s: float) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    global ATLASES
     ap = argparse.ArgumentParser(description="Pipeline N=30 H-SCALE-N30")
     ap.add_argument("--skip-to-step5", action="store_true",
                     help="Skip 2/2b/3b/4b (assume all N30 conn done), run only 5+6+7")
     ap.add_argument("--n-perm", type=int, default=1000)
     ap.add_argument("--force-features", action="store_true")
+    ap.add_argument("--atlases", default=",".join(ATLASES),
+                    help="Comma-separated atlas list (default: %(default)s)")
     args = ap.parse_args()
+    ATLASES = [a.strip() for a in args.atlases.split(",") if a.strip()]
+    print(f"ATLASES filtered to: {ATLASES}")
 
     t_start = time.perf_counter()
     new_subs = [s for s in N30 if s not in N15]
