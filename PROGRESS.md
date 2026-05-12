@@ -175,3 +175,50 @@ Note:
 - **Workers**: opus1+sonnet1+haiku1-tesi tutti idle low-freq (HB 5min) — re-attivabili su richiesta NM-wake o operator.
 - **Stato tesi**: paper-grade N=15 BA=0.867 già disponibile (winner aparc×coh×theta×svm_rbf, CI95=[0.766, 0.967], p_perm=0.0000, 96-combo grid 96/96 REPLICABLE). Manuscript draft v1 presente. Sufficiente per discussione laurea con limiti N=15 esplicitati in Discussion.
 - **Re-attivazione futura**: SYNC_H-SCALE-02..05.md restano in `.planning/` come artefatti pronti. Path A integrale (~13h) o Path C ridimensionato (~6-7h riuso N=15) o Path D minimale (no batch, focus Fase 4 hardening + Fase 6 manuscript) — orch preference Path D allineato a "non-intensivo + concludere".
+
+---
+
+## 2026-05-12 — Fase 3 H-SCALE-N30 DONE (operator GO confermato)
+
+Pipeline N=30 end-to-end completata in singolo dispatch `scripts/run_pipeline_n30.py` (disk-aware, riuso N=15 cache + 15 nuovi sub).
+
+| Step | Stato | Note |
+|------|-------|------|
+| 2 (fwd+inv) | ✅ 30/30 | dSPM fsaverage |
+| 2b (stcs per-epoch) | ✅ 30/30 | cleanup post-3b |
+| 3b (label_ts) | ✅ 30/30 | aparc + schaefer100 |
+| 4b (FC) | ✅ 30/30 | 1920 file (2 atlas × 4 metric × 4 band × 2 cond) |
+| 5 (features) | ✅ 32/32 | X matrices (60, n_feat) |
+| 6+7 (ML LOSO-30) | ✅ 96 combo | logreg + svm_rbf + lda (3 clf) |
+
+### Winner N=30
+
+| Campo | Valore |
+|---|---|
+| Config | **schaefer100 × plv × theta × logreg** |
+| Balanced Accuracy | **0.967** |
+| CI 95% | **[0.917, 1.000]** |
+| p_perm | 0.0000 (vedi caveat) |
+| Confronto N=15 | BA 0.867 → 0.967 (+10pp) |
+
+### Caveat statistico
+
+I p_perm correnti provengono da smoke test (n_perm=1) dopo che ML3 full (n_perm=1000, 6 clf) è morto a ~10h CPU (probabile OOM). BA è valida (LOSO base). PID 807181 in corso con n_perm=1000 + 3 clf rapidi → amend p_perm refined entro 5-10 min.
+
+### Commit serie H-SCALE-N30
+
+- `ceae34c` whitelist N=30 (seed=42)
+- `5c7ced9` run_pipeline_n30.py driver
+- `2ea7a69` --atlases CLI flag
+- `26436cf` aggregate_n15 n_subjects param (fix shape guard)
+- `8efdd3c` step5 dynamic threshold
+- (next) --classifiers flag + reports + MSG father
+
+### Insight scientifico
+
+- PLV emerge come metric vincente in N=30 (era top-2/3 a N=15 con coh dominante)
+- Theta band confermato robusto in scaling
+- schaefer100 (100 ROI) supera aparc (68 ROI) a N=30 — più ROI → meglio con più campioni
+- CI95 width 0.201 → 0.083 (più stretto, meno fragile)
+
+Vedi `.planning/MSG_TO_FATHER_N30_DONE.md` per dettaglio cronologia rerun + caveat completi.

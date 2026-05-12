@@ -405,16 +405,19 @@ def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
 
 # ── STEP 6+7 — ML LOSO N=30 ───────────────────────────────────────────────────
 
-def step67_ml(subjects: list[str], n_perm: int = 1000) -> dict:
+def step67_ml(subjects: list[str], n_perm: int = 1000,
+              classifiers: list[str] | None = None) -> dict:
+    if classifiers is None:
+        classifiers = ["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"]
     x_files = list(FEAT_DIR.glob("X_*.npz"))
-    print(f"  [step67] {len(x_files)} X files → LOSO-{len(subjects)} ({n_perm} perm)")
+    print(f"  [step67] {len(x_files)} X files → LOSO-{len(subjects)} ({n_perm} perm, clf={classifiers})")
     agg = aggregate_classify_n15(
         features_dir=FEAT_DIR,
         out_dir=RESULTS_DIR,
         atlases=ATLASES,
         metrics=ALL_METRICS,
         bands=list(ALL_BANDS.keys()),
-        classifiers=["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"],
+        classifiers=classifiers,
         n_permutations=n_perm,
         random_state=42,
         n_subjects=len(subjects),
@@ -492,9 +495,12 @@ def main() -> None:
     ap.add_argument("--force-features", action="store_true")
     ap.add_argument("--atlases", default=",".join(ATLASES),
                     help="Comma-separated atlas list (default: %(default)s)")
+    ap.add_argument("--classifiers", default="logreg,svm_rbf,lda,rf,mlp,gb",
+                    help="Comma-separated classifiers (default: all 6)")
     args = ap.parse_args()
     ATLASES = [a.strip() for a in args.atlases.split(",") if a.strip()]
-    print(f"ATLASES filtered to: {ATLASES}")
+    _classifiers = [c.strip() for c in args.classifiers.split(",") if c.strip()]
+    print(f"ATLASES: {ATLASES}, classifiers: {_classifiers}")
 
     t_start = time.perf_counter()
     new_subs = [s for s in N30 if s not in N15]
@@ -575,7 +581,7 @@ def main() -> None:
     print(f"STEP 6+7 — ML LOSO N={len(N30)} (n_perm={args.n_perm})")
     print(f"{'='*60}")
     write_hb("step67", f"ML N30 running (n_perm={args.n_perm})", disk_free())
-    agg = step67_ml(N30, n_perm=args.n_perm)
+    agg = step67_ml(N30, n_perm=args.n_perm, classifiers=_classifiers)
     winner = agg.get("winner") or {}
     print(
         f"Winner: {winner.get('atlas')} × {winner.get('metric')} × "

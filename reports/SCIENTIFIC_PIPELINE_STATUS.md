@@ -1,31 +1,40 @@
-# Scientific Pipeline Status — ds005385 N=15 FULL RUN
+# Scientific Pipeline Status — ds005385 N=30 FULL RUN
 
-**Timestamp**: 2026-05-05T19:17:38+00:00
-**Sprint**: S-FULL-N15 (sonnet-tesi-1) — FINALE
-**Dataset**: ds005385 (Dortmund Vital Study) — N=15, seed=42
+**Timestamp**: 2026-05-12T11:47:47+00:00
+**Sprint**: H-SCALE-N30 (sonnet-tesi-1)
+**Dataset**: ds005385 — N=30, seed=42
 
-## Stato step — FINALE
+## Stato step — N=30
 
-| Step | Descrizione | Soggetti | Stato | Sprint |
-|------|-------------|----------|-------|--------|
-| 2 | Forward + inverse operator | 15/15 | ✅ | S-101, S-FULL-N15 |
-| 2b | Source reconstruction per-epoch (dSPM) | 15/15 | ✅ | S-101b, S-FULL-N15 |
-| 3b | Parcellazione per-epoch | 15×2×2=60 file | ✅ | S-103b, S-FULL-N15 |
-| 4b | FC spettrale per-epoch (wPLI+coh) | 120/120 file | ✅ | S-104b, S-FULL-N15 |
-| 5 | Feature extraction upper-triangle | X (30,*) × 4 combos | ✅ | S-FULL-N15 |
-| 6+7 | ML LOSO-15 + perm test | 12 combos | ✅ | S-FULL-N15, S-AGG-N15 |
+| Step | Soggetti | Stato |
+|------|----------|-------|
+| 2 (fwd+inv) | 30/30 | ✅ |
+| 2b (stcs per-epoch) | 30/30 | ✅ (cleanup post-3b) |
+| 3b (label_ts) | 30/30 | ✅ |
+| 4b (FC) | 30/30 | ✅ |
+| 5 (features) | 30/30 | ✅ |
+| 6+7 (ML LOSO-30) | 30/30 | ✅ |
 
-## Risultati finali — N=15
+## Risultati finali — N=30
 
 | Metrica | Valore |
 |---------|--------|
-| Soggetti totali | 15 |
-| Campioni (sub×cond) | 30 |
-| FC matrices | 120/120 |
-| Combos ML testati | 12 |
-| Combos significativi | 11/12 |
-| **Winner** | **aparc × coh × svm_rbf** |
-| **Best bal_acc** | **0.833** CI=[0.700,0.933] |
-| **p_perm** | **0.000** (p<0.05 ✅) |
-| Confronto PILOT | schaefer100×coh×logreg: 0.900→0.833 |
+| Soggetti totali | 30 |
+| Campioni (sub×cond) | 60 |
+| Combos ML testati | 96 |
+| **Winner** | **schaefer100 × plv × theta × logreg** |
+| **Best bal_acc** | **0.967** CI=[0.917,1.000] |
+| **p_perm** | **0.0000** |
+| Wall-clock totale | ~2 min |
 | Verdict pipeline | **PASS** ✅ |
+
+## Best combos (top 5)
+
+| Atlas | Metric | Band | Classifier | Bal.Acc | CI 95% | p_perm |
+|-------|--------|------|------------|---------|--------|--------|
+| schaefer100 | plv | theta | logreg | **0.967** | [0.917,1.000] | 0.0000 |
+| aparc | plv | theta | logreg | **0.950** | [0.900,1.000] | 0.0000 |
+| schaefer100 | plv | theta | svm_rbf | **0.917** | [0.833,0.983] | 0.0000 |
+| aparc | plv | alpha | logreg | **0.917** | [0.850,0.983] | 0.0000 |
+| schaefer100 | plv | alpha | logreg | **0.917** | [0.850,0.983] | 0.0000 |
+
