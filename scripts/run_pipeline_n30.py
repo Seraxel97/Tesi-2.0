@@ -30,6 +30,10 @@ warnings.filterwarnings("ignore")
 
 from config.subjects_whitelist import SUBJECT_WHITELIST as N15  # noqa: E402
 from config.subjects_whitelist_n30 import SUBJECT_WHITELIST_N30 as N30  # noqa: E402
+try:
+    from config.subjects_whitelist_n50 import SUBJECT_WHITELIST_N50 as N50  # noqa: E402
+except ImportError:
+    N50 = None
 from connectivity.fc_dispatcher import compute_fc  # noqa: E402
 from ml_training.aggregate_n15 import aggregate_classify_n15  # noqa: E402
 from parcellation.extract_label_tc import get_labels  # noqa: E402
@@ -490,21 +494,37 @@ def main() -> None:
     global ATLASES
     ap = argparse.ArgumentParser(description="Pipeline N=30 H-SCALE-N30")
     ap.add_argument("--skip-to-step5", action="store_true",
-                    help="Skip 2/2b/3b/4b (assume all N30 conn done), run only 5+6+7")
+                    help="Skip 2/2b/3b/4b (assume all conn done), run only 5+6+7")
     ap.add_argument("--n-perm", type=int, default=1000)
     ap.add_argument("--force-features", action="store_true")
     ap.add_argument("--atlases", default=",".join(ATLASES),
                     help="Comma-separated atlas list (default: %(default)s)")
     ap.add_argument("--classifiers", default="logreg,svm_rbf,lda,rf,mlp,gb",
                     help="Comma-separated classifiers (default: all 6)")
+    ap.add_argument("--n-subjects", type=int, default=30, choices=[30, 50],
+                    help="Target N (30 or 50). 50 requires subjects_whitelist_n50.py")
     args = ap.parse_args()
     ATLASES = [a.strip() for a in args.atlases.split(",") if a.strip()]
     _classifiers = [c.strip() for c in args.classifiers.split(",") if c.strip()]
-    print(f"ATLASES: {ATLASES}, classifiers: {_classifiers}")
+
+    # Select target/base whitelist based on --n-subjects
+    if args.n_subjects == 50:
+        if N50 is None:
+            print("ERROR: subjects_whitelist_n50.py not found. Run with --n-subjects 30 or create the file.")
+            sys.exit(1)
+        TARGET_N = N50
+        BASE_N = N30
+        _tag = "N50"
+    else:
+        TARGET_N = N30
+        BASE_N = N15
+        _tag = "N30"
+
+    print(f"ATLASES: {ATLASES}, classifiers: {_classifiers}, target={_tag}")
 
     t_start = time.perf_counter()
-    new_subs = [s for s in N30 if s not in N15]
-    print(f"N30 pipeline | N15 old={len(N15)} | N15 new={len(new_subs)}")
+    new_subs = [s for s in TARGET_N if s not in BASE_N]
+    print(f"{_tag} pipeline | base={len(BASE_N)} | new={len(new_subs)}")
     print(f"New subs: {new_subs}")
     print(f"Disk free: {disk_free():.1f} GB")
 
@@ -559,12 +579,13 @@ def main() -> None:
         print(f"STEP 4b done — {n_fc} FC files produced/cached")
         write_hb("step4b_done", f"FC done ({n_fc} files)", disk_free())
 
-    # ── Step 5 — Feature extraction (tutti 30) ────────────────────────────
+    # ── Step 5 — Feature extraction (tutti target) ────────────────────────────
+    n_target = len(TARGET_N)
     print(f"\n{'='*60}")
-    print(f"STEP 5 — Feature extraction N={len(N30)}")
+    print(f"STEP 5 — Feature extraction N={n_target}")
     print(f"{'='*60}")
-    write_hb("step5", f"0/{len(N30)} features", disk_free())
-    step5_results = step5_features(N30, force=args.force_features)
+    write_hb("step5", f"0/{n_target} features", disk_free())
+    step5_results = step5_features(TARGET_N, force=args.force_features)
     n_ok = sum(1 for r in step5_results if "error" not in r)
     n_expected = len(ATLASES) * len(ALL_METRICS) * len(ALL_BANDS)
     threshold = max(1, int(n_expected * 0.875))
@@ -576,12 +597,12 @@ def main() -> None:
         write_hb("BLOCKED_FEATURES", f"only {n_ok}/{n_expected} X ok", disk_free())
         sys.exit(2)
 
-    # ── Step 6+7 — ML LOSO N=30 ───────────────────────────────────────────
+    # ── Step 6+7 — ML LOSO ───────────────────────────────────────────
     print(f"\n{'='*60}")
-    print(f"STEP 6+7 — ML LOSO N={len(N30)} (n_perm={args.n_perm})")
+    print(f"STEP 6+7 — ML LOSO N={n_target} (n_perm={args.n_perm})")
     print(f"{'='*60}")
-    write_hb("step67", f"ML N30 running (n_perm={args.n_perm})", disk_free())
-    agg = step67_ml(N30, n_perm=args.n_perm, classifiers=_classifiers)
+    write_hb("step67", f"ML {_tag} running (n_perm={args.n_perm})", disk_free())
+    agg = step67_ml(TARGET_N, n_perm=args.n_perm, classifiers=_classifiers)
     winner = agg.get("winner") or {}
     print(
         f"Winner: {winner.get('atlas')} × {winner.get('metric')} × "
@@ -591,17 +612,17 @@ def main() -> None:
     )
 
     wall_s = time.perf_counter() - t_start
-    write_final_report(N30, agg, wall_s)
+    write_final_report(TARGET_N, agg, wall_s)
 
-    write_hb("DONE", "30/30 N30 pipeline complete",
+    write_hb("DONE", f"{n_target}/{n_target} {_tag} pipeline complete",
              disk_free(),
              {"winner": f"{winner.get('atlas')}×{winner.get('metric')}×{winner.get('band')}×{winner.get('classifier')}",
               "ba_mean": winner.get("ba_mean"),
               "p_perm": winner.get("p_perm"),
               "wall_min": round(wall_s / 60)})
 
-    print(f"\nPipeline N=30 DONE in {wall_s/60:.0f} min")
-    print("[TASK_DONE: H-SCALE-N30]")
+    print(f"\nPipeline {_tag} DONE in {wall_s/60:.0f} min")
+    print(f"[TASK_DONE: H-SCALE-{_tag}]")
 
 
 if __name__ == "__main__":
