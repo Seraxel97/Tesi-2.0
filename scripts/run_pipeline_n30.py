@@ -560,12 +560,14 @@ def main() -> None:
     write_hb("step5", f"0/{len(N30)} features", disk_free())
     step5_results = step5_features(N30, force=args.force_features)
     n_ok = sum(1 for r in step5_results if "error" not in r)
-    print(f"STEP 5 done — {n_ok}/32 X matrices ok")
-    write_hb("step5_done", f"features {n_ok}/32 ok", disk_free())
+    n_expected = len(ATLASES) * len(ALL_METRICS) * len(ALL_BANDS)
+    threshold = max(1, int(n_expected * 0.875))
+    print(f"STEP 5 done — {n_ok}/{n_expected} X matrices ok (threshold={threshold})")
+    write_hb("step5_done", f"features {n_ok}/{n_expected} ok", disk_free())
 
-    if n_ok < 28:
-        print(f"BLOCKER: only {n_ok}/32 X matrices — need ≥28. Stopping before ML.")
-        write_hb("BLOCKED_FEATURES", f"only {n_ok}/32 X ok", disk_free())
+    if n_ok < threshold:
+        print(f"BLOCKER: only {n_ok}/{n_expected} X matrices — need ≥{threshold}. Stopping before ML.")
+        write_hb("BLOCKED_FEATURES", f"only {n_ok}/{n_expected} X ok", disk_free())
         sys.exit(2)
 
     # ── Step 6+7 — ML LOSO N=30 ───────────────────────────────────────────
