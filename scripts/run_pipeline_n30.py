@@ -417,6 +417,7 @@ def step67_ml(subjects: list[str], n_perm: int = 1000) -> dict:
         classifiers=["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"],
         n_permutations=n_perm,
         random_state=42,
+        n_subjects=len(subjects),
     )
     return agg
 

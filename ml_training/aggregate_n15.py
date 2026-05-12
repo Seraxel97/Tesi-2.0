@@ -129,11 +129,12 @@ def _load_features(
     atlas: str,
     metric: str,
     band: str,
+    expected_samples: int = _EXPECTED_SAMPLES,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
     """Load (X, y, groups) for one (atlas, metric, band) config.
 
     Returns None if the npz is absent or the shape guard fires.
-    Shape guard: X.shape[0] must equal _EXPECTED_SAMPLES (30 for N=15).
+    Shape guard: X.shape[0] must equal expected_samples.
     """
     npz_path = features_dir / f"X_{atlas}_{metric}_{band}.npz"
     y_path = features_dir / "y.npy"
@@ -149,11 +150,12 @@ def _load_features(
     y = np.load(y_path)
     groups = np.load(groups_path)
 
-    if X.shape[0] != _EXPECTED_SAMPLES:
+    n_sub_expected = expected_samples // 2
+    if X.shape[0] != expected_samples:
         _logger.warning(
             "Shape guard: %s ha %d campioni, attesi %d (N=%d). "
-            "Step 5 N=15 non ancora completato — skip.",
-            npz_path.name, X.shape[0], _EXPECTED_SAMPLES, _N_SUBJECTS_FULL,
+            "Step 5 non ancora completato — skip.",
+            npz_path.name, X.shape[0], expected_samples, n_sub_expected,
         )
         return None
 
@@ -195,6 +197,7 @@ def aggregate_classify_n15(
     classifiers: list[str] | None = None,
     n_permutations: int = 1000,
     random_state: int = 42,
+    n_subjects: int | None = None,
 ) -> dict:
     """LOSO GroupKFold-15 classification on all N=15 subjects.
 
@@ -243,6 +246,7 @@ def aggregate_classify_n15(
     _bands = bands if bands is not None else [band]
     features_dir = Path(features_dir)
     out_dir = Path(out_dir)
+    _expected_samples = n_subjects * 2 if n_subjects is not None else _EXPECTED_SAMPLES
     out_path = out_dir / "comparison_matrix_N15.json"
 
     hashes = _compute_hashes(features_dir, atlases, metrics, band, bands=bands)
@@ -266,7 +270,7 @@ def aggregate_classify_n15(
     for _band in _bands:
         for atlas in atlases:
             for metric in metrics:
-                loaded = _load_features(features_dir, atlas, metric, _band)
+                loaded = _load_features(features_dir, atlas, metric, _band, expected_samples=_expected_samples)
                 if loaded is None:
                     continue
                 X, y, groups = loaded
