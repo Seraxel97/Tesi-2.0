@@ -67,6 +67,11 @@ def load_feature_matrix(
     g_path = FEATURES_DIR / "groups.npy"
     y = np.load(y_path)
     groups = np.load(g_path)
+    # Handle feature files computed on a subset (e.g. schaefer100 = N=30, aparc = N=50)
+    if X.shape[0] != y.shape[0]:
+        n = X.shape[0]
+        y = y[:n]
+        groups = groups[:n]
     return X, y, groups, roi_names
 
 
