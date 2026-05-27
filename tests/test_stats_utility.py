@@ -163,3 +163,54 @@ def test_bca_lower_bound_lt_upper() -> None:
         values = rng.standard_normal(100)
         lo, hi = bootstrap_ci_bca(values, n_boot=500, random_state=42)
         assert lo < hi, f"BCa lo={lo:.4f} >= hi={hi:.4f}"
+
+
+# ── hedges_g ─────────────────────────────────────────────────────────────────
+
+
+def test_hedges_g_correction_factor() -> None:
+    """Hedges g < Cohen d (in valore assoluto) per N piccolo."""
+    from analysis.stats_utility import hedges_g
+
+    rng = np.random.default_rng(10)
+    a_small = rng.standard_normal(15) + 1.0
+    b_small = rng.standard_normal(15)
+
+    d = cohen_d(a_small, b_small)
+    g = hedges_g(a_small, b_small)
+
+    # g deve essere più piccolo di d in valore assoluto (correzione riduce sovrastima)
+    assert abs(g) < abs(d), f"|g|={abs(g):.4f} non < |d|={abs(d):.4f} per N=15"
+    # La correzione deve essere nell'ordine atteso (~1-3/(4*30-9)=1-3/111≈0.973)
+    expected_correction = 1.0 - 3.0 / (4 * 30 - 9)
+    assert abs(g / d - expected_correction) < 0.001, (
+        f"Fattore correzione atteso {expected_correction:.4f}, trovato {g / d:.4f}"
+    )
+
+
+def test_hedges_g_converges_to_d_large_n() -> None:
+    """Hedges g ≈ Cohen d per N grande (N=5000 per gruppo)."""
+    from analysis.stats_utility import hedges_g
+
+    rng = np.random.default_rng(11)
+    a_large = rng.standard_normal(5000)
+    b_large = rng.standard_normal(5000) + 0.5
+
+    d = cohen_d(a_large, b_large)
+    g = hedges_g(a_large, b_large)
+
+    rel_diff = abs(g - d) / max(abs(d), 1e-10)
+    assert rel_diff < 0.001, f"g={g:.6f} vs d={d:.6f}: diff relativa {rel_diff:.6f} > 0.1%"
+
+
+def test_hedges_g_sign_matches_cohen_d() -> None:
+    """Segno di g uguale a segno di d."""
+    from analysis.stats_utility import hedges_g
+
+    rng = np.random.default_rng(12)
+    a = rng.standard_normal(20) + 1.0
+    b = rng.standard_normal(20)
+
+    d = cohen_d(a, b)
+    g = hedges_g(a, b)
+    assert (g > 0) == (d > 0), f"Segno diverso: g={g:.4f}, d={d:.4f}"

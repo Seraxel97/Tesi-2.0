@@ -167,6 +167,49 @@ def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     return mean_diff / s_pooled
 
 
+def hedges_g(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
+    """Calcola Hedges' g — versione bias-corrected di Cohen's d.
+
+    Raccomandato per N < 50 (campioni piccoli) dove Cohen's d tende a sovrastimare
+    l'effect size. La correzione è:
+
+        g = d × (1 − 3 / (4(n1 + n2) − 9))
+
+    dove d è Cohen's d con pooled SD non corretta.
+
+    Parameters
+    ----------
+    a:
+        Primo campione.
+    b:
+        Secondo campione.
+
+    Returns
+    -------
+    float
+        Hedges' g (|g| < |d| per N piccolo; converge a d per N grande).
+
+    Notes
+    -----
+    Per N1+N2 >= 10 la correzione è calcolabile. Per campioni molto piccoli
+    (N1+N2 < 10) la correzione può divergere; in quel caso restituisce d.
+
+    References
+    ----------
+    Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
+    size and related estimators. Journal of Educational Statistics, 6(2), 107–128.
+    """
+    a_arr = np.asarray(a, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    n1, n2 = len(a_arr), len(b_arr)
+    d = cohen_d(a_arr, b_arr)
+    denom = 4 * (n1 + n2) - 9
+    if denom <= 0:
+        return d  # campioni troppo piccoli, fallback a d
+    correction = 1.0 - 3.0 / denom
+    return d * correction
+
+
 def statistical_power(
     effect_size: float,
     n: int,
