@@ -18,6 +18,7 @@ sys.path.insert(0, str(_ROOT))
 
 from dashboard.utils.data_loader import (
     list_available_combos,
+    list_available_datasets,
     load_existing_results,
     n50_winner_full_result,
     run_combo,
@@ -32,17 +33,18 @@ from dashboard.utils.plots import (
     plot_roc_curve,
 )
 
+
 # ---------------------------------------------------------------------------
 # Helpers (defined early to avoid forward-reference NameError in Streamlit)
 # ---------------------------------------------------------------------------
-def _load_for_importance(result: dict):
+def _load_for_importance(result: dict, dataset_id: str = "ds005385"):
     """Load feature matrix for a result dict, return (X, y, groups, roi_names) or (None,...)."""
     from dashboard.utils.data_loader import load_feature_matrix
     atlas = result.get("atlas", "?")
     metric = result.get("metric", "?")
     band = result.get("band", "?")
     try:
-        X, y, groups, roi_names = load_feature_matrix(atlas, metric, band)
+        X, y, groups, roi_names = load_feature_matrix(atlas, metric, band, dataset_id=dataset_id)
         return X, y, groups, roi_names
     except FileNotFoundError:
         return None, None, None, None
@@ -114,9 +116,26 @@ with st.sidebar:
     st.caption("ds005385 · N=50 · EC vs EO · LOSO")
     st.markdown("---")
 
+    # ── Dataset selector ─────────────────────────────────────────────────────
+    available_datasets = list_available_datasets()
+    sel_dataset = st.selectbox(
+        "Dataset",
+        available_datasets,
+        index=0,
+        key="sel_dataset",
+    )
+    if "last_dataset" not in st.session_state:
+        st.session_state.last_dataset = sel_dataset
+    if sel_dataset != st.session_state.last_dataset:
+        st.session_state.current_result = None
+        st.session_state.all_results = []
+        st.session_state.last_dataset = sel_dataset
+        st.rerun()
+    st.divider()
+
     st.subheader("Selettori combo")
 
-    available = list_available_combos()
+    available = list_available_combos(dataset_id=sel_dataset)
     atlases = sorted({c["atlas"] for c in available})
     metrics = sorted({c["metric"] for c in available})
     bands = sorted({c["band"] for c in available})
@@ -342,7 +361,7 @@ else:
                 from sklearn.pipeline import Pipeline
                 from sklearn.preprocessing import StandardScaler
 
-                X_feat, y_feat, g_feat, roi_names = _load_for_importance(result)
+                X_feat, y_feat, g_feat, roi_names = _load_for_importance(result, dataset_id=sel_dataset)
                 if X_feat is not None:
                     pipe = Pipeline([
                         ("sc", StandardScaler()),

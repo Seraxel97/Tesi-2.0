@@ -1,4 +1,5 @@
 """Data loading utilities for the ML dashboard."""
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,23 @@ if str(_ROOT) not in sys.path:
 FEATURES_DIR = _ROOT / "data" / "features" / "ds005385"
 RESULTS_DIR = _ROOT / "data" / "results" / "ds005385"
 REPORTS_DIR = _ROOT / "reports"
+RESULTS_DIR_TEMPLATE = _ROOT / "data" / "results"
+
+
+def list_available_datasets() -> list[str]:
+    """Scansiona data/features/ e restituisce i dataset disponibili.
+
+    Returns
+    -------
+    list[str]
+        Lista di dataset_id (es. ['ds005385']). Include solo dir con almeno 1 file X_*.npz.
+    """
+    base = _ROOT / "data" / "features"
+    if not base.exists():
+        return ["ds005385"]  # fallback default
+    datasets = [d.name for d in sorted(base.iterdir()) if d.is_dir() and any(d.glob("X_*.npz"))]
+    return datasets if datasets else ["ds005385"]
+
 
 # Canonical N=50 winner (from PERM_1000_WINNER_LOG.md)
 N50_WINNER: dict[str, Any] = {
@@ -39,10 +57,11 @@ N50_WINNER: dict[str, Any] = {
 }
 
 
-def list_available_combos() -> list[dict[str, str]]:
+def list_available_combos(dataset_id: str = "ds005385") -> list[dict[str, str]]:
     """Return list of (atlas, metric, band) for which feature files exist."""
     combos = []
-    for f in sorted(FEATURES_DIR.glob("X_*.npz")):
+    feat_dir = _ROOT / "data" / "features" / dataset_id
+    for f in sorted(feat_dir.glob("X_*.npz")):
         parts = f.stem[2:].split("_")  # strip "X_"
         if len(parts) == 3:
             combos.append({"atlas": parts[0], "metric": parts[1], "band": parts[2]})
@@ -50,21 +69,25 @@ def list_available_combos() -> list[dict[str, str]]:
 
 
 def load_feature_matrix(
-    atlas: str, metric: str, band: str
+    atlas: str,
+    metric: str,
+    band: str,
+    dataset_id: str = "ds005385",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str] | None]:
     """Load X, y, groups and optional ROI names for a given combo.
 
     Returns (X, y, groups, roi_names). roi_names may be None.
     """
-    npz_path = FEATURES_DIR / f"X_{atlas}_{metric}_{band}.npz"
+    feat_dir = _ROOT / "data" / "features" / dataset_id
+    npz_path = feat_dir / f"X_{atlas}_{metric}_{band}.npz"
     if not npz_path.exists():
         raise FileNotFoundError(f"Feature file not found: {npz_path}")
     data = np.load(npz_path, allow_pickle=True)
     X = data["X"]
     roi_names: list[str] | None = data["row_labels"].tolist() if "row_labels" in data else None
 
-    y_path = FEATURES_DIR / "y.npy"
-    g_path = FEATURES_DIR / "groups.npy"
+    y_path = feat_dir / "y.npy"
+    g_path = feat_dir / "groups.npy"
     y = np.load(y_path)
     groups = np.load(g_path)
     # Handle feature files computed on a subset (e.g. schaefer100 = N=30, aparc = N=50)
@@ -130,7 +153,9 @@ def run_combo(
         "p_perm": None,
         "n_perm": n_perm,
         "null_distribution": [],
-        "confusion": cv_res.confusion.tolist() if hasattr(cv_res.confusion, "tolist") else cv_res.confusion,
+        "confusion": cv_res.confusion.tolist()
+        if hasattr(cv_res.confusion, "tolist")
+        else cv_res.confusion,
         "ba_per_fold": list(cv_res.ba_per_fold),
         "n_features": cv_res.n_features,
         "n_samples": cv_res.n_samples,
@@ -143,9 +168,14 @@ def run_combo(
 
     if n_perm > 0:
         from ml_training.permutation import permutation_test
+
         perm_res = permutation_test(
-            X, y, groups=groups, algorithm=clf,
-            n_permutations=n_perm, n_splits=n_splits_actual,
+            X,
+            y,
+            groups=groups,
+            algorithm=clf,
+            n_permutations=n_perm,
+            n_splits=n_splits_actual,
         )
         result["p_perm"] = float(perm_res.p_value)
         result["null_distribution"] = list(perm_res.null_distribution)
@@ -177,6 +207,7 @@ def _compute_roc_loso(
 
     if clf_name == "lda":
         from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
         base = LinearDiscriminantAnalysis()
     else:
         base = clf_map.get(clf_name, clf_map["logreg"])
@@ -206,6 +237,7 @@ def n50_winner_full_result() -> dict[str, Any]:
     try:
         X, y, groups, roi_names = load_feature_matrix("aparc", "plv", "theta")
         from ml_training.ml_dispatcher import run_cv
+
         cv_res = run_cv(X, y, groups=groups, algorithm="logreg", n_splits=50)
         roc_fpr, roc_tpr, roc_auc_val = _compute_roc_loso(X, y, groups, "logreg", 50)
         res["ba_per_fold"] = list(cv_res.ba_per_fold)
@@ -216,9 +248,9 @@ def n50_winner_full_result() -> dict[str, Any]:
         res["roi_names"] = roi_names
         # Synthetic null distribution for display (Gaussian approx from log)
         rng = np.random.default_rng(42)
-        res["null_distribution"] = rng.normal(
-            loc=res["null_mean"], scale=res["null_std"], size=1000
-        ).clip(0, 1).tolist()
+        res["null_distribution"] = (
+            rng.normal(loc=res["null_mean"], scale=res["null_std"], size=1000).clip(0, 1).tolist()
+        )
     except Exception:
         res["ba_per_fold"] = []
         res["roc_fpr"] = [0.0, 1.0]
