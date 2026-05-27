@@ -32,8 +32,63 @@ def list_available_datasets() -> list[str]:
     base = _ROOT / "data" / "features"
     if not base.exists():
         return ["ds005385"]  # fallback default
-    datasets = [d.name for d in sorted(base.iterdir()) if d.is_dir() and any(d.glob("X_*.npz"))]
+    datasets = [
+        d.name
+        for d in sorted(base.iterdir())
+        if d.is_dir() and validate_dataset_schema(d.name)["valid"]
+    ]
     return datasets if datasets else ["ds005385"]
+
+
+def validate_dataset_schema(dataset_id: str) -> dict[str, object]:
+    """Verifica che un dataset abbia la struttura richiesta dal dashboard.
+
+    Controlla la presenza di:
+    - Almeno 1 file X_<atlas>_<metric>_<band>.npz
+    - y.npy (etichette)
+    - groups.npy (group IDs per GroupKFold)
+    - metadata.json (opzionale — segnalato come warning)
+
+    Parameters
+    ----------
+    dataset_id:
+        ID del dataset (nome cartella in data/features/).
+
+    Returns
+    -------
+    dict con chiavi:
+        "valid": bool — True se il dataset ha tutti i file obbligatori
+        "warnings": list[str] — avvisi (es. metadata.json mancante)
+        "errors": list[str] — errori bloccanti
+        "n_combos": int — numero di combo X_*.npz trovate
+    """
+    feat_dir = _ROOT / "data" / "features" / dataset_id
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    # Obbligatorio: almeno 1 file X_*.npz
+    npz_files = list(feat_dir.glob("X_*.npz"))
+    if not npz_files:
+        errors.append(f"Nessun file X_*.npz in {feat_dir}")
+
+    # Obbligatorio: y.npy
+    if not (feat_dir / "y.npy").exists():
+        errors.append(f"y.npy non trovato in {feat_dir}")
+
+    # Obbligatorio: groups.npy
+    if not (feat_dir / "groups.npy").exists():
+        errors.append(f"groups.npy non trovato in {feat_dir}")
+
+    # Opzionale: metadata.json
+    if not (feat_dir / "metadata.json").exists():
+        warnings.append("metadata.json assente — informazioni dataset non disponibili")
+
+    return {
+        "valid": len(errors) == 0,
+        "warnings": warnings,
+        "errors": errors,
+        "n_combos": len(npz_files),
+    }
 
 
 # Canonical N=50 winner (from PERM_1000_WINNER_LOG.md)
