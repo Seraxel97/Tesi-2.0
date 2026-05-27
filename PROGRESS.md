@@ -222,3 +222,39 @@ I p_perm correnti provengono da smoke test (n_perm=1) dopo che ML3 full (n_perm=
 - CI95 width 0.201 → 0.083 (più stretto, meno fragile)
 
 Vedi `.planning/MSG_TO_FATHER_N30_DONE.md` per dettaglio cronologia rerun + caveat completi.
+
+
+---
+
+## 2026-05-27 — Statistical Hardening DONE
+
+**Sprint**: FIX-01 → FIX-07  
+**Orchestratore**: Sonnet 4.6 (orch-tesi)  
+**Workers**: haiku1-tesi + haiku2-tesi (Haiku 4.5, 5 wave parallele)  
+**Test**: 272 → 276 passed, 0 failed
+
+### Commit sprint
+- `96f3edd` feat(stats): Hedges g (FIX-04)
+- `68d23c2` docs(features): z-score clarity + regression test (FIX-05)
+- `6ad1e10` feat(dashboard): multi-dataset selector (FIX-06.a+b)
+- `25cad1c` fix(dashboard): ruff noqa E402 pre-existing (orch)
+- `8dc8eb0` feat(dashboard): schema validator (FIX-06.c)
+- `25afc3c` feat(lemon): LEMON scaffolding (FIX-06.d+e)
+- `0fa4d96` test(dashboard): mock filesystem tests (FIX-06.f)
+- `6a4937e` docs(reports): statistical validity notes (FIX-07)
+
+### Fix applicati
+1. **BCa Bootstrap CI** — bias-corrected accelerated (Efron & Tibshirani 1993)
+2. **Nested CV** — LogReg inner GridSearch C ∈ [0.01..100] + GroupKFold inner
+3. **HARKing Disclosure** — FDR-BH su 96 combo, winner sopravvive
+4. **Hedges g** — effect size bias-corrected per N<50
+5. **Z-score clarity** — no double normalization; docstring + regression test
+6. **Dashboard multi-dataset** — parametric data_loader + selectbox + validator
+7. **LEMON scaffolding** — config.py + .gitkeep; gate operatore per path reale
+
+### Gate operatore (bloccante per LEMON)
+`LEMON_RAW_PATH = None` in `config/dataset_lemon.py` — operatore deve scaricare LEMON BIDS (~200GB) e impostare path.
+
+### Riferimenti
+- `reports/STATISTICAL_VALIDITY_NOTES.md` — sommario validità scientifica
+- `reports/EXPERIMENTS_N50.md` — HARKing disclosure + FDR-BH table
