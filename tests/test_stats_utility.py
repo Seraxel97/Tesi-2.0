@@ -71,8 +71,8 @@ def test_cohen_d_sign() -> None:
     """d è positivo se mean_a > mean_b, negativo se mean_a < mean_b."""
     # Usiamo array con varianza > 0 per evitare s_pooled=0 → inf
     rng = np.random.default_rng(99)
-    a_high = rng.standard_normal(100) + 2.0   # media ≈ 2
-    b_low  = rng.standard_normal(100) + 1.0   # media ≈ 1
+    a_high = rng.standard_normal(100) + 2.0  # media ≈ 2
+    b_low = rng.standard_normal(100) + 1.0  # media ≈ 1
     assert cohen_d(a_high, b_low) > 0
     assert cohen_d(b_low, a_high) < 0
 
@@ -126,3 +126,40 @@ def test_power_conventional_threshold() -> None:
     """d=0.5, n=67 ≈ minimo per power=0.80 (convezione Cohen 1988)."""
     power = statistical_power(effect_size=0.5, n=67, alpha=0.05)
     assert power >= 0.78, f"Power attesa ≥ 0.78 con n=67, d=0.5: {power:.4f}"
+
+
+# ── bootstrap_ci_bca ─────────────────────────────────────────────────────────────
+
+
+def test_bca_matches_known_distribution() -> None:
+    """BCa CI su N(0,1) n=1000: deve contenere 0 e width simile a percentile (<1% diff)."""
+    from analysis.stats_utility import bootstrap_ci_bca
+
+    rng = np.random.default_rng(99)
+    values = rng.standard_normal(1000)
+
+    lo_pct, hi_pct = bootstrap_ci(values, n_boot=2000, alpha=0.05, random_state=42)
+    lo_bca, hi_bca = bootstrap_ci_bca(values, n_boot=2000, alpha=0.05, random_state=42)
+
+    # Entrambi devono contenere la media vera (0)
+    assert lo_bca < 0.0 < hi_bca, f"BCa CI [{lo_bca:.4f}, {hi_bca:.4f}] non contiene 0"
+
+    # Width BCa non deve discostarsi >1% da percentile per distribuzione gaussiana
+    width_pct = hi_pct - lo_pct
+    width_bca = hi_bca - lo_bca
+    rel_diff = abs(width_bca - width_pct) / max(width_pct, 1e-10)
+    assert rel_diff < 0.01, (
+        f"BCa width {width_bca:.4f} vs percentile {width_pct:.4f}: "
+        f"diff relativa {rel_diff:.4f} > 1%"
+    )
+
+
+def test_bca_lower_bound_lt_upper() -> None:
+    """BCa CI: lo < hi sempre."""
+    from analysis.stats_utility import bootstrap_ci_bca
+
+    rng = np.random.default_rng(7)
+    for _ in range(5):
+        values = rng.standard_normal(100)
+        lo, hi = bootstrap_ci_bca(values, n_boot=500, random_state=42)
+        assert lo < hi, f"BCa lo={lo:.4f} >= hi={hi:.4f}"

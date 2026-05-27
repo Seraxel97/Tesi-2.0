@@ -58,6 +58,84 @@ def bootstrap_ci(
     return lo, hi
 
 
+def bootstrap_ci_bca(
+    values: np.ndarray | list[float],
+    statistic: Callable[[np.ndarray], float] = np.mean,
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    *,
+    random_state: int = 42,
+) -> tuple[float, float]:
+    """Intervallo di confidenza bootstrap BCa (Bias-Corrected accelerated).
+
+    Implementa Efron & Tibshirani (1993) con jackknife per stima accelerazione.
+
+    Parameters
+    ----------
+    values:
+        Array 1D di valori campionati.
+    statistic:
+        Funzione scalare (default: np.mean).
+    n_boot:
+        Numero campioni bootstrap (default: 2000).
+    alpha:
+        Livello significatività (default: 0.05 → CI 95%).
+    random_state:
+        Seed riproducibilità.
+
+    Returns
+    -------
+    (lo, hi) : tuple[float, float]
+
+    Notes
+    -----
+    BCa corregge bias e asimmetria della distribuzione bootstrap.
+    Superiore al metodo percentile per statistiche asimmetriche (N<50).
+    Ref: Efron & Tibshirani (1993); DiCiccio & Romano (1988).
+    """
+    from scipy.stats import norm as _norm
+
+    arr = np.asarray(values, dtype=float)
+    n = len(arr)
+    rng = np.random.default_rng(random_state)
+
+    # Bootstrap distribution
+    boot_stats = np.array([statistic(rng.choice(arr, size=n, replace=True)) for _ in range(n_boot)])
+    theta_hat = statistic(arr)
+
+    # Bias correction z0
+    prop_less = np.mean(boot_stats < theta_hat)
+    prop_less = np.clip(prop_less, 1e-10, 1 - 1e-10)
+    z0 = float(_norm.ppf(prop_less))
+
+    # Acceleration via jackknife
+    jack_stats = np.array([statistic(np.delete(arr, i)) for i in range(n)])
+    jack_mean = np.mean(jack_stats)
+    num = np.sum((jack_mean - jack_stats) ** 3)
+    den = 6.0 * (np.sum((jack_mean - jack_stats) ** 2) ** 1.5)
+    a = float(num / den) if abs(den) > 1e-15 else 0.0
+
+    # Adjusted percentiles
+    z_lo = _norm.ppf(alpha / 2)
+    z_hi = _norm.ppf(1 - alpha / 2)
+
+    def _adj_pct(z_alpha: float) -> float:
+        num_inner = z0 + z_alpha
+        denom_inner = 1.0 - a * (z0 + z_alpha)
+        if abs(denom_inner) < 1e-15:
+            return z_alpha
+        return float(_norm.cdf(z0 + num_inner / denom_inner))
+
+    pct_lo = _adj_pct(z_lo) * 100
+    pct_hi = _adj_pct(z_hi) * 100
+    pct_lo = np.clip(pct_lo, 0.01, 99.99)
+    pct_hi = np.clip(pct_hi, 0.01, 99.99)
+
+    lo = float(np.percentile(boot_stats, pct_lo))
+    hi = float(np.percentile(boot_stats, pct_hi))
+    return lo, hi
+
+
 def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     """Calcola Cohen's d per due campioni indipendenti.
 
