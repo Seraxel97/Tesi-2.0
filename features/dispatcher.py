@@ -14,6 +14,11 @@ Due sorgenti di feature:
 Output finale X: (n_epochs, n_uni_features + n_fc_features).
 
 Ordine colonne: [uni_features... | fc_features...]
+
+Normalizzazione: NESSUNA normalizzazione qui. Le feature raw vengono passate
+direttamente al classificatore. La normalizzazione (StandardScaler) è applicata
+SOLO dentro la sklearn Pipeline in ml_training/ml_dispatcher.py, fittata
+esclusivamente sul train fold per prevenire data leakage.
 """
 
 from __future__ import annotations
@@ -78,9 +83,7 @@ def _apply_uni_epoch(
             parts.append(vec)
             n_per = len(vec) // n_labels
             names.extend(
-                f"{fname}_band{b}_lbl{i:03d}"
-                for b in range(n_per)
-                for i in range(n_labels)
+                f"{fname}_band{b}_lbl{i:03d}" for b in range(n_per) for i in range(n_labels)
             )
 
     return np.concatenate(parts), names
@@ -115,7 +118,9 @@ def extract_univariate(
     feature_names : list[str]
     """
     if label_tc.ndim != 3:
-        raise ValueError(f"label_tc deve essere (n_epochs, n_labels, n_times), got {label_tc.shape}")
+        raise ValueError(
+            f"label_tc deve essere (n_epochs, n_labels, n_times), got {label_tc.shape}"
+        )
 
     funcs = list(_DEFAULT_UNI_FUNCS)
     if include_pow_freq_bands:
@@ -203,6 +208,12 @@ def build_X(
     -------
     X : np.ndarray, shape (n_epochs, n_features)
     feature_names : list[str]
+
+    Notes
+    -----
+    No normalization applied — output X is raw feature matrix.
+    StandardScaler is applied inside the sklearn Pipeline in ml_dispatcher.py
+    (fit-on-train-only to prevent leakage).
     """
     if not include_univariate and not include_fc:
         raise ValueError("Almeno una tra include_univariate e include_fc deve essere True.")
