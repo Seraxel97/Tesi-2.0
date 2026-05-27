@@ -126,6 +126,15 @@ def run_cv(
         cv_strat = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         splits = cv_strat.split(X, y)
 
+    # Inner CV per logreg_nested: GroupKFold se groups disponibili (subject leakage
+    # prevention anche in inner loop), altrimenti StratifiedKFold (fallback no-groups).
+    if algorithm == "logreg_nested":
+        inner_cv = (
+            GroupKFold(n_splits=3)
+            if groups is not None
+            else StratifiedKFold(n_splits=3, shuffle=True, random_state=random_state)
+        )
+
     ba_folds: list[float] = []
     conf_agg = np.zeros((len(np.unique(y)),) * 2, dtype=int)
     train_sizes: list[int] = []
@@ -136,9 +145,13 @@ def run_cv(
         y_tr, y_te = y[train_idx], y[test_idx]
 
         pipe = _make_pipeline(algorithm)
-        if algorithm == "logreg_nested" and groups is not None:
-            groups_tr = groups[train_idx]
-            pipe.fit(X_tr, y_tr, clf__groups=groups_tr)
+        if algorithm == "logreg_nested":
+            # Aggiorna il cv del GridSearchCV al tipo appropriato per questo run
+            pipe.named_steps["clf"].cv = inner_cv
+            if groups is not None:
+                pipe.fit(X_tr, y_tr, clf__groups=groups[train_idx])
+            else:
+                pipe.fit(X_tr, y_tr)
         else:
             pipe.fit(X_tr, y_tr)
         if algorithm == "logreg_nested":
