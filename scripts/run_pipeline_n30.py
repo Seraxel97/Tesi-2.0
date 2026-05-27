@@ -30,6 +30,7 @@ warnings.filterwarnings("ignore")
 
 from config.subjects_whitelist import SUBJECT_WHITELIST as N15  # noqa: E402
 from config.subjects_whitelist_n30 import SUBJECT_WHITELIST_N30 as N30  # noqa: E402
+
 try:
     from config.subjects_whitelist_n50 import SUBJECT_WHITELIST_N50 as N50  # noqa: E402
 except ImportError:
@@ -440,7 +441,7 @@ def write_final_report(subjects: list[str], agg: dict, wall_s: float) -> None:
         "# Scientific Pipeline Status — ds005385 N=30 FULL RUN",
         "",
         f"**Timestamp**: {ts}",
-        f"**Sprint**: H-SCALE-N30 (sonnet-tesi-1)",
+        "**Sprint**: H-SCALE-N30 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
         "",
         "## Stato step — N=30",

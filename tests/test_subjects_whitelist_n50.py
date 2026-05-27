@@ -11,6 +11,8 @@ from config.subjects_whitelist_n50 import (
     N50_HASH,
     N_SUBJECTS,
     RANDOM_SEED,
+)
+from config.subjects_whitelist_n50 import (
     SUBJECT_WHITELIST_N50 as N50,
 )
 

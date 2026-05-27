@@ -5,7 +5,6 @@ from typing import Any
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 
 def plot_confusion_matrix(
@@ -16,7 +15,6 @@ def plot_confusion_matrix(
     """Annotated confusion matrix heatmap."""
     labels = labels or ["EO (0)", "EC (1)"]
     cm_arr = np.array(cm)
-    text = [[str(v) for v in row] for row in cm_arr]
     total = cm_arr.sum()
     pct = [[f"{v/total*100:.1f}%" for v in row] for row in cm_arr]
     annotations_text = [
@@ -127,7 +125,7 @@ def plot_permutation_null(
 ) -> go.Figure:
     """Histogram of null distribution with observed BA highlighted."""
     null = np.array(null_distribution)
-    p_label = f"p<0.001" if (p_perm is not None and p_perm < 0.001) else (
+    p_label = "p<0.001" if (p_perm is not None and p_perm < 0.001) else (
         f"p={p_perm:.3f}" if p_perm is not None else "p=N/A"
     )
     n_label = f" (n={n_perm})" if n_perm else ""

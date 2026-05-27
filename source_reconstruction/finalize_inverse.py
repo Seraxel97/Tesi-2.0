@@ -22,7 +22,6 @@ from pathlib import Path
 
 import mne
 
-
 DERIV = Path("/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline")
 
 

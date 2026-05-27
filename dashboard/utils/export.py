@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,11 +39,15 @@ def export_confusion_matrix(
     fig, ax = plt.subplots(figsize=(3.5, 3.0))
     im = ax.imshow(cm_arr, cmap="Blues")
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    ax.set_xticks([0, 1]); ax.set_xticklabels(labels)
-    ax.set_yticks([0, 1]); ax.set_yticklabels(labels)
-    ax.set_xlabel("Predicted"); ax.set_ylabel("True")
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(labels)
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
     ax.set_title("Confusion Matrix (LOSO aggregate)", fontsize=_FONT_SIZE)
-    ax.xaxis.set_label_position("top"); ax.xaxis.tick_top()
+    ax.xaxis.set_label_position("top")
+    ax.xaxis.tick_top()
     total = cm_arr.sum()
     for i in range(2):
         for j in range(2):
@@ -68,8 +73,10 @@ def export_roc_curve(
     ax.plot(fpr, tpr, color="#2166ac", lw=2, label=f"AUC = {auc_val:.3f}")
     ax.plot([0, 1], [0, 1], color="gray", lw=1, linestyle="--", label="Chance")
     ax.fill_between(fpr, tpr, alpha=0.08, color="#2166ac")
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1.02)
-    ax.set_xlabel("False Positive Rate"); ax.set_ylabel("True Positive Rate")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
     ax.set_title("ROC Curve (LOSO aggregate)", fontsize=_FONT_SIZE)
     ax.legend(loc="lower right", fontsize=9)
     fig.tight_layout()
@@ -118,7 +125,8 @@ def export_learning_curve(
     ax.axhline(mean_ba, color="#d73027", lw=1.5, ls="--", label=f"Mean={mean_ba:.3f}")
     ax.axhline(0.5, color="gray", lw=1.0, ls=":", label="Chance")
     ax.set_ylim(0, 1.05)
-    ax.set_xlabel("Fold (subject withheld)"); ax.set_ylabel("Balanced Accuracy")
+    ax.set_xlabel("Fold (subject withheld)")
+    ax.set_ylabel("Balanced Accuracy")
     ax.set_title("BA per LOSO fold", fontsize=_FONT_SIZE)
     ax.legend(fontsize=8, ncol=3)
     fig.tight_layout()
