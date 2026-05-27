@@ -23,16 +23,24 @@ import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
-from sklearn.model_selection import GroupKFold, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, StratifiedKFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
-Algorithm = Literal["logreg", "svm", "mlp", "rf", "gb"]
+Algorithm = Literal["logreg", "logreg_nested", "svm", "mlp", "rf", "gb"]
 
 _CLASSIFIERS: dict[str, object] = {
     "logreg": LogisticRegression(max_iter=2000, C=1.0, random_state=42),
+    "logreg_nested": GridSearchCV(
+        LogisticRegression(max_iter=2000, random_state=42),
+        param_grid={"C": [0.01, 0.1, 1.0, 10.0, 100.0]},
+        cv=GroupKFold(n_splits=3),
+        scoring="balanced_accuracy",
+        refit=True,
+        n_jobs=-1,
+    ),
     "svm": SVC(kernel="rbf", C=1.0, probability=True, random_state=42),
     "mlp": MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=500, random_state=42),
     "rf": RandomForestClassifier(n_estimators=200, random_state=42),
@@ -70,14 +78,13 @@ class CVResult:
     n_features: int
     n_samples: int
     fold_train_sizes: list[int] = field(default_factory=list)
+    best_C_per_fold: list[float] = field(default_factory=list)
 
 
 def _make_pipeline(algorithm: Algorithm) -> Pipeline:
     _VALID = Algorithm.__args__  # type: ignore[attr-defined]
     if algorithm not in _VALID:
-        raise ValueError(
-            f"Unknown algorithm={algorithm!r}. Valid: {sorted(_VALID)}"
-        )
+        raise ValueError(f"Unknown algorithm={algorithm!r}. Valid: {sorted(_VALID)}")
     clf = _CLASSIFIERS[algorithm]
     return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
 
@@ -122,13 +129,21 @@ def run_cv(
     ba_folds: list[float] = []
     conf_agg = np.zeros((len(np.unique(y)),) * 2, dtype=int)
     train_sizes: list[int] = []
+    best_c_per_fold: list[float] = []
 
     for train_idx, test_idx in splits:
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
 
         pipe = _make_pipeline(algorithm)
-        pipe.fit(X_tr, y_tr)
+        if algorithm == "logreg_nested" and groups is not None:
+            groups_tr = groups[train_idx]
+            pipe.fit(X_tr, y_tr, clf__groups=groups_tr)
+        else:
+            pipe.fit(X_tr, y_tr)
+        if algorithm == "logreg_nested":
+            best_c = pipe.named_steps["clf"].best_params_.get("C", float("nan"))
+            best_c_per_fold.append(float(best_c))
         y_pred = pipe.predict(X_te)
 
         ba_folds.append(float(balanced_accuracy_score(y_te, y_pred)))
@@ -144,6 +159,7 @@ def run_cv(
         n_features=X.shape[1],
         n_samples=X.shape[0],
         fold_train_sizes=train_sizes,
+        best_C_per_fold=best_c_per_fold,
     )
 
 

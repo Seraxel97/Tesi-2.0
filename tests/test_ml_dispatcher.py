@@ -76,9 +76,9 @@ def test_run_cv_data_leakage_check() -> None:
 
 
 def test_run_all_algorithms_returns_all() -> None:
-    """run_all_algorithms ritorna dict con tutti e 5 gli algoritmi."""
+    """run_all_algorithms ritorna dict con tutti gli algoritmi."""
     results = run_all_algorithms(_X, _Y, groups=_GROUPS, n_splits=3)
-    assert set(results.keys()) == {"logreg", "svm", "mlp", "rf", "gb"}
+    assert set(results.keys()) == {"logreg", "logreg_nested", "svm", "mlp", "rf", "gb"}
 
 
 def test_run_all_algorithms_subset() -> None:
@@ -132,8 +132,8 @@ def test_fdr_correction_mixed() -> None:
     """Mix di p-value: solo i piccoli vengono rifiutati."""
     p = np.array([0.001, 0.5, 0.002, 0.8])
     reject, _ = fdr_correction(p, alpha=0.05)
-    assert reject[0]   # p=0.001 → reject
-    assert reject[2]   # p=0.002 → reject
+    assert reject[0]  # p=0.001 → reject
+    assert reject[2]  # p=0.002 → reject
     assert not reject[1]  # p=0.5 → no reject
     assert not reject[3]  # p=0.8 → no reject
 
@@ -144,3 +144,29 @@ def test_fdr_correction_output_shape() -> None:
     reject, p_corr = fdr_correction(p)
     assert reject.shape == p.shape
     assert p_corr.shape == p.shape
+
+
+# ── logreg_nested (FIX-02) ────────────────────────────────────────────────────
+
+
+def test_nested_cv_picks_best_C() -> None:
+    """logreg_nested: run_cv deve restituire best_C_per_fold non vuoto."""
+    rng = np.random.default_rng(42)
+    n_sub = 9
+    n_ep = 4
+    n_feat = 10
+    n = n_sub * n_ep
+
+    X = rng.standard_normal((n, n_feat))
+    y = np.array([i % 2 for i in range(n_sub)] * n_ep)
+    groups = np.repeat(np.arange(n_sub), n_ep)
+
+    result = run_cv(X, y, groups=groups, algorithm="logreg_nested", n_splits=n_sub)  # type: ignore[arg-type]
+
+    assert len(result.best_C_per_fold) == n_sub, (
+        f"best_C_per_fold atteso len={n_sub}, trovato {len(result.best_C_per_fold)}"
+    )
+    assert all(c in [0.01, 0.1, 1.0, 10.0, 100.0] for c in result.best_C_per_fold), (
+        f"C non in grid: {result.best_C_per_fold}"
+    )
+    assert 0.0 <= result.ba_mean <= 1.0
