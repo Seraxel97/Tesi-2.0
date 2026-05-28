@@ -1,5 +1,9 @@
 # Esperimenti ML LOSO-50 — ds005385
 
+> **Ruolo scientifico (2026-05-28)**: EO vs EC è un **positive-control** per la
+> validazione della pipeline end-to-end (effetto Berger noto dal 1929 — BA≈0.92 atteso,
+> non una scoperta). I target scientifici principali sono **età** e **sesso** (FASE 1+).
+
 **Sprint**: H-SCALE-N50  
 **Worker**: sonnet-tesi-1  
 **Data**: 2026-05-13  

@@ -1,6 +1,11 @@
-"""ML Scientific Dashboard — Tesi_2.0 (ds005385, EC vs EO).
+"""ML Scientific Dashboard — Tesi_2.0 (ds005385).
 
 Streamlit MVP for interactive exploration of EEG source-level FC classification results.
+
+Nota scientifica: EO vs EC (Eyes Open / Eyes Closed) è usato come **positive-control**
+(validazione pipeline) — l'effetto Berger è atteso dal 1929 (BA≈0.92 non è una scoperta).
+I target scientifici principali sono età e sesso (FASE 1+).
+
 Run: streamlit run dashboard/app.py --server.port 8501
 """
 
@@ -116,7 +121,7 @@ if "all_results" not in st.session_state:
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.title("🧠 ML Dashboard")
-    st.caption("ds005385 · N=50 · EC vs EO · LOSO")
+    st.caption("ds005385 · N=50 · Positive-control: EO vs EC (validazione pipeline) · LOSO")
     st.markdown("---")
 
     # ── Dataset selector ─────────────────────────────────────────────────────
@@ -256,7 +261,8 @@ result = st.session_state.current_result
 
 st.title("EEG Source-Level FC — ML Classification Dashboard")
 st.caption(
-    "ds005385 · Dortmund Vital EEG · N=50 soggetti · Eyes Closed vs Eyes Open · LOSO GroupKFold"
+    "ds005385 · Dortmund Vital EEG · N=50 soggetti · "
+    "**Positive-control: EO vs EC (validazione pipeline)** · LOSO GroupKFold"
 )
 
 if result is None:
@@ -306,8 +312,9 @@ else:
     )
     if ba_val >= 0.90:
         st.success(
-            "✅ **High discriminability** — BA ≥ 0.90: PLV-theta phase synchronization "
-            "robustly distinguishes EC from EO at source level."
+            "✅ **Positive-control PASS** — BA ≥ 0.90: PLV-theta phase synchronization "
+            "distinguishes EC from EO at source level (effetto Berger atteso — "
+            "valida la pipeline end-to-end, non è il risultato scientifico principale)."
         )
     elif ba_val >= 0.75:
         st.warning("⚠ Moderate discriminability — BA ≥ 0.75")
