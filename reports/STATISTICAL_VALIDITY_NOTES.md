@@ -140,3 +140,28 @@ restituiva `p=0.0`, che è fuorviante (risoluzione finita del test empirico).
 **Dashboard interattiva**: usa `N_BOOT_DASHBOARD=2000` — scelta deliberata per latency
 target (~5s vs ~25s su N=50). Documentata esplicitamente nel modulo data_loader.py.
 **Non è incoerenza**: i due contesti hanno requisiti diversi (performance vs precisione).
+
+---
+
+## FASE 1 — Estensione Età e Sesso (2026-05-28)
+
+### Decisione scientifica
+EO/EC reclassificato come **positive-control** (effetto Berger atteso, non una scoperta).
+Nuovi target scientifici: età (brain-age regression) + sesso (binary classification).
+Entrambi dichiarati a priori nel piano `.planning/core/PLAN_AGE_SEX_EXTENSION.md`.
+
+### Moduli aggiunti
+| Step | File | Funzione |
+|------|------|----------|
+| 1.1 | `config/labels_phenotype.py` | `load_phenotype()` — y_age, y_sex da participants.tsv |
+| 1.2 | `features/graph_theory.py` | `compute_graph_metrics()` — 8 scalari (C,L,E_glob,...) |
+| 1.3 | `features/aperiodic_fooof.py` | `compute_aperiodic_features()` — χ, offset, band-power |
+| 1.4 | `ml_training/ml_sex.py` | ML sesso con nested GroupKFold + permutation |
+| 1.5 | `ml_training/ml_age.py` | ML età con nested GroupKFold + bootstrap + permutation |
+| 1.7 | `dashboard/app.py` | Selettore target EO/EC|Sesso|Età |
+
+### Garanzie anti-leakage FASE 1
+- GroupKFold a livello soggetto in tutti i moduli ML
+- StandardScaler fit su train fold only
+- Nested CV (inner GridSearchCV GroupKFold K=3)
+- Permutation test su ogni classificatore/regressore
