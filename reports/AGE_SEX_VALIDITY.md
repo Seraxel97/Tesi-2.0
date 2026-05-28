@@ -57,29 +57,38 @@ I target età e sesso sono stati dichiarati a priori nel file
 - **Sesso**: F=32 (64%), M=18 (36%) — sbilanciato, gestito con class_weight='balanced'
 
 ### 3.2 Classificazione Sesso — Risultati
-*(Generare con: `python -m ml_training.ml_sex`)*
+*N=50, X_aparc_plv_theta (2278 feature), permutation subject-level n_perm=50*
 
-| Modello | BA (mean±std) | AUC | p-value | Interpretazione |
-|---------|---------------|-----|---------|-----------------|
-| logreg  | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
-| rf      | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
-| svm     | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
+| Modello | BA (mean±std) | AUC | p-value (subj-perm) | Interpretazione |
+|---------|---------------|-----|---------------------|-----------------|
+| logreg  | 0.694 ± — | 0.814 | 0.0196 | ✅ significativo |
 
 *Atteso da letteratura: BA≈0.65-0.75 (Kollia et al. 2022, N piccolo)*
-*BA chance = 0.5; p<0.05 = significativo*
+*Shuffle null BA≈0.51 → no leakage confermato*
 
 ### 3.3 Regressione Età — Risultati
-*(Generare con: `python -m ml_training.ml_age`)*
+*N=50, X_aparc_plv_theta (2278 feature), bootstrap cluster subject-level n_boot=1000, permutation subject-level n_perm=50*
 
-| Modello | MAE (anni) | R² | p-value | Batte dummy? |
-|---------|------------|----|---------|--------------|
-| elasticnet | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
-| svr     | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
-| rf      | [DA INSERIRE] | [DA INSERIRE] | [DA INSERIRE] | — |
-| dummy   | [DA INSERIRE] | ≈0 | N/A | — |
+| Modello | MAE (anni) | MAE CI95 | R² | p-value (subj-perm) | Batte dummy? |
+|---------|------------|----------|----|---------------------|--------------|
+| RF      | 12.31 | [10.73, 13.94] | 0.185 | 0.0196 | ✅ sì |
+| ElasticNet | 15.04 | — | -0.135 | 0.686 | ❌ no (non converge) |
+| dummy   | 14.72 | — | ≈-0.05 | N/A | — |
 
-*Atteso da letteratura: MAE≈8-12 anni (N=50, Franck et al. 2019)*
-*R²>0 significativo = batte dummy*
+*Atteso da letteratura: MAE≈8-12 anni con N>200 (Franck et al. 2019). N=50 → MAE più alto atteso.*
+*y_age mean=43.1, std=15.5 → dummy MAE≈14.7 (mean predictor); RF batte di 16%*
+
+### 3.4 Confronto Feature: Baseline (2278-dim) vs Graph-Theory (8-dim)
+*FDR-BH su 4 test: sex × {baseline,GT} + age × {baseline,GT}*
+
+| Confronto | Score | p_raw | p_fdr | Significativo? |
+|-----------|-------|-------|-------|----------------|
+| sex_baseline (2278-dim FC) | BA=0.694 | 0.0196 | 0.026 | ✅ |
+| sex_GT (8 scalari GT) | BA=0.678 | 0.0196 | 0.026 | ✅ |
+| age_baseline (2278-dim FC, RF) | R²=0.185 | 0.0196 | 0.026 | ✅ |
+| age_GT (8 scalari GT) | R²=-0.072 | 0.118 | 0.118 | ❌ |
+
+**Interpretazione**: le metriche graph-theory (8 scalari) catturano il segnale sesso (BA=0.678 ≈ baseline 0.694) ma non l'età (R²<0). Il sesso ha firma topologica globale; l'età richiede informazioni distribuite nella matrice FC completa.
 
 ---
 
