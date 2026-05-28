@@ -119,6 +119,21 @@ def run_cv(
     }
 
 
+def _permute_subject_labels(y: np.ndarray, groups: np.ndarray, rng) -> np.ndarray:
+    """Permuta le label a livello soggetto (non sample).
+
+    Sesso/età sono costanti per soggetto — la scambiabilità è tra soggetti,
+    non tra sample. Shuffle i valori per-soggetto, poi broadcast via groups.
+    """
+    unique_groups = np.unique(groups)
+    y_per_sub = np.array([y[groups == g][0] for g in unique_groups])
+    y_perm_per_sub = rng.permutation(y_per_sub)
+    y_perm = np.empty_like(y)
+    for i, g in enumerate(unique_groups):
+        y_perm[groups == g] = y_perm_per_sub[i]
+    return y_perm
+
+
 def permutation_test(
     X: np.ndarray,
     y: np.ndarray,
@@ -132,7 +147,7 @@ def permutation_test(
     rng = np.random.default_rng(42)
     null_bas = []
     for _ in range(n_perm):
-        y_shuf = rng.permutation(y)
+        y_shuf = _permute_subject_labels(y, groups, rng)
         res = run_cv(X, y_shuf, groups, clf_name, outer_k)
         null_bas.append(res["ba_mean"])
     p_value = (sum(1 for b in null_bas if b >= ba_real) + 1) / (n_perm + 1)
