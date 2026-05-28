@@ -16,17 +16,21 @@ _N_RAND = 10  # random graph per small-worldness baseline
 
 
 def _threshold_proportional(W: np.ndarray, threshold: float) -> np.ndarray:
-    """Mantieni il top `threshold` fraction di archi per peso assoluto."""
+    """Mantieni il top `threshold` fraction di archi per peso assoluto.
+
+    Il ranking usa np.abs(W) per gestire correttamente matrici con segno
+    (wPLI, imCoh). Gli archi mantenuti conservano il loro valore originale.
+    """
     W = W.copy()
     np.fill_diagonal(W, 0.0)
     W = (W + W.T) / 2.0  # forza simmetria
     n = W.shape[0]
     n_edges_total = n * (n - 1) // 2
     n_keep = max(1, int(np.round(n_edges_total * threshold)))
-    vals = W[np.triu_indices(n, k=1)]
-    if n_keep < len(vals):
-        cutoff = np.partition(vals, -n_keep)[-n_keep]
-        W[W < cutoff] = 0.0
+    abs_vals = np.abs(W)[np.triu_indices(n, k=1)]
+    if n_keep < len(abs_vals):
+        cutoff = np.partition(abs_vals, -n_keep)[-n_keep]
+        W[np.abs(W) < cutoff] = 0.0
     return W
 
 
@@ -65,7 +69,9 @@ def compute_graph_metrics(
     strengths = np.array([sum(d for _, d in G[v].items() for d in [d.get("weight", 1.0)]) for v in G.nodes()])
     mean_strength = float(strengths.mean())
 
-    clustering_coeff = nx.average_clustering(G, weight="weight")
+    # Clustering NON pesato — coerente con path_length/efficiency (anche unweighted)
+    # e con C_rand dei grafi casuali in small_worldness. Scelta: unweighted per sigma.
+    clustering_coeff = nx.average_clustering(G)
 
     # Path length: su componente più grande
     if nx.is_connected(G):
