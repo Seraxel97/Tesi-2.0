@@ -4,6 +4,7 @@ Funzioni:
     bootstrap_ci(values, statistic, n_boot, alpha) -> (lo, hi)
     cohen_d(a, b)                                 -> float
     statistical_power(effect_size, n, alpha)       -> float
+    format_pvalue(p_value, n_perm)                -> str
 """
 
 from __future__ import annotations
@@ -208,6 +209,46 @@ def hedges_g(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
         return d  # campioni troppo piccoli, fallback a d
     correction = 1.0 - 3.0 / denom
     return d * correction
+
+
+def format_pvalue(p_value: float, n_perm: int) -> str:
+    """Formatta un p-value empirico da permutation test in modo onesto.
+
+    Quando nessuna permutazione supera il valore osservato (p_value == 0.0),
+    restituisce ``"p < 1/n_perm"`` (es. ``"p < 0.001"`` per n_perm=1000) invece
+    di ``"p=0.0"`` che sarebbe fuorviante (risoluzione finita del test).
+
+    Parameters
+    ----------
+    p_value:
+        P-value empirico calcolato come ``#{null >= obs} / (n_perm + 1)`` o
+        ``#{null >= obs} / n_perm``. Deve essere in [0, 1].
+    n_perm:
+        Numero di permutazioni eseguite. Determina la risoluzione minima
+        rappresentabile.
+
+    Returns
+    -------
+    str
+        Stringa formattata:
+        - ``"p < 0.001"`` (o il valore ``1/n_perm`` appropriato) se p == 0.0
+        - ``"p = 0.XXX"`` altrimenti (3 cifre decimali)
+
+    Examples
+    --------
+    >>> format_pvalue(0.0, 1000)
+    'p < 0.001'
+    >>> format_pvalue(0.0, 500)
+    'p < 0.002'
+    >>> format_pvalue(0.042, 1000)
+    'p = 0.042'
+    >>> format_pvalue(0.001, 1000)
+    'p = 0.001'
+    """
+    if p_value == 0.0:
+        threshold = 1.0 / max(n_perm, 1)
+        return f"p < {threshold:.3f}"
+    return f"p = {p_value:.3f}"
 
 
 def statistical_power(

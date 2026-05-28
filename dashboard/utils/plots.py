@@ -124,10 +124,10 @@ def plot_permutation_null(
     title: str = "Permutation Null Distribution",
 ) -> go.Figure:
     """Histogram of null distribution with observed BA highlighted."""
+    from analysis.stats_utility import format_pvalue
+
     null = np.array(null_distribution)
-    p_label = "p<0.001" if (p_perm is not None and p_perm < 0.001) else (
-        f"p={p_perm:.3f}" if p_perm is not None else "p=N/A"
-    )
+    p_label = format_pvalue(p_perm, n_perm or 1) if p_perm is not None else "p=N/A"
     n_label = f" (n={n_perm})" if n_perm else ""
 
     fig = go.Figure()

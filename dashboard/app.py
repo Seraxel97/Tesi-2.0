@@ -17,6 +17,7 @@ import streamlit as st
 _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
 
+from analysis.stats_utility import format_pvalue  # noqa: E402
 from dashboard.utils.data_loader import (  # noqa: E402
     list_available_combos,
     list_available_datasets,
@@ -289,9 +290,7 @@ else:
     )
     c3.metric(
         "p_perm",
-        "< 0.001"
-        if (p_perm is not None and p_perm < 0.001)
-        else (f"{p_perm:.3f}" if p_perm is not None else "skip"),
+        format_pvalue(p_perm, n_perm) if p_perm is not None else "skip",
         help=f"Permutation test (n_perm={n_perm})",
     )
     c4.metric("n_features", str(n_feat), help="Numero feature FC (upper-triangle ROI pairs)")

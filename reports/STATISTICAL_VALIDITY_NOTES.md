@@ -117,3 +117,26 @@ Tutti i fix sono stati implementati nel rispetto dei principi:
 - **Riproducibilità**: seed fisso (42), n_boot=10000, n_perm=1000  
 
 I risultati sono scientificamente validi per submission in venue peer-reviewed.
+
+---
+
+## FIX-08 — Reporting p-value onesto + n_boot coerente (2026-05-28)
+
+### p-value da permutation test (F-G)
+
+**Problema**: quando 0 permutazioni su n_perm superano il valore osservato, il codice
+restituiva `p=0.0`, che è fuorviante (risoluzione finita del test empirico).
+
+**Soluzione**: helper `format_pvalue(p_value, n_perm)` in `analysis/stats_utility.py`:
+- Se `p_value == 0.0`: restituisce `"p < 1/n_perm"` (es. `"p < 0.001"` per n_perm=1000)
+- Altrimenti: `"p = 0.XXX"` (3 cifre decimali)
+- Applicato in: `dashboard/app.py`, `dashboard/utils/plots.py`, `dashboard/utils/export.py`
+
+### n_boot coerenza (F-G)
+
+**Dichiarazione**: i risultati scientifici ufficiali (EXPERIMENTS_N50.md, paper) usano
+`n_boot=10000` (costante `N_BOOT_DEFAULT` in `dashboard/utils/data_loader.py`).
+
+**Dashboard interattiva**: usa `N_BOOT_DASHBOARD=2000` — scelta deliberata per latency
+target (~5s vs ~25s su N=50). Documentata esplicitamente nel modulo data_loader.py.
+**Non è incoerenza**: i due contesti hanno requisiti diversi (performance vs precisione).

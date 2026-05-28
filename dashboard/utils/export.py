@@ -93,13 +93,16 @@ def export_permutation_null(
     fmt: _FMT = "png",
     p_perm: float | None = None,
 ) -> Path:
+    from analysis.stats_utility import format_pvalue
+
     _apply_pub_style()
     null = np.array(null_distribution)
     fig, ax = plt.subplots(figsize=(5.0, 3.0))
     ax.hist(null, bins=40, color="#4575b4", alpha=0.75, edgecolor="white", lw=0.3,
             label=f"Null (n={len(null)})")
+    _p_label = format_pvalue(p_perm, len(null)) if p_perm is not None else ""
     ax.axvline(observed_ba, color="#d73027", lw=2.0,
-               label=f"Observed BA={observed_ba:.3f}" + (f"\n{('p<0.001' if p_perm is not None and p_perm < 0.001 else f'p={p_perm:.3f}')}" if p_perm is not None else ""))
+               label=f"Observed BA={observed_ba:.3f}" + (f"\n{_p_label}" if _p_label else ""))
     ax.axvline(null.mean(), color="gray", lw=1.2, linestyle="--", label=f"Null mean={null.mean():.3f}")
     ax.set_xlabel("Balanced Accuracy (permuted labels)")
     ax.set_ylabel("Count")

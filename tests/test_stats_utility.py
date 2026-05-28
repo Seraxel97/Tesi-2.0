@@ -1,10 +1,51 @@
-"""Test analysis/stats_utility.py — bootstrap CI, Cohen's d, statistical power."""
+"""Test analysis/stats_utility.py — bootstrap CI, Cohen's d, statistical power, format_pvalue."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from analysis.stats_utility import bootstrap_ci, cohen_d, statistical_power
+from analysis.stats_utility import bootstrap_ci, cohen_d, format_pvalue, statistical_power
+
+# ── format_pvalue ─────────────────────────────────────────────────────────────
+
+
+def test_format_pvalue_zero_returns_threshold_1000() -> None:
+    """p=0.0 con n_perm=1000 → 'p < 0.001'."""
+    assert format_pvalue(0.0, 1000) == "p < 0.001"
+
+
+def test_format_pvalue_zero_returns_threshold_500() -> None:
+    """p=0.0 con n_perm=500 → 'p < 0.002'."""
+    assert format_pvalue(0.0, 500) == "p < 0.002"
+
+
+def test_format_pvalue_nonzero_formatted() -> None:
+    """p=0.042 → 'p = 0.042'."""
+    assert format_pvalue(0.042, 1000) == "p = 0.042"
+
+
+def test_format_pvalue_nonzero_not_zero() -> None:
+    """p=0.001 non deve essere trattato come zero."""
+    result = format_pvalue(0.001, 1000)
+    assert result == "p = 0.001"
+
+
+def test_format_pvalue_one() -> None:
+    """p=1.0 → 'p = 1.000'."""
+    assert format_pvalue(1.0, 1000) == "p = 1.000"
+
+
+def test_format_pvalue_zero_n_perm_200() -> None:
+    """p=0.0 con n_perm=200 → threshold=1/200=0.005."""
+    result = format_pvalue(0.0, 200)
+    assert result == "p < 0.005"
+
+
+def test_format_pvalue_returns_string() -> None:
+    """format_pvalue restituisce sempre una stringa."""
+    assert isinstance(format_pvalue(0.0, 1000), str)
+    assert isinstance(format_pvalue(0.5, 1000), str)
+
 
 # ── bootstrap_ci ──────────────────────────────────────────────────────────────
 

@@ -20,6 +20,15 @@ RESULTS_DIR = _ROOT / "data" / "results" / "ds005385"
 REPORTS_DIR = _ROOT / "reports"
 RESULTS_DIR_TEMPLATE = _ROOT / "data" / "results"
 
+# Bootstrap resample count.
+# STATISTICAL_VALIDITY_NOTES.md dichiara n_boot=10000 per i risultati scientifici
+# ufficiali (report + paper). La dashboard interattiva usa N_BOOT_DASHBOARD=2000
+# per ridurre la latenza del click (~5s vs ~25s su N=50): scelta deliberata di
+# performance vs precisione accettabile per l'esplorazione interattiva.
+# I risultati finali del paper (EXPERIMENTS_N50.md) usano sempre n_boot=10000.
+N_BOOT_DEFAULT: int = 10000
+N_BOOT_DASHBOARD: int = 2000  # dashboard interattiva: ~5s latency target
+
 
 def list_available_datasets() -> list[str]:
     """Scansiona data/features/ e restituisce i dataset disponibili.
@@ -100,7 +109,7 @@ N50_WINNER: dict[str, Any] = {
     "ba": 0.920,
     "ci_lo": 0.870,
     "ci_hi": 0.970,
-    "p_perm": 0.0,
+    "p_perm": 0.0,  # formattare con format_pvalue(p_perm, n_perm) per display
     "n_perm": 1000,
     "n_subjects": 50,
     "n_features": 2278,
@@ -191,7 +200,9 @@ def run_combo(
 
     t0 = time.time()
     cv_res = run_cv(X, y, groups=groups, algorithm=clf, n_splits=n_splits_actual)
-    ci_lo, ci_hi = bootstrap_ci(cv_res.ba_per_fold, n_boot=2000, alpha=0.05)
+    # N_BOOT_DASHBOARD=2000 (non 10000) per latency target dashboard interattiva;
+    # risultati scientifici ufficiali usano N_BOOT_DEFAULT=10000 (vedi header modulo)
+    ci_lo, ci_hi = bootstrap_ci(cv_res.ba_per_fold, n_boot=N_BOOT_DASHBOARD, alpha=0.05)
 
     # ROC via LOSO predict_proba
     roc_fpr, roc_tpr, roc_auc_val = _compute_roc_loso(X, y, groups, clf, n_splits_actual)
