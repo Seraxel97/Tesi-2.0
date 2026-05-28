@@ -70,6 +70,19 @@ def build_X_graphtheory(
     return X_gt
 
 
+def _permute_subject_labels(
+    y: np.ndarray, groups: np.ndarray, rng
+) -> np.ndarray:
+    """Permuta label a livello soggetto (non sample) — stessa logica di ml_sex/ml_age."""
+    unique_groups = np.unique(groups)
+    y_per_sub = np.array([y[groups == g][0] for g in unique_groups])
+    y_perm_per_sub = rng.permutation(y_per_sub)
+    y_perm = np.empty_like(y)
+    for i, g in enumerate(unique_groups):
+        y_perm[groups == g] = y_perm_per_sub[i]
+    return y_perm
+
+
 def _permutation_cv(
     X: np.ndarray,
     y: np.ndarray,
@@ -77,14 +90,14 @@ def _permutation_cv(
     task: str,
     n_perm: int = N_PERM,
 ) -> tuple[float, float, float]:
-    """Returns (score_real, null_mean, p_value)."""
+    """Returns (score_real, null_mean, p_value). Permutation a livello soggetto."""
     if task == "sex":
         real_res = run_cv_sex(X, y, groups, "logreg", outer_k=OUTER_K)
         score_real = real_res["ba_mean"]
         null_scores = []
         rng = np.random.default_rng(42)
         for _ in range(n_perm):
-            y_shuf = rng.permutation(y)
+            y_shuf = _permute_subject_labels(y, groups, rng)
             null_scores.append(
                 run_cv_sex(X, y_shuf, groups, "logreg", outer_k=OUTER_K)["ba_mean"]
             )
@@ -94,7 +107,7 @@ def _permutation_cv(
         null_scores = []
         rng = np.random.default_rng(42)
         for _ in range(n_perm):
-            y_shuf = rng.permutation(y)
+            y_shuf = _permute_subject_labels(y, groups, rng)
             null_scores.append(
                 run_cv_age(X, y_shuf, groups, "elasticnet", outer_k=OUTER_K)["r2"]
             )
