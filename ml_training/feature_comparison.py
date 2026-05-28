@@ -102,14 +102,15 @@ def _permutation_cv(
                 run_cv_sex(X, y_shuf, groups, "logreg", outer_k=OUTER_K)["ba_mean"]
             )
     else:
-        real_res = run_cv_age(X, y, groups, "elasticnet", outer_k=OUTER_K)
+        # RF invece di ElasticNet: converge su p≫n, R²>0 dimostrato su N=50
+        real_res = run_cv_age(X, y, groups, "rf", outer_k=OUTER_K)
         score_real = real_res["r2"]
         null_scores = []
         rng = np.random.default_rng(42)
         for _ in range(n_perm):
             y_shuf = _permute_subject_labels(y, groups, rng)
             null_scores.append(
-                run_cv_age(X, y_shuf, groups, "elasticnet", outer_k=OUTER_K)["r2"]
+                run_cv_age(X, y_shuf, groups, "rf", outer_k=OUTER_K)["r2"]
             )
 
     null_mean = float(np.mean(null_scores))
