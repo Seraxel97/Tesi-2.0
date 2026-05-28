@@ -11,11 +11,13 @@ Run: streamlit run dashboard/app.py --server.port 8501
 
 from __future__ import annotations
 
+import json
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 # Ensure project root on path
@@ -117,6 +119,19 @@ if "all_results" not in st.session_state:
 
 
 # ---------------------------------------------------------------------------
+# Button/selector initialization (avoid NameError for other targets)
+# ---------------------------------------------------------------------------
+run_btn = False
+load_btn = False
+winner_btn = False
+sel_atlas = None
+sel_metric = None
+sel_band = None
+sel_clf = None
+sel_nperm = None
+combo_exists = False
+
+# ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
 with st.sidebar:
@@ -141,63 +156,73 @@ with st.sidebar:
         st.rerun()
     st.divider()
 
-    st.subheader("Selettori combo")
-
-    available = list_available_combos(dataset_id=sel_dataset)
-    atlases = sorted({c["atlas"] for c in available})
-    metrics = sorted({c["metric"] for c in available})
-    bands = sorted({c["band"] for c in available})
-
-    sel_atlas = st.selectbox(
-        "Parcellation", atlases, index=atlases.index("aparc") if "aparc" in atlases else 0
+    # ── Target selector ──────────────────────────────────────────────────────
+    sel_target = st.selectbox(
+        "Target ML",
+        ["EO/EC (positive-control)", "Sesso", "Età"],
+        key="sel_target",
+        help="EO/EC = validazione pipeline (effetto Berger). Sesso/Età = target scientifici.",
     )
-    sel_metric = st.selectbox(
-        "Connectivity metric", metrics, index=metrics.index("plv") if "plv" in metrics else 0
-    )
-    sel_band = st.selectbox(
-        "Frequency band", bands, index=bands.index("theta") if "theta" in bands else 0
-    )
-    sel_clf = st.selectbox("Classifier", ["logreg", "svm", "mlp", "rf", "gb"], index=0)
-    sel_nperm = st.select_slider(
-        "Permutations (0=skip, lento)",
-        [0, 50, 100, 200],
-        value=0,
-        help="0 = skip. 50 perm ≈ 25s, 100 perm ≈ 50s. Full 1000 perm ≈ 8h (usa winner pre-calcolato).",
-    )
+    st.divider()
 
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        run_btn = st.button("▶ Run combo", use_container_width=True, type="primary")
-    with col2:
-        load_btn = st.button("📂 Load reports/", use_container_width=True)
+    if sel_target == "EO/EC (positive-control)":
+        st.subheader("Selettori combo")
 
-    winner_btn = st.button(
-        "🏆 Load N=50 winner",
-        use_container_width=True,
-        help="Carica aparc×plv×theta×logreg BA=0.920 (pre-calcolato)",
-    )
+        available = list_available_combos(dataset_id=sel_dataset)
+        atlases = sorted({c["atlas"] for c in available})
+        metrics = sorted({c["metric"] for c in available})
+        bands = sorted({c["band"] for c in available})
 
-    st.markdown("---")
-    # Check if selected combo has feature file
-    combo_exists = any(
-        c["atlas"] == sel_atlas and c["metric"] == sel_metric and c["band"] == sel_band
-        for c in available
-    )
-    if not combo_exists:
-        st.warning(f"⚠ Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz")
+        sel_atlas = st.selectbox(
+            "Parcellation", atlases, index=atlases.index("aparc") if "aparc" in atlases else 0
+        )
+        sel_metric = st.selectbox(
+            "Connectivity metric", metrics, index=metrics.index("plv") if "plv" in metrics else 0
+        )
+        sel_band = st.selectbox(
+            "Frequency band", bands, index=bands.index("theta") if "theta" in bands else 0
+        )
+        sel_clf = st.selectbox("Classifier", ["logreg", "svm", "mlp", "rf", "gb"], index=0)
+        sel_nperm = st.select_slider(
+            "Permutations (0=skip, lento)",
+            [0, 50, 100, 200],
+            value=0,
+            help="0 = skip. 50 perm ≈ 25s, 100 perm ≈ 50s. Full 1000 perm ≈ 8h (usa winner pre-calcolato).",
+        )
 
-    # Tooltip scientifici
-    st.markdown("---")
-    st.subheader("📖 Info scientifica")
-    for key in [sel_metric, sel_band, sel_clf, sel_atlas]:
-        if key in TOOLTIPS:
-            with st.expander(key.upper(), expanded=False):
-                st.markdown(TOOLTIPS[key])
-    with st.expander("LOSO CV", expanded=False):
-        st.markdown(TOOLTIPS["loso_cv"])
-    with st.expander("Permutation test", expanded=False):
-        st.markdown(TOOLTIPS["perm_test"])
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            run_btn = st.button("▶ Run combo", use_container_width=True, type="primary")
+        with col2:
+            load_btn = st.button("📂 Load reports/", use_container_width=True)
+
+        winner_btn = st.button(
+            "🏆 Load N=50 winner",
+            use_container_width=True,
+            help="Carica aparc×plv×theta×logreg BA=0.920 (pre-calcolato)",
+        )
+
+        st.markdown("---")
+        # Check if selected combo has feature file
+        combo_exists = any(
+            c["atlas"] == sel_atlas and c["metric"] == sel_metric and c["band"] == sel_band
+            for c in available
+        )
+        if not combo_exists:
+            st.warning(f"⚠ Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz")
+
+        # Tooltip scientifici
+        st.markdown("---")
+        st.subheader("📖 Info scientifica")
+        for key in [sel_metric, sel_band, sel_clf, sel_atlas]:
+            if key in TOOLTIPS:
+                with st.expander(key.upper(), expanded=False):
+                    st.markdown(TOOLTIPS[key])
+        with st.expander("LOSO CV", expanded=False):
+            st.markdown(TOOLTIPS["loso_cv"])
+        with st.expander("Permutation test", expanded=False):
+            st.markdown(TOOLTIPS["perm_test"])
 
 # ---------------------------------------------------------------------------
 # Actions
@@ -253,6 +278,65 @@ if load_btn:
         }
         st.session_state.all_results.append(norm)
     st.success(f"📂 Caricati {len(existing)} risultati da reports/")
+
+
+# ---------------------------------------------------------------------------
+# Viste risultati Sesso / Età
+# ---------------------------------------------------------------------------
+if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (positive-control)":
+    target_key = st.session_state["sel_target"]
+    is_sex = target_key == "Sesso"
+    results_path = _ROOT / "reports" / (
+        "ml_sex_results.json" if is_sex else "ml_age_results.json"
+    )
+
+    st.title(f"{'🚻 Classificazione Sesso' if is_sex else '🎂 Predizione Età'}")
+    st.caption(
+        "Positive-control EO/EC: seleziona 'EO/EC (positive-control)' dalla sidebar."
+    )
+
+    if not results_path.exists():
+        st.warning(
+            f"Risultati non ancora disponibili. Eseguire:\n\n"
+            f"```\npython -m ml_training.{'ml_sex' if is_sex else 'ml_age'}\n```"
+        )
+    else:
+        res = json.loads(results_path.read_text())
+        st.success(f"✅ Risultati caricati da `{results_path.name}`")
+        st.markdown(
+            f"**N soggetti**: {res.get('n_subjects', '?')} | "
+            f"**N campioni**: {res.get('n_samples', '?')}"
+        )
+
+        clf_key = "classifiers" if is_sex else "regressors"
+        clfs = res.get(clf_key, {})
+        if clfs:
+            rows = []
+            for name, r in clfs.items():
+                if is_sex:
+                    rows.append(
+                        {
+                            "Modello": name,
+                            "BA (mean)": f"{r.get('ba_mean', 0):.3f}",
+                            "BA (std)": f"{r.get('ba_std', 0):.3f}",
+                            "AUC": f"{r.get('auc_mean', float('nan')):.3f}",
+                            "p-value": format_pvalue(r.get("p_value", 1.0)),
+                            "n_perm": r.get("n_perm", "?"),
+                        }
+                    )
+                else:
+                    rows.append(
+                        {
+                            "Modello": name,
+                            "MAE": f"{r.get('mae', 0):.2f}",
+                            "R²": f"{r.get('r2', 0):.3f}",
+                            "Brain-age gap": f"{r.get('brain_age_gap', 0):.2f}",
+                            "p-value": format_pvalue(r.get("p_value", 1.0)),
+                        }
+                    )
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("Nessun risultato classificatore nel file JSON.")
 
 # ---------------------------------------------------------------------------
 # Main area
