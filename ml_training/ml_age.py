@@ -76,6 +76,31 @@ def _make_regressor(name: str, inner_cv: GroupKFold):
         raise ValueError(f"Unknown regressor: {name}")
 
 
+def _cluster_bootstrap_ci(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    groups: np.ndarray,
+    n_boot: int = N_BOOT,
+    rng_seed: int = 42,
+) -> tuple[list[float], list[float]]:
+    """Bootstrap CI a livello soggetto (cluster bootstrap).
+
+    Ricampiona soggetti (non sample) per rispettare la struttura dati:
+    2 sample/soggetto sono correlati → ignorarli sottostima l'incertezza.
+    """
+    unique_groups = np.unique(groups)
+    n_subjects = len(unique_groups)
+    rng = np.random.default_rng(rng_seed)
+    boot_mae_list = []
+    boot_r2_list = []
+    for _ in range(n_boot):
+        sel_groups = rng.choice(unique_groups, n_subjects, replace=True)
+        boot_idx = np.concatenate([np.where(groups == g)[0] for g in sel_groups])
+        boot_mae_list.append(mean_absolute_error(y_true[boot_idx], y_pred[boot_idx]))
+        boot_r2_list.append(r2_score(y_true[boot_idx], y_pred[boot_idx]))
+    return boot_mae_list, boot_r2_list
+
+
 def run_cv(
     X: np.ndarray,
     y: np.ndarray,
@@ -111,15 +136,8 @@ def run_cv(
     r2 = float(r2_score(y_true_all, y_pred_all))
     brain_age_gap = float(np.mean(y_pred_all - y_true_all))
 
-    # Bootstrap CI (resample predictions)
-    rng = np.random.default_rng(42)
-    boot_mae = []
-    boot_r2 = []
-    n = len(y_true_all)
-    for _ in range(N_BOOT):
-        idx = rng.integers(0, n, n)
-        boot_mae.append(mean_absolute_error(y_true_all[idx], y_pred_all[idx]))
-        boot_r2.append(r2_score(y_true_all[idx], y_pred_all[idx]))
+    # Cluster bootstrap CI (resample soggetti, non sample)
+    boot_mae, boot_r2 = _cluster_bootstrap_ci(y_true_all, y_pred_all, groups)
 
     return {
         "mae": mae,
@@ -136,6 +154,21 @@ def run_cv(
     }
 
 
+def _permute_subject_labels(y: np.ndarray, groups: np.ndarray, rng) -> np.ndarray:
+    """Permuta le label a livello soggetto (non sample).
+
+    Sesso/età sono costanti per soggetto — la scambiabilità è tra soggetti,
+    non tra sample. Shuffle i valori per-soggetto, poi broadcast via groups.
+    """
+    unique_groups = np.unique(groups)
+    y_per_sub = np.array([y[groups == g][0] for g in unique_groups])
+    y_perm_per_sub = rng.permutation(y_per_sub)
+    y_perm = np.empty_like(y)
+    for i, g in enumerate(unique_groups):
+        y_perm[groups == g] = y_perm_per_sub[i]
+    return y_perm
+
+
 def permutation_test(
     X: np.ndarray,
     y: np.ndarray,
@@ -149,7 +182,7 @@ def permutation_test(
     rng = np.random.default_rng(42)
     null_r2 = []
     for _ in range(n_perm):
-        y_shuf = rng.permutation(y)
+        y_shuf = _permute_subject_labels(y, groups, rng)
         null_r2.append(run_cv(X, y_shuf, groups, reg_name, outer_k)["r2"])
     p_value = (sum(1 for r in null_r2 if r >= r2_real) + 1) / (n_perm + 1)
     return null_r2, r2_real, p_value
