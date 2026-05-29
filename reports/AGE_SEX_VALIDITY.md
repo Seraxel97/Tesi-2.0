@@ -104,10 +104,20 @@ non catturabile da 8 scalari globali della topologia.
 | age_baseline (2278-dim FC, RF) | R²=0.185 | 0.026 | ✅ |
 | age_GT (8 scalari GT, RF) | R²=-0.072 | 0.118 | ❌ |
 
-**N=100:** *(feature_comparison_n100.json — in aggiornamento)*
+**N=100:**
+| Confronto | Score | p_fdr | Sig? |
+|-----------|-------|-------|------|
+| sex_baseline (2278-dim FC) | BA=0.713 | 0.026 | ✅ |
+| sex_GT (8 scalari GT) | **BA=0.706** | 0.026 | ✅ |
+| age_baseline (2278-dim FC, RF) | R²=0.097 | 0.026 | ✅ |
+| age_GT (8 scalari GT, RF) | R²=-0.222 | 0.863 | ❌ |
 
-**Conclusione**: il sesso ha firma topologica globale (8 scalari sufficiente); l'età richiede
-la matrice FC densa. Questo è un risultato interpretabile e scientificamente interessante.
+**Conclusione (replicata su N=50 e N=100)**:
+- **Sesso**: sex_GT BA=0.678 (N=50) → **0.706 (N=100)** — entrambi significativi. La differenza
+  dalla baseline (2278-dim) è <1% in entrambe le coorti. **Il sesso ha firma topologica globale:
+  8 scalari graph-theory sono sufficienti e interpretabili.**
+- **Età**: age_GT R²<0 in entrambe le coorti. L'età richiede la matrice FC densa distribuita su
+  tutti i 2278 coefficienti; non è catturabile da metriche aggregate della topologia del grafo.
 
 ---
 
@@ -146,5 +156,5 @@ la matrice FC densa. Questo è un risultato interpretabile e scientificamente in
 - [x] Step 1.1-1.8 committati (commit 602ba60 → aa9c744)
 - [x] 4 fix matematici applicati (7f896cd, 5bdb6bb, 93a9dfc, 59410ca, 606d5e7)
 - [x] Step 1.6: N=100 reprocess completato, ML eseguito
-- [ ] feature_comparison_n100.json — in aggiornamento
+- [x] feature_comparison_n100.json generato (sex_GT BA=0.706 ✅, age_GT R²=-0.222 ns ❌)
 - [ ] FASE 2 LEMON: bloccata su download operatore (STOP confermato)
