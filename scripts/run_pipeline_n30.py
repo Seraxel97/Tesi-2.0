@@ -40,6 +40,11 @@ try:
     from config.subjects_whitelist_n100 import SUBJECT_WHITELIST_N100 as N100  # noqa: E402
 except ImportError:
     N100 = None
+
+try:
+    from config.subjects_whitelist_n179 import SUBJECT_WHITELIST_N179 as N179  # noqa: E402
+except ImportError:
+    N179 = None
 from connectivity.fc_dispatcher import compute_fc  # noqa: E402
 from ml_training.aggregate_n15 import aggregate_classify_n15  # noqa: E402
 from parcellation.extract_label_tc import get_labels  # noqa: E402
@@ -507,14 +512,24 @@ def main() -> None:
                     help="Comma-separated atlas list (default: %(default)s)")
     ap.add_argument("--classifiers", default="logreg,svm_rbf,lda,rf,mlp,gb",
                     help="Comma-separated classifiers (default: all 6)")
-    ap.add_argument("--n-subjects", type=int, default=30, choices=[30, 50, 100],
-                    help="Target N (30, 50, or 100). 100 requires subjects_whitelist_n100.py")
+    ap.add_argument("--n-subjects", type=int, default=30, choices=[30, 50, 100, 179],
+                    help="Target N (30, 50, 100, or 179). 179 = full local valid (late_ses1==0).")
     args = ap.parse_args()
     ATLASES = [a.strip() for a in args.atlases.split(",") if a.strip()]
     _classifiers = [c.strip() for c in args.classifiers.split(",") if c.strip()]
 
     # Select target/base whitelist based on --n-subjects
-    if args.n_subjects == 100:
+    if args.n_subjects == 179:
+        if N179 is None:
+            print("ERROR: subjects_whitelist_n179.py not found.")
+            sys.exit(1)
+        if N100 is None:
+            print("ERROR: N179 requires N100 as base.")
+            sys.exit(1)
+        TARGET_N = N179
+        BASE_N = N100
+        _tag = "N179"
+    elif args.n_subjects == 100:
         if N100 is None:
             print("ERROR: subjects_whitelist_n100.py not found.")
             sys.exit(1)
