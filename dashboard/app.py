@@ -1,6 +1,9 @@
 """ML Scientific Dashboard — Tesi_2.0 (ds005385).
 
-Streamlit MVP for interactive exploration of EEG source-level FC classification results.
+Dashboard home page + ML results viewer.
+Le pagine complete sono in dashboard/pages/ (navigazione sidebar Streamlit):
+  1_dataset_cohort · 2_signal_preprocessing · 3_source_parcellation
+  4_connectivity_graph · 5_ml_predictions
 
 Nota scientifica: EO vs EC (Eyes Open / Eyes Closed) è usato come **positive-control**
 (validazione pipeline) — l'effetto Berger è atteso dal 1929 (BA≈0.92 non è una scoperta).

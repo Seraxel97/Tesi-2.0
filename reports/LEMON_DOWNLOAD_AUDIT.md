@@ -61,3 +61,16 @@ Se no, NON usare — segnala blocco.
 
 **Conclusione**: Step 2.0 BLOCCATO. Dataset con age+sex metadata non accessibile con metodi automatici.
 
+---
+
+## UNBLOCK — ds004504 via S3 (2026-06-03)
+- **Dataset**: OpenNeuro ds004504 (Alzheimer EEG resting-state)
+- **Fonte**: s3.amazonaws.com/openneuro.org (S3 pubblico senza credenziali)
+- **N soggetti**: 88 totali, 88 con Gender+Age validi
+- **Age range**: [44, 79]
+- **Gender**: {F: 44, M: 44}
+- **File formato**: .set (EEGLAB, leggibile mne.io.read_raw_eeglab)
+- **GB su disco**: 1.5G
+- **Soggetti scaricati**: 50 (sub-001..050)
+- **Status**: ✅ PASS
+
