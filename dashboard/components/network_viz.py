@@ -5,13 +5,19 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
 
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+try:
+    import networkx as nx
+
+    _HAS_NX = True
+except ImportError:
+    _HAS_NX = False
 
 
 def plot_connectome_heatmap(
@@ -56,16 +62,25 @@ def compute_hub_metrics(
     threshold: float = 0.20,
     roi_names: list[str] | None = None,
 ) -> dict[str, object]:
-    """Calcola hub centrality su grafo sogliato.
+    """Calcola hub centrality su grafo sogliato. Richiede networkx."""
+    if not _HAS_NX:
+        n = W.shape[0]
+        labels = roi_names if roi_names and len(roi_names) == n else [str(i) for i in range(n)]
+        # Fallback: degree basato su forza (row sum assoluto)
+        strength = np.sum(np.abs(W), axis=1)
+        strength_norm = strength / (strength.max() + 1e-10)
+        deg = {labels[i]: float(strength_norm[i]) for i in range(n)}
+        top10 = sorted(deg.items(), key=lambda x: x[1], reverse=True)[:10]
+        return {
+            "degree_centrality": deg,
+            "betweenness_centrality": deg,
+            "eigenvector_centrality": deg,
+            "pagerank": deg,
+            "top10_hubs": top10,
+            "graph": None,
+        }
 
-    Returns dict con:
-      - degree_centrality: dict roi → valore
-      - betweenness_centrality: dict roi → valore
-      - eigenvector_centrality: dict roi → valore
-      - pagerank: dict roi → valore
-      - top10_hubs: list[(roi, score)] per eigenvector
-    """
-    from features.graph_theory import _threshold_proportional
+    from features.graph_theory import _threshold_proportional  # noqa: PLC0415
 
     W_thr = _threshold_proportional(W, threshold)
     n = W_thr.shape[0]
@@ -79,11 +94,11 @@ def compute_hub_metrics(
     try:
         between = nx.betweenness_centrality(G, weight="weight", normalized=True)
     except Exception:
-        between = {n: 0.0 for n in G.nodes()}
+        between = {node: 0.0 for node in G.nodes()}
     try:
         eig = nx.eigenvector_centrality(G, weight="weight", max_iter=1000)
     except Exception:
-        eig = {n: 0.0 for n in G.nodes()}
+        eig = {node: 0.0 for node in G.nodes()}
     pr = nx.pagerank(G, weight="weight")
 
     top10 = sorted(eig.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -105,12 +120,16 @@ def plot_network_plotly(
     top_n_hubs: int = 10,
     title: str = "Connectivity Network",
 ) -> go.Figure:
-    """Visualizzazione network Plotly con layout spring.
+    """Visualizzazione network Plotly con layout spring. Richiede networkx."""
+    if not _HAS_NX:
+        fig = go.Figure()
+        fig.update_layout(
+            title=f"{title} — networkx non installato (pip install networkx)",
+            annotations=[{"text": "Installa networkx per la visualizzazione rete", "showarrow": False}],
+        )
+        return fig
 
-    Nodi colorati per eigenvector centrality (hub detection).
-    Archi colorati per peso FC.
-    """
-    from features.graph_theory import _threshold_proportional
+    from features.graph_theory import _threshold_proportional  # noqa: PLC0415
 
     W_thr = _threshold_proportional(W, threshold)
     n = W_thr.shape[0]
