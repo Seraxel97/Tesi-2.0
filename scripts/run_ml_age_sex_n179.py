@@ -364,7 +364,23 @@ def main():
     print(f"FASE 3 ML età+sesso — N={len(SUBJECTS_N179)}, "
           f"feat={args.feat_name}, n_perm={args.n_perm}, n_boot={args.n_boot}")
 
-    # Aggiorna metadata.json
+    if args.dry_run:
+        # Solo verifica esistenza feature file, non modifica metadata.json
+        X_file = FEAT_DIR / f"{args.feat_name}.npz"
+        if not X_file.exists():
+            print(f"DRY RUN ERROR: {X_file} mancante")
+            sys.exit(1)
+        arr = np.load(X_file)
+        X_dry = arr["X"]
+        n_expected = len(SUBJECTS_N179) * 2
+        if X_dry.shape[0] != n_expected:
+            print(f"DRY RUN WARN: X.shape[0]={X_dry.shape[0]}, atteso {n_expected} "
+                  "(pipeline N=179 non ancora completata)")
+        else:
+            print(f"DRY RUN OK — X.shape={X_dry.shape}, pipeline N=179 completata")
+        return
+
+    # Aggiorna metadata.json (solo se non dry-run)
     _update_metadata_n179(list(SUBJECTS_N179))
 
     # Carica data
@@ -373,10 +389,6 @@ def main():
     print(f"  X.shape={X.shape}, N_sub={len(SUBJECTS_N179)}, "
           f"y_sex F/M={sum(y_sex[::2]==0)}/{sum(y_sex[::2]==1)}, "
           f"y_age mean={y_age.mean():.1f}±{y_age.std():.1f}")
-
-    if args.dry_run:
-        print("DRY RUN OK — input verificati, uscita senza ML.")
-        return
 
     # GT features
     print("\nCalcolo GT features (8-dim)…")
