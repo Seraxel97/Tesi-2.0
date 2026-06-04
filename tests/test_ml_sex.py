@@ -16,7 +16,7 @@ def data():
 def test_data_shape(data):
     X, y_sex, groups = data
     assert X.shape[0] == len(y_sex) == len(groups)
-    assert X.shape[0] == 100  # 50 soggetti × 2 condizioni
+    assert X.shape[0] == 200  # 100 soggetti × 2 condizioni
 
 
 def test_y_sex_binary(data):
