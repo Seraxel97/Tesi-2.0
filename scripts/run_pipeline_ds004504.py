@@ -250,6 +250,124 @@ def step3b_parc(sub: str, fwd: mne.Forward) -> dict:
     return out
 
 
+# ── STEP 4b — FC per-epoch ───────────────────────────────────────────────────
+
+def _conn_npz(sub: str, cond: str, metric: str, band: str) -> Path:
+    return CONN_DIR / f"{sub}_atlas-aparc_cond-{cond}_metric-{metric}_band-{band}_per-epoch.npz"
+
+
+def step4b_fc(subjects: list[str]) -> int:
+    from connectivity.fc_dispatcher import compute_fc
+    n_done = 0
+    for sub in subjects:
+        cond = "EC"
+        label_ts_p = _label_ts_npz(sub, cond)
+        if not label_ts_p.exists():
+            print(f"  [step4b] {sub}: label_ts missing → skip")
+            continue
+
+        d_lt = np.load(label_ts_p, allow_pickle=True)
+        label_tc = d_lt["label_tc"].astype(np.float64)
+
+        for metric in ALL_METRICS:
+            need_bands = {
+                b: hz for b, hz in ALL_BANDS.items()
+                if not _conn_npz(sub, cond, metric, b).exists()
+            }
+            for b in ALL_BANDS:
+                if b not in need_bands:
+                    n_done += 1
+
+            if not need_bands:
+                continue
+
+            fc_dict = compute_fc(label_tc, SFREQ_TARGET, metric,
+                                 bands=need_bands, mode="multitaper")
+
+            for b, mat in fc_dict.items():
+                out_p = _conn_npz(sub, cond, metric, b)
+                np.savez_compressed(out_p, fc_matrix=mat,
+                                    subject=sub, condition=cond, atlas="aparc",
+                                    metric=metric, band=b, sfreq=SFREQ_TARGET)
+                n_done += 1
+                print(f"  [step4b] {sub} {metric} {b}: OK")
+
+        del label_tc
+    return n_done
+
+
+# ── STEP 5 — Feature extraction ───────────────────────────────────────────────
+
+def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
+    cond = "EC"
+    y, groups = [], []
+    for i, sub in enumerate(subjects):
+        y.append(0)  # EC only → single label
+        groups.append(i)
+    np.save(FEAT_DIR / "y.npy", np.array(y, dtype=np.int32))
+    np.save(FEAT_DIR / "groups.npy", np.array(groups, dtype=np.int32))
+
+    results = []
+    for metric in ALL_METRICS:
+        for band in ALL_BANDS:
+            out_p = FEAT_DIR / f"X_aparc_{metric}_{band}.npz"
+            if not force and out_p.exists():
+                d = np.load(out_p, allow_pickle=True)
+                if d["X"].shape[0] == len(subjects):
+                    print(f"  [step5] {metric} {band}: SKIP (N={len(subjects)} ok)")
+                    results.append({"atlas": "aparc", "metric": metric, "band": band,
+                                    "shape": list(d["X"].shape), "skipped": True})
+                    continue
+
+            rows = []
+            ok = True
+            for sub in subjects:
+                fc_p = _conn_npz(sub, cond, metric, band)
+                if not fc_p.exists():
+                    print(f"  [step5] MISSING: {fc_p.name}")
+                    ok = False
+                    break
+                d = np.load(fc_p, allow_pickle=True)
+                mat = d["fc_matrix"].astype(np.float64)
+                n = mat.shape[0]
+                idx = np.triu_indices(n, k=1)
+                rows.append(mat[idx])
+
+            if not ok:
+                results.append({"atlas": "aparc", "metric": metric, "band": band,
+                                "error": "missing_fc"})
+                continue
+
+            X = np.stack(rows)
+            np.savez_compressed(out_p, X=X)
+            print(f"  [step5] {metric} {band}: shape={X.shape}")
+            results.append({"atlas": "aparc", "metric": metric, "band": band,
+                            "shape": list(X.shape)})
+
+    meta = {
+        "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
+        "subjects": subjects, "conditions": ["EC"],
+        "atlases": ["aparc"], "metrics": ALL_METRICS, "bands": list(ALL_BANDS.keys()),
+        "n_subjects": len(subjects), "n_samples": len(subjects),
+    }
+    (FEAT_DIR / "metadata.json").write_text(json.dumps(meta, indent=2))
+    return results
+
+
+def run_fc_features() -> None:
+    """Step 4b + 5: FC + feature aggregation per ds004504."""
+    subjects_done = [
+        sub for sub in SUBJECTS_DS004504
+        if (LABEL_TS_DIR / f"{sub}_cond-EC_aparc_label_ts.npz").exists()
+    ]
+    print(f"[ds004504 step4b] {len(subjects_done)} sub con label_ts disponibili")
+    write_hb("step4b_start", f"{len(subjects_done)} subs")
+    step4b_fc(subjects_done)
+    write_hb("step4b_done", f"FC computed")
+    step5_features(subjects_done)
+    write_hb("step5_done", f"Features extracted for {len(subjects_done)} subs")
+
+
 # ── Main — Step 2.2 full pipeline (fwd+inv+stcs+parc) ───────────────────────
 
 def main() -> None:
