@@ -145,50 +145,141 @@ def step2_fwd_inv(sub: str) -> tuple[mne.Forward, mne.minimum_norm.InverseOperat
     return fwd, inv
 
 
-# ── Main — smoke test sub-001 ─────────────────────────────────────────────────
+# ── STEP 2b — Per-epoch STCs ──────────────────────────────────────────────────
+
+def _stcs_npz(sub: str, cond: str) -> Path:
+    return DERIV / sub / "eeg" / f"{sub}_task-RestingState_cond-{cond}_inv-{METHOD}-stcs.npz"
+
+
+def step2b_stcs(sub: str, inv_op: mne.minimum_norm.InverseOperator) -> dict:
+    out: dict = {}
+    cond = "EC"
+    task = CONDITIONS[cond]
+    npz = _stcs_npz(sub, cond)
+    if npz.exists():
+        print(f"  [step2b] {sub}: stcs.npz cached")
+        d = np.load(npz, allow_pickle=True)
+        out[cond] = {"n_epochs": int(d["n_epochs"]), "file_mb": npz.stat().st_size / 1e6}
+        return out
+
+    set_p = _set_path(sub, task)
+    if not set_p.exists():
+        print(f"  [step2b] {sub}: .set missing → skip")
+        out[cond] = {"n_epochs": 0, "file_mb": 0, "status": "missing_set"}
+        return out
+
+    raw = _load_raw(set_p)
+    events = mne.make_fixed_length_events(raw, duration=EPOCH_DURATION, overlap=EPOCH_OVERLAP)
+    epochs = mne.Epochs(raw, events, tmin=0.0, tmax=EPOCH_DURATION,
+                        baseline=None, preload=True, verbose=False)
+    del raw
+
+    stcs = mne.minimum_norm.apply_inverse_epochs(
+        epochs, inv_op, lambda2=LAMBDA2, method=METHOD,
+        return_generator=False, verbose=False)
+    del epochs
+
+    data = np.stack([s.data for s in stcs]).astype(np.float32)
+    vl, vr = stcs[0].vertices[0], stcs[0].vertices[1]
+    np.savez_compressed(npz, data=data, vertices_lh=vl, vertices_rh=vr,
+                        tmin=stcs[0].tmin, tstep=stcs[0].tstep,
+                        n_epochs=len(stcs), sfreq=SFREQ_TARGET)
+    del stcs, data
+
+    mb = npz.stat().st_size / 1e6
+    print(f"  [step2b] {sub}: {mb:.0f} MB")
+    out[cond] = {"n_epochs": int(np.load(npz, allow_pickle=True)["n_epochs"]), "file_mb": mb}
+    return out
+
+
+# ── STEP 3b — Parcellazione ───────────────────────────────────────────────────
+
+def _label_ts_npz(sub: str, cond: str) -> Path:
+    return LABEL_TS_DIR / f"{sub}_cond-{cond}_aparc_label_ts.npz"
+
+
+def step3b_parc(sub: str, fwd: mne.Forward) -> dict:
+    from parcellation.extract_label_tc import get_labels
+    src = fwd["src"]
+    out: dict = {}
+
+    atlas = "aparc"
+    labels = get_labels(atlas, subject="fsaverage")
+    label_names = [lbl.name for lbl in labels]
+
+    cond = "EC"
+    out_p = _label_ts_npz(sub, cond)
+    if out_p.exists():
+        print(f"  [step3b] {sub}: cached")
+        out[cond] = {"status": "cached"}
+        return out
+
+    stcs_p = _stcs_npz(sub, cond)
+    if not stcs_p.exists():
+        print(f"  [step3b] {sub}: stcs.npz missing → skip")
+        out[cond] = {"status": "missing_stcs"}
+        return out
+
+    d = np.load(stcs_p, allow_pickle=True)
+    data = d["data"]
+    stcs_list = [
+        mne.SourceEstimate(
+            data=data[i].astype(np.float64),
+            vertices=[d["vertices_lh"], d["vertices_rh"]],
+            tmin=float(d["tmin"]), tstep=float(d["tstep"]),
+            subject="fsaverage")
+        for i in range(data.shape[0])]
+    del data
+
+    tcs = mne.extract_label_time_course(
+        stcs_list, labels, src, mode="mean_flip",
+        allow_empty=True, verbose=False)
+    del stcs_list
+
+    label_tc = np.stack(tcs).astype(np.float32)
+    del tcs
+
+    np.savez_compressed(out_p, label_tc=label_tc,
+                        label_names=np.array(label_names),
+                        subject=sub, condition=cond, atlas=atlas,
+                        mode="mean_flip", sfreq=SFREQ_TARGET)
+    del label_tc
+
+    print(f"  [step3b] {sub}: OK")
+    out[cond] = {"status": "done"}
+    return out
+
+
+# ── Main — Step 2.2 full pipeline (fwd+inv+stcs+parc) ───────────────────────
 
 def main() -> None:
-    print("SMOKE TEST ds004504 adapter — sub-001")
-    write_hb("smoke_start", "Testing sub-001 preprocessing", {"last_action": "smoke_test_start"})
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip-to-fc", action="store_true")
+    args = parser.parse_args()
 
-    try:
-        # Test 1: forward + inverse
-        print("\n[1] Testing step2_fwd_inv(sub-001)...")
-        fwd, inv_op = step2_fwd_inv("sub-001")
-        print(f"  ✓ Forward solution: {len(fwd['src'])} sources")
-        print(f"  ✓ Inverse operator computed")
+    subjects = SUBJECTS_DS004504
+    print(f"[ds004504] Processing {len(subjects)} subjects — step2+2b+3b")
 
-        # Test 2: raw load and epoch
-        print("\n[2] Testing raw load + epoch generation...")
-        set_p = _set_path("sub-001", "eyesclosed")
-        assert set_p.exists(), f"FAIL: {set_p}"
-        raw = _load_raw(set_p)
-        print(f"  ✓ Raw loaded: {len(raw.ch_names)} ch, {raw.times[-1]:.1f}s, sfreq={raw.info['sfreq']} Hz")
-        assert raw.info['sfreq'] == SFREQ_TARGET, f"FAIL sfreq: {raw.info['sfreq']}"
+    for i, sub in enumerate(subjects):
+        print(f"\n[{i+1}/{len(subjects)}] {sub}")
+        set_p = _set_path(sub, "eyesclosed")
+        if not set_p.exists():
+            print(f"  SKIP: {set_p} not found")
+            continue
+        try:
+            fwd, inv = step2_fwd_inv(sub)
+            step2b_stcs(sub, inv)
+            step3b_parc(sub, fwd)
+        except Exception as e:
+            print(f"  ERROR {sub}: {e}")
+            continue
+        stcs_npz = _stcs_npz(sub, "EC")
+        if stcs_npz.exists():
+            stcs_npz.unlink()
+            print(f"  [cleanup] stcs.npz rimosso — disco preservato")
 
-        events = mne.make_fixed_length_events(raw, duration=EPOCH_DURATION, overlap=EPOCH_OVERLAP)
-        epochs = mne.Epochs(raw, events, tmin=0.0, tmax=EPOCH_DURATION,
-                            baseline=None, preload=True, verbose=False)
-        print(f"  ✓ Epochs created: {len(epochs)} epochs")
-        assert len(epochs) > 0, "FAIL: no epochs"
-
-        # Test 3: phenotype loader
-        print("\n[3] Testing phenotype loader...")
-        from config.labels_phenotype_ds004504 import load_phenotype_ds004504
-        y_age, y_sex = load_phenotype_ds004504(['sub-001', 'sub-002'])
-        print(f"  ✓ Phenotype loaded: age={y_age}, sex={y_sex}")
-        assert y_age.shape == (2,), f"FAIL y_age shape: {y_age.shape}"
-        assert set(y_sex).issubset({0, 1}), f"FAIL y_sex values: {y_sex}"
-
-        print("\n✅ SMOKE TEST PASSED — ds004504 adapter ready for full pipeline")
-        write_hb("smoke_done", "sub-001 preprocessing OK",
-                 {"last_action": "smoke_test_passed", "n_epochs": len(epochs)})
-
-    except Exception as e:
-        print(f"\n❌ SMOKE TEST FAILED: {e}")
-        write_hb("smoke_failed", f"Error: {e}",
-                 {"last_action": "smoke_test_failed", "error": str(e)})
-        sys.exit(1)
+    print("\n✅ Pipeline step 2.2 complete")
 
 
 if __name__ == "__main__":
