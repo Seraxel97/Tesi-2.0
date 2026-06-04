@@ -146,5 +146,4 @@ for atlas in (["aparc", "schaefer100"] if compare_atlas else ["aparc"]):
     if compare_atlas:
         st.markdown("---")
 
-# TODO: cross-dataset merge after LEMON squad closure step 2.3
-st.caption("ds004504 (LEMON) · confronto cross-dataset disponibile dopo chiusura LEMON squad")
+st.caption("ds004504 (LEMON) · confronto cross-dataset disponibile in **Tab 6 Cross-Dataset**")

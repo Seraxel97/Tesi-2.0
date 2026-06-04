@@ -326,5 +326,4 @@ Per confronto multi-algoritmo, correggi p-value con Benjamini-Hochberg
         """
     )
 
-# TODO: cross-dataset merge after LEMON squad closure step 2.3
-st.caption("ds004504 (LEMON) · confronto cross-dataset disponibile dopo chiusura LEMON squad")
+st.caption("ds004504 (LEMON) → **Tab 6 Cross-Dataset** · BA_sex=0.500 domain shift sano→clinico")

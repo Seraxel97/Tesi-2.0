@@ -167,5 +167,4 @@ with st.expander("Info dataset ds005385", expanded=False):
             }
         )
 
-# TODO: cross-dataset merge after LEMON squad closure step 2.3
-st.caption("ds004504 (LEMON) disponibile dopo chiusura LEMON squad · tab cross-dataset in arrivo")
+st.caption("ds004504 (LEMON) disponibile in **Tab 6 Cross-Dataset** · BA_sex=0.500 domain shift sano→clinico")
