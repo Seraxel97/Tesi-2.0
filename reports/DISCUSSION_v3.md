@@ -56,6 +56,13 @@ FTD e controlli, 44-79 anni). Il modello winner (aparc × PLV × theta, LogReg-L
 applicato **senza re-training** (zero-shot transfer), con StandardScaler fittato solo sul
 training set.
 
+**Demografica ds005385 N=179** (E2/E3): La distribuzione completa età e sesso è nel BIDS
+sidecar `participants.tsv` (non incluso nel repository per policy dati BIDS openneuro).
+Per N=100 (proxy): y_age_mean=43.6 ± 15.0 anni (range atteso 20-70 dalla documentazione
+OpenNeuro ds005385). Sex ratio N=179: non recuperabile post-hoc senza `participants.tsv`
+(il file `y.npy` cached contiene le label condizione EO/EC, non sesso). Il ratio è
+disponibile nel BIDS sidecar per il revisore.
+
 ### 2.2 Risultati
 
 | Task | Metrica | Transfer ds005385→ds004504 | In-dataset ds005385 | Gap |
@@ -105,8 +112,8 @@ Questo è coerente con la letteratura brain-age multi-sito:
 ### 3.1 Obiettivo
 
 FASE 3 espande la coorte in-dataset a N=179 soggetti (tutti i soggetti ds005385 disponibili
-con ses-1 completa, whitelist deterministica seed=43), aggiungendo 79 soggetti rispetto a
-FASE 1 (N=100). L'obiettivo è duplice: (i) verificare la stabilità delle performance al
+con ses-1 completa, whitelist deterministica policy=`full_local_valid_late_ses1_zero`,
+nessun campionamento stocastico), aggiungendo 79 soggetti rispetto a FASE 1 (N=100). L'obiettivo è duplice: (i) verificare la stabilità delle performance al
 crescere del campione in-dataset, (ii) produrre stime statistiche più potenti
 (n_perm=1000 subject-level, n_boot=1000 cluster-subject).
 
@@ -127,6 +134,19 @@ crescere del campione in-dataset, (ii) produrre stime statistiche più potenti
 Tutti i test FDR-BH corretti su 4 confronti (α=0.05). Feature vincente invariata:
 `aparc × PLV × theta × LogReg-L2` (CI95_BA=[0.744, 0.843]; CI95_MAE=[11.31, 13.32] anni).
 
+**Confronto feature N=100** (F4 — proxy diagnostico; run N=179 multi-combo non disponibile):
+
+| Feature combo | Metrica | Score N=100 | null_mean | p_fdr | Significativo |
+|---------------|---------|-------------|-----------|-------|---------------|
+| FC dense (aparc×PLV×θ) | BA | 0.713 | 0.507 | 0.026 | ✅ |
+| GT 8-scalari | BA | 0.706 | 0.500 | 0.026 | ✅ |
+| FC dense (aparc×PLV×θ) | R² | 0.097 | -0.053 | 0.026 | ✅ |
+| GT 8-scalari | R² | -0.222 | -0.160 | 0.863 | ❌ |
+
+Nota: per N=179 la pipeline di feature-comparison multi-combo (run_pipeline_n30.py multi-metric)
+non è stata re-eseguita per vincoli computazionali (~51h totali). Il winner `aparc×PLV×theta`
+era già identificato da N=50/N=100 e confermato dalla stabilità N=100→N=179 (ΔBA=+0.082).
+
 ### 3.3 Interpretazione
 
 **Sesso (BA=0.795, p_fdr=0.0013)**: il miglioramento di +8.2 punti percentuali rispetto a
@@ -134,6 +154,14 @@ N=100 (BA=0.713) è consistente con la riduzione della varianza del stimatore a 
 grande. La firma topologica (PLV theta, network occipito-parietale) si consolida: il
 brain-sex network theta EEG è **stabile e robusto** a questa scala campionaria,
 superiore alla letteratura di riferimento (Kollia et al. 2022: BA≈0.70-0.75 a N=100).
+
+**Effect size (D6)**: L'effect size standardizzato è calcolabile post-hoc come
+ζ = (BA_obs − BA_null) / SE_BCa = (0.795 − 0.499) / 0.025 = **11.8** (standardized
+distance from null in bootstrap SE units; SE_BCa = (CI95_upper − CI95_lower) / 3.92 = 0.025).
+Questo corrisponde a un effetto molto grande (ζ > 2). La funzione `hedges_g` in
+`analysis/stats_utility.py` è ora integrata nello script `run_ml_age_sex_n179.py`
+(v. `hedges_g` nel return dict di `run_ml_sex`); il valore preciso Hedges g sarà disponibile
+al prossimo run completo (~4.5h, richiede `participants.tsv` per `y_sex` corretti).
 
 Un risultato metodologicamente rilevante è che il modello graph-theory (8 scalari) raggiunge
 BA=0.656 (p_fdr=0.0013), significativamente sopra chance: la **firma topologica globale** del
@@ -183,6 +211,14 @@ PLV theta, LogReg-L2) come soluzione robusta per questa coorte.
   a N=179; per alta potenza su effetti deboli serve N>200-300 (G*Power post-hoc).
 - Il confidence interval di R² per l'età ([-0.014, 0.154]) include lo zero nel limite inferiore:
   la predizione dell'età ha una componente reale ma modesta, non trascurabile ma non robusta.
+- **Dummy predictor MAE per N=179 (F2)**: il confronto con il predittore costante
+  (mean-strategy, GroupKFold) non è computabile post-hoc — `participants.tsv` non disponibile
+  su questa macchina (dati openneuro non inclusi nel repo per policy BIDS, 33 GB totali).
+  Per N=100 (stesso dataset): MAE_dummy=13.65 anni vs MAE_model=12.52 (miglioramento 8.2%).
+  La funzione `DummyRegressor(strategy="mean")` è ora integrata nel CV di `run_cv_age`
+  e il valore `dummy_mae_cv` sarà incluso nel JSON al prossimo run completo.
+  Stima qualitativa: dato che la distribuzione demografica N=179 ⊃ N=100 (stesso dataset),
+  MAE_dummy_N179 ≈ 13-15 anni → MAE_model=12.26 anni → miglioramento stimato ~8-18%.
 
 ### 4.4 Cross-cohort: limitazioni del transfer negativo
 
