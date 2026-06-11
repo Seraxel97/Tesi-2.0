@@ -2,8 +2,7 @@
 
 import pytest
 
-from common.dispatcher_base import validate_dispatch_key, DispatcherProtocol, BaseDispatcher
-
+from common.dispatcher_base import BaseDispatcher, DispatcherProtocol, validate_dispatch_key
 
 _METRICS = ("coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased")
 _ALGORITHMS = ("logreg", "svm", "mlp", "rf", "gb")

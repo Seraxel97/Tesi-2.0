@@ -45,10 +45,10 @@ def test_e2e_x_shape_consistent_with_fc() -> None:
 
 
 def test_e2e_all_algorithms_run() -> None:
-    """Tutti e 5 gli algoritmi completano senza errori."""
+    """Tutti e 6 gli algoritmi (incl. logreg_nested) completano senza errori."""
     X, _ = build_X(_LABEL_TC, _SFREQ, _FC)
     results = run_all_algorithms(X, _Y, groups=None, n_splits=3)
-    assert set(results.keys()) == {"logreg", "svm", "mlp", "rf", "gb"}
+    assert set(results.keys()) == {"logreg", "logreg_nested", "svm", "mlp", "rf", "gb"}
     for algo, r in results.items():
         assert 0.0 <= r.ba_mean <= 1.0, f"{algo}: BA fuori range"
 

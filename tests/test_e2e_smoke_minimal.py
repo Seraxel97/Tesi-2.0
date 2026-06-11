@@ -18,7 +18,6 @@ import mne
 import numpy as np
 import pytest
 
-
 RNG = np.random.default_rng(42)
 N_EPOCHS = 20
 N_LABELS = 12
@@ -60,8 +59,8 @@ def test_imports_all_modules():
     import ml_training.ml_dispatcher  # noqa: F401
     import parcellation.extract_label_tc  # noqa: F401
     import source_reconstruction.finalize_inverse  # noqa: F401
-    from common.paths import BIDS_ROOT, DERIV, SUBJECTS_DIR  # noqa: F401
     from common.dispatcher_base import validate_dispatch_key  # noqa: F401
+    from common.paths import BIDS_ROOT, DERIV, SUBJECTS_DIR  # noqa: F401
 
 
 # ── STEP 2 proxy: fake SourceEstimate ────────────────────────────────────────
@@ -81,12 +80,8 @@ def test_fake_source_estimate_creation():
 
 def test_extract_label_tc_module_api():
     from parcellation.extract_label_tc import (
-        ATLAS_TO_PARC,
-        AtlasName,
         _EXCLUDE_KEYWORDS,
-        extract_tc,
-        extract_tc_from_files,
-        get_labels,
+        ATLAS_TO_PARC,
     )
     assert "aparc" in ATLAS_TO_PARC
     assert "schaefer200" in ATLAS_TO_PARC

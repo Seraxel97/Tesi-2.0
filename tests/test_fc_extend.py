@@ -1,11 +1,11 @@
 """Tests per S-FC-EXTEND: PLV, ImCoh, multi-banda."""
 from __future__ import annotations
 
-import numpy as np
-import pytest
-
 import sys
 from pathlib import Path
+
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from connectivity.fc_dispatcher import compute_fc

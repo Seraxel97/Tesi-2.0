@@ -29,7 +29,7 @@ def main() -> None:
 
     # ── Feature shapes dal metadata ───────────────────────────────────────────
     meta_path = FEAT_DIR / "metadata.json"
-    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    _ = json.loads(meta_path.read_text()) if meta_path.exists() else {}  # metadata reserved
 
     lines = [
         "# Esperimenti N=15 — ds005385 Full Run",

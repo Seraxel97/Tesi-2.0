@@ -1,7 +1,8 @@
 # Tesi_2.0 — Tracking progresso
 
-**Path**: `/home/seraxel/Scrivania/Tesi_2.0/`  
-**Ultimo aggiornamento**: 2026-05-05 (S-PERF-INVPARC, sonnet-tesi-2)
+**Path**: `/home/seraxel/Scrivania/Tesi_2.0/`
+**Ultimo aggiornamento**: 2026-05-07 (Fase 2 Cleanup DONE, sonnet1-tesi)
+**HEAD**: cb29346 (Fase 2 cleanup done)
 
 ---
 
@@ -117,3 +118,143 @@ Tutte le altre decisioni (Q2–Q7) sono state chiuse autonomamente con default r
 1. **Wave-scientific** → S-101 PILOT 5 sub (gated OPERATOR_APPROVE_5SUB) → S-103→S-107 step-by-step
 2. **Performance P0** → refactor `inverse_parcellation` con `apply_inverse_epochs()` batch (riduzione ~40%)
 3. Q1 risolta (2026-05-01): ds005385 scelto, subset N=15, seed=42
+
+---
+
+## 2026-05-07 — Recovery from Trash
+
+Incidente fake-init: una sessione orfana ha cestinato la repo verso le 17:42. Recovery eseguito da opus-father (Opzione A, 18:15): `cp -a` da Trash → `Tesi_2.0_RESTORED` → swap. HEAD ripristinato a `21bba74` (verificato). Master plan, STATE, PROGRESS, research draft, 273 test, bench results, derivatives N=15 — tutti presenti. Backup safety: `Tesi_2.0_HAIKU_FALSE_INIT/` + `Tesi_2.0_HAIKU_FALSE_INIT_20260507_181326/`. Trash NON svuotato (safety net 7gg). Dettagli in `.planning/MSG_TO_FATHER_20260507T1815_RECOVERY_DONE.md`.
+
+**Conseguenze**:
+- Vecchio `reports/FEATURES_AUDIT.md` di haiku1 (commit fasullo `f2a8220`) SCARTATO — era invalido (scritto sulla dir fake).
+- Re-spawn opus-orch-tesi con master plan come north star.
+- Workers attivi (tmux): `opus1-tesi` (Opus 4.7, complessi), `sonnet1-tesi` (Sonnet 4.6, usuali), `haiku1-tesi` (Haiku 4.5, atomici).
+- Avvio FASE 1 Audit (master plan §4) con 5 sprint H-AUDIT-01..05 (routing per modello).
+
+## 2026-05-07 — Fase 1 Audit DONE (5/5)
+
+Sprint H-AUDIT-01..05 completati. Output:
+
+| Sprint | Worker | Report | Commit |
+|--------|--------|--------|--------|
+| H-AUDIT-01 | opus1-tesi | `reports/PIPELINE_AUDIT.md` | (opus1-tesi) |
+| H-AUDIT-02 | opus1-tesi | `reports/PIPELINE_LEAKAGE_AUDIT.md` | 9241452 |
+| H-AUDIT-03 | sonnet1-tesi | `reports/DATASET_SUBJECT_AUDIT.md` | 25125e1 |
+| H-AUDIT-04 | sonnet1-tesi | `reports/BENCH_REPLICABILITY.md` | ca2f88e |
+| H-AUDIT-05 | haiku1-tesi | (vedi orch) | — |
+
+Risultati chiave:
+- Dataset ds005385: 200 totali, **179 validi** (EO+EC, no late_ses1), 15 N15_ACTIVE PASS, pool N=30 = 164 candidati.
+- Bench grid 96-combo: **96/96 REPLICABLE** (FC 960/960, X 32/32 NaN=0).
+- Winner `aparc×coh×theta×svm_rbf` BA=0.867 verificato REPLICABLE.
+
+## 2026-05-07 — Fase 2 Cleanup DONE
+
+Vedi `reports/CLEANUP_AUDIT_2026-05-07.md` per dettagli completi.
+
+**Bilancio recuperato**: ~700 MB (cache `__pycache__`) + ~4.2 GB (shadow `Tesi_2.0_HAIKU_FALSE_INIT*` archiviato da opus-father in `~/Scrivania/.archive/`) = **~4.9 GB totali**.
+
+**22 SYNC archiviati** in `.planning/archive/2026-05-07_phase2_cleanup/sprint_S/` (sprint S-100..S-116, S-47, S-FC-EXTEND, AGG/VALIDATE/ML/DOC/FIG-N15).
+
+Note:
+- Shadow `Tesi_2.0/` non è dentro repo — archiviato da father in `~/Scrivania/.archive/`.
+- 2 stray `.pyc` tracked in `config/` rimossi (commit cb29346 orch).
+- **Test post-cleanup**: pytest **247 PASS / 63 skip / 0 FAIL** (GREEN), ruff 25 errori pre-esistenti (non introdotti da Fase 2 — 0 .py toccati), pre-commit binary non installato (env issue).
+- **Next**: Fase 3 N=30 (gate ack opus-father; symlink `data/raw/ds005385` confermato disponibile 18:34).
+
+**Debito tecnico** (task per Fase 4 hardening):
+- `H-HARD-RUFF`: fix 25 errori ruff pre-esistenti (20/25 auto-fixable)
+- `H-HARD-PRECOMMIT`: installare pre-commit + verificare hook env
+
+---
+
+## 2026-05-07 — Fase 3 H-SCALE-01 done + Phase 3 batch CANCELLED (default conservative)
+
+- **H-SCALE-01** (commit `ceae34c`): `config/subjects_whitelist_n30.py` deterministic seed=42, hard-rule N=15 ⊂ N=30, hash `1594bf5d4914a864`, 9/9 test PASS, ruff 0. **15 nuovi sub** pescati: sub-012/014/015/032/034/038/040/048/076/082/091/136/171/187/200.
+- **Batch H-SCALE-02..05 ANNULLATO** (operator decision pending, default conservative applied 22:07 by opus-father). Razionale: direttiva operator TG 21:21 "Tesi a regime non intensivo, workspace da concludere e killare" + operator silence post-disambig deadline 21:55. Vedi `.planning/MSG_TO_FATHER_PHASE3_CANCELLED.md`.
+- **Workers**: opus1+sonnet1+haiku1-tesi tutti idle low-freq (HB 5min) — re-attivabili su richiesta NM-wake o operator.
+- **Stato tesi**: paper-grade N=15 BA=0.867 già disponibile (winner aparc×coh×theta×svm_rbf, CI95=[0.766, 0.967], p_perm=0.0000, 96-combo grid 96/96 REPLICABLE). Manuscript draft v1 presente. Sufficiente per discussione laurea con limiti N=15 esplicitati in Discussion.
+- **Re-attivazione futura**: SYNC_H-SCALE-02..05.md restano in `.planning/` come artefatti pronti. Path A integrale (~13h) o Path C ridimensionato (~6-7h riuso N=15) o Path D minimale (no batch, focus Fase 4 hardening + Fase 6 manuscript) — orch preference Path D allineato a "non-intensivo + concludere".
+
+---
+
+## 2026-05-12 — Fase 3 H-SCALE-N30 DONE (operator GO confermato)
+
+Pipeline N=30 end-to-end completata in singolo dispatch `scripts/run_pipeline_n30.py` (disk-aware, riuso N=15 cache + 15 nuovi sub).
+
+| Step | Stato | Note |
+|------|-------|------|
+| 2 (fwd+inv) | ✅ 30/30 | dSPM fsaverage |
+| 2b (stcs per-epoch) | ✅ 30/30 | cleanup post-3b |
+| 3b (label_ts) | ✅ 30/30 | aparc + schaefer100 |
+| 4b (FC) | ✅ 30/30 | 1920 file (2 atlas × 4 metric × 4 band × 2 cond) |
+| 5 (features) | ✅ 32/32 | X matrices (60, n_feat) |
+| 6+7 (ML LOSO-30) | ✅ 96 combo | logreg + svm_rbf + lda (3 clf) |
+
+### Winner N=30
+
+| Campo | Valore |
+|---|---|
+| Config | **schaefer100 × plv × theta × logreg** |
+| Balanced Accuracy | **0.967** |
+| CI 95% | **[0.917, 1.000]** |
+| p_perm | 0.0000 (vedi caveat) |
+| Confronto N=15 | BA 0.867 → 0.967 (+10pp) |
+
+### Caveat statistico
+
+I p_perm correnti provengono da smoke test (n_perm=1) dopo che ML3 full (n_perm=1000, 6 clf) è morto a ~10h CPU (probabile OOM). BA è valida (LOSO base). PID 807181 in corso con n_perm=1000 + 3 clf rapidi → amend p_perm refined entro 5-10 min.
+
+### Commit serie H-SCALE-N30
+
+- `ceae34c` whitelist N=30 (seed=42)
+- `5c7ced9` run_pipeline_n30.py driver
+- `2ea7a69` --atlases CLI flag
+- `26436cf` aggregate_n15 n_subjects param (fix shape guard)
+- `8efdd3c` step5 dynamic threshold
+- (next) --classifiers flag + reports + MSG father
+
+### Insight scientifico
+
+- PLV emerge come metric vincente in N=30 (era top-2/3 a N=15 con coh dominante)
+- Theta band confermato robusto in scaling
+- schaefer100 (100 ROI) supera aparc (68 ROI) a N=30 — più ROI → meglio con più campioni
+- CI95 width 0.201 → 0.083 (più stretto, meno fragile)
+
+Vedi `.planning/MSG_TO_FATHER_N30_DONE.md` per dettaglio cronologia rerun + caveat completi.
+
+
+---
+
+## 2026-05-27 — Statistical Hardening DONE
+
+**Sprint**: FIX-01 → FIX-07  
+**Orchestratore**: Sonnet 4.6 (orch-tesi)  
+**Workers**: haiku1-tesi + haiku2-tesi (Haiku 4.5, 5 wave parallele)  
+**Test**: 272 → 276 passed, 0 failed
+
+### Commit sprint
+- `96f3edd` feat(stats): Hedges g (FIX-04)
+- `68d23c2` docs(features): z-score clarity + regression test (FIX-05)
+- `6ad1e10` feat(dashboard): multi-dataset selector (FIX-06.a+b)
+- `25cad1c` fix(dashboard): ruff noqa E402 pre-existing (orch)
+- `8dc8eb0` feat(dashboard): schema validator (FIX-06.c)
+- `25afc3c` feat(lemon): LEMON scaffolding (FIX-06.d+e)
+- `0fa4d96` test(dashboard): mock filesystem tests (FIX-06.f)
+- `6a4937e` docs(reports): statistical validity notes (FIX-07)
+
+### Fix applicati
+1. **BCa Bootstrap CI** — bias-corrected accelerated (Efron & Tibshirani 1993)
+2. **Nested CV** — LogReg inner GridSearch C ∈ [0.01..100] + GroupKFold inner
+3. **HARKing Disclosure** — FDR-BH su 96 combo, winner sopravvive
+4. **Hedges g** — effect size bias-corrected per N<50
+5. **Z-score clarity** — no double normalization; docstring + regression test
+6. **Dashboard multi-dataset** — parametric data_loader + selectbox + validator
+7. **LEMON scaffolding** — config.py + .gitkeep; gate operatore per path reale
+
+### Gate operatore (bloccante per LEMON)
+`LEMON_RAW_PATH = None` in `config/dataset_lemon.py` — operatore deve scaricare LEMON BIDS (~200GB) e impostare path.
+
+### Riferimenti
+- `reports/STATISTICAL_VALIDITY_NOTES.md` — sommario validità scientifica
+- `reports/EXPERIMENTS_N50.md` — HARKing disclosure + FDR-BH table

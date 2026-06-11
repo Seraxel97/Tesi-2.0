@@ -4,6 +4,7 @@ Funzioni:
     bootstrap_ci(values, statistic, n_boot, alpha) -> (lo, hi)
     cohen_d(a, b)                                 -> float
     statistical_power(effect_size, n, alpha)       -> float
+    format_pvalue(p_value, n_perm)                -> str
 """
 
 from __future__ import annotations
@@ -58,6 +59,84 @@ def bootstrap_ci(
     return lo, hi
 
 
+def bootstrap_ci_bca(
+    values: np.ndarray | list[float],
+    statistic: Callable[[np.ndarray], float] = np.mean,
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    *,
+    random_state: int = 42,
+) -> tuple[float, float]:
+    """Intervallo di confidenza bootstrap BCa (Bias-Corrected accelerated).
+
+    Implementa Efron & Tibshirani (1993) con jackknife per stima accelerazione.
+
+    Parameters
+    ----------
+    values:
+        Array 1D di valori campionati.
+    statistic:
+        Funzione scalare (default: np.mean).
+    n_boot:
+        Numero campioni bootstrap (default: 2000).
+    alpha:
+        Livello significatività (default: 0.05 → CI 95%).
+    random_state:
+        Seed riproducibilità.
+
+    Returns
+    -------
+    (lo, hi) : tuple[float, float]
+
+    Notes
+    -----
+    BCa corregge bias e asimmetria della distribuzione bootstrap.
+    Superiore al metodo percentile per statistiche asimmetriche (N<50).
+    Ref: Efron & Tibshirani (1993); DiCiccio & Romano (1988).
+    """
+    from scipy.stats import norm as _norm
+
+    arr = np.asarray(values, dtype=float)
+    n = len(arr)
+    rng = np.random.default_rng(random_state)
+
+    # Bootstrap distribution
+    boot_stats = np.array([statistic(rng.choice(arr, size=n, replace=True)) for _ in range(n_boot)])
+    theta_hat = statistic(arr)
+
+    # Bias correction z0
+    prop_less = np.mean(boot_stats < theta_hat)
+    prop_less = np.clip(prop_less, 1e-10, 1 - 1e-10)
+    z0 = float(_norm.ppf(prop_less))
+
+    # Acceleration via jackknife
+    jack_stats = np.array([statistic(np.delete(arr, i)) for i in range(n)])
+    jack_mean = np.mean(jack_stats)
+    num = np.sum((jack_mean - jack_stats) ** 3)
+    den = 6.0 * (np.sum((jack_mean - jack_stats) ** 2) ** 1.5)
+    a = float(num / den) if abs(den) > 1e-15 else 0.0
+
+    # Adjusted percentiles
+    z_lo = _norm.ppf(alpha / 2)
+    z_hi = _norm.ppf(1 - alpha / 2)
+
+    def _adj_pct(z_alpha: float) -> float:
+        num_inner = z0 + z_alpha
+        denom_inner = 1.0 - a * (z0 + z_alpha)
+        if abs(denom_inner) < 1e-15:
+            return z_alpha
+        return float(_norm.cdf(z0 + num_inner / denom_inner))
+
+    pct_lo = _adj_pct(z_lo) * 100
+    pct_hi = _adj_pct(z_hi) * 100
+    pct_lo = np.clip(pct_lo, 0.01, 99.99)
+    pct_hi = np.clip(pct_hi, 0.01, 99.99)
+
+    lo = float(np.percentile(boot_stats, pct_lo))
+    hi = float(np.percentile(boot_stats, pct_hi))
+    return lo, hi
+
+
 def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     """Calcola Cohen's d per due campioni indipendenti.
 
@@ -87,6 +166,89 @@ def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     if s_pooled == 0.0:
         return 0.0 if mean_diff == 0.0 else float("inf")
     return mean_diff / s_pooled
+
+
+def hedges_g(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
+    """Calcola Hedges' g — versione bias-corrected di Cohen's d.
+
+    Raccomandato per N < 50 (campioni piccoli) dove Cohen's d tende a sovrastimare
+    l'effect size. La correzione è:
+
+        g = d × (1 − 3 / (4(n1 + n2) − 9))
+
+    dove d è Cohen's d con pooled SD non corretta.
+
+    Parameters
+    ----------
+    a:
+        Primo campione.
+    b:
+        Secondo campione.
+
+    Returns
+    -------
+    float
+        Hedges' g (|g| < |d| per N piccolo; converge a d per N grande).
+
+    Notes
+    -----
+    Per N1+N2 >= 10 la correzione è calcolabile. Per campioni molto piccoli
+    (N1+N2 < 10) la correzione può divergere; in quel caso restituisce d.
+
+    References
+    ----------
+    Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
+    size and related estimators. Journal of Educational Statistics, 6(2), 107–128.
+    """
+    a_arr = np.asarray(a, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    n1, n2 = len(a_arr), len(b_arr)
+    d = cohen_d(a_arr, b_arr)
+    denom = 4 * (n1 + n2) - 9
+    if denom <= 0:
+        return d  # campioni troppo piccoli, fallback a d
+    correction = 1.0 - 3.0 / denom
+    return d * correction
+
+
+def format_pvalue(p_value: float, n_perm: int) -> str:
+    """Formatta un p-value empirico da permutation test in modo onesto.
+
+    Quando nessuna permutazione supera il valore osservato (p_value == 0.0),
+    restituisce ``"p < 1/n_perm"`` (es. ``"p < 0.001"`` per n_perm=1000) invece
+    di ``"p=0.0"`` che sarebbe fuorviante (risoluzione finita del test).
+
+    Parameters
+    ----------
+    p_value:
+        P-value empirico calcolato come ``#{null >= obs} / (n_perm + 1)`` o
+        ``#{null >= obs} / n_perm``. Deve essere in [0, 1].
+    n_perm:
+        Numero di permutazioni eseguite. Determina la risoluzione minima
+        rappresentabile.
+
+    Returns
+    -------
+    str
+        Stringa formattata:
+        - ``"p < 0.001"`` (o il valore ``1/n_perm`` appropriato) se p == 0.0
+        - ``"p = 0.XXX"`` altrimenti (3 cifre decimali)
+
+    Examples
+    --------
+    >>> format_pvalue(0.0, 1000)
+    'p < 0.001'
+    >>> format_pvalue(0.0, 500)
+    'p < 0.002'
+    >>> format_pvalue(0.042, 1000)
+    'p = 0.042'
+    >>> format_pvalue(0.001, 1000)
+    'p = 0.001'
+    """
+    if p_value == 0.0:
+        threshold = 1.0 / max(n_perm, 1)
+        return f"p < {threshold:.3f}"
+    return f"p = {p_value:.3f}"
 
 
 def statistical_power(

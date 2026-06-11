@@ -17,3 +17,7 @@ __pycache__/
 data/
 !data/.gitkeep
 !data/README.md
+!data/features/lemon/.gitkeep
+!data/features/ds005385/metadata.json
+!data/raw/ds004504/participants.tsv
+!data/raw/ds004504/dataset_description.json

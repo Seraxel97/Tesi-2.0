@@ -105,19 +105,17 @@ Il permutation test (1000 permutazioni per configurazione) indica che **N su 10*
 
 ## 4. Discussione
 
-→ Vedi `DISCUSSION_v1.md` per il testo completo.
+→ Vedi `DISCUSSION_v2.md` per il testo completo (final-draft 2026-05-14).
 
-**Struttura della sezione**:
-1. Interpretazione dei risultati (Q1-Q4: metrica, atlante, algo, banda)
-2. Limiti (template MRI, noise cov ad-hoc, FC su sessione, inter-soggetto)
-3. Prospettive future (resting-state, neuromaps, feature selection, deep learning)
-4. Conclusioni (da completare)
+**Struttura**: PLV-theta significance EC/EO | limitazioni N=50/single-center/no-DL | future-work LEMON+bench700 | giustificazione LOSO CV
 
 ---
 
 ## 5. Conclusioni
 
-*[Da completare dopo analisi risultati — cross-ref §4.4 DISCUSSION_v1.md.]*
+→ Vedi `CONCLUSION_v2.md` per il testo completo (final-draft 2026-05-14).
+
+**Sintesi**: BA=0.920 CI=[0.870,0.970] p_perm<0.001 | PLV-theta aparc logreg | LOSO 50-fold | future LEMON cross-val + bench700
 
 ---
 
@@ -129,9 +127,10 @@ Il permutation test (1000 permutazioni per configurazione) indica che **N su 10*
 |---------|------|-------|
 | Introduction | `.planning/research/INTRODUCTION_v1.md` | ✓ draft v1 |
 | Methods | `.planning/research/METHODS_v1.md` | ✓ draft v1 (4619w) |
-| Results | *da esecuzione S-08* | ⚠ pending |
-| Discussion | `.planning/research/DISCUSSION_v1.md` | ✓ skeleton v1 |
-| Bench data | `reports/BENCH_MATRIX_RESULTS.json` | ⚠ placeholder |
+| Results | `reports/EXPERIMENTS_N50.md` | ✓ N=50 BA=0.920 (2026-05-13) |
+| Discussion | `.planning/research/DISCUSSION_v2.md` | ✓ **final-draft v2** (2026-05-14) |
+| Conclusion | `.planning/research/CONCLUSION_v2.md` | ✓ **final-draft v2** (2026-05-14) |
+| Bench data | `reports/EXPERIMENTS_N50.md` | ✓ aparc×plv×theta×logreg |
 
 ### Tabelle e figure da produrre
 
