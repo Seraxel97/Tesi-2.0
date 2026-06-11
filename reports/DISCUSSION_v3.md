@@ -1,9 +1,9 @@
 # Discussion v3 — Framing D: Cross-Cohort Limitation as Primary Finding
 
-**Data**: 2026-06-04
-**Versione**: 3.0 (pivot framing post deep-review orch-tesi)
-**Branch**: main
-**Status**: DRAFT — sezione FASE 3 N=179 segnaposto (da completare post-ML)
+**Data**: 2026-06-05 (aggiornato 2026-06-11)
+**Versione**: 3.1 (§3 + Conclusion completati con risultati FASE 3 N=179)
+**Branch**: manuscript/discussion-conclusion
+**Status**: COMPLETE — risultati FASE 3 N=179 integrati, Conclusion aggiunta
 
 ---
 
@@ -102,31 +102,55 @@ Questo è coerente con la letteratura brain-age multi-sito:
 
 ## 3. Replicazione e scaling in-dataset (FASE 3) — ds005385 N=179
 
-*[SEGNAPOSTO — da completare con risultati ML N=179 post-esecuzione pipeline]*
-
 ### 3.1 Obiettivo
 
 FASE 3 espande la coorte in-dataset a N=179 soggetti (tutti i soggetti ds005385 disponibili
-localmente con ses-1 completa), aggiungendo 79 soggetti rispetto a FASE 1 (N=100).
+con ses-1 completa, whitelist deterministica seed=43), aggiungendo 79 soggetti rispetto a
+FASE 1 (N=100). L'obiettivo è duplice: (i) verificare la stabilità delle performance al
+crescere del campione in-dataset, (ii) produrre stime statistiche più potenti
+(n_perm=1000 subject-level, n_boot=1000 cluster-subject).
 
 **Ipotesi a priori** (pre-registrazione `docs/OSF_PREREG_FASE3.md`):
-- Sesso: BA_N179 ≈ 0.71 ± 0.03 (equivalenza con N=100)
-- Età: MAE_N179 ≈ 11-13 anni (riduzione modesta attesa)
+- Sesso: BA_N179 ≈ 0.71 ± 0.03 (equivalenza con N=100, possibile miglioramento)
+- Età: MAE_N179 ≈ 11-13 anni (riduzione modesta attesa con N maggiore)
 
 ### 3.2 Risultati
 
-*[DA COMPLETARE — inserire valori reali da `reports/AGE_SEX_FASE3_N179.md`]*
+| Target | Modello | Metrica | N=100 FASE 1 | N=179 FASE 3 | Δ | p_fdr |
+|--------|---------|---------|-------------|-------------|---|-------|
+| Sesso | FC dense (2278-dim) | BA | 0.713 | **0.795** | +0.082 | **0.0013** ✅ |
+| Sesso | Graph-theory (8-dim) | BA | 0.706 | **0.656** | -0.050 | **0.0013** ✅ |
+| Età | FC dense (2278-dim) | MAE (anni) | 12.52 | **12.26** | -0.26 | **0.0013** ✅ |
+| Età | FC dense (2278-dim) | R² | 0.097 | **0.082** | -0.015 | 0.0013 ✅ |
+| Età | Graph-theory (8-dim) | MAE (anni) | — | **14.18** | — | n.s. |
 
-| Target | Metrica | N=100 FASE 1 | N=179 FASE 3 | Δ |
-|--------|---------|-------------|-------------|---|
-| Sesso | BA | 0.713 | TBD | TBD |
-| Sesso | p_fdr | 0.026 | TBD | — |
-| Età | MAE | 12.52 | TBD | TBD |
-| Età | R² | 0.097 | TBD | TBD |
+Tutti i test FDR-BH corretti su 4 confronti (α=0.05). Feature vincente invariata:
+`aparc × PLV × theta × LogReg-L2` (CI95_BA=[0.744, 0.843]; CI95_MAE=[11.31, 13.32] anni).
 
 ### 3.3 Interpretazione
 
-*[DA COMPLETARE — inserire interpretazione statistica N=179]*
+**Sesso (BA=0.795, p_fdr=0.0013)**: il miglioramento di +8.2 punti percentuali rispetto a
+N=100 (BA=0.713) è consistente con la riduzione della varianza del stimatore a campione più
+grande. La firma topologica (PLV theta, network occipito-parietale) si consolida: il
+brain-sex network theta EEG è **stabile e robusto** a questa scala campionaria,
+superiore alla letteratura di riferimento (Kollia et al. 2022: BA≈0.70-0.75 a N=100).
+
+Un risultato metodologicamente rilevante è che il modello graph-theory (8 scalari) raggiunge
+BA=0.656 (p_fdr=0.0013), significativamente sopra chance: la **firma topologica globale** del
+sesso (clustering, efficiency, modularità) è catturabile da pochi scalari interpretabili, senza
+accedere alla matrice FC completa. Il gap rispetto al modello denso (0.656 vs 0.795) quantifica
+il contributo incrementale dell'informazione spaziale distribuita.
+
+**Età (MAE=12.26 anni, R²=0.082, p_fdr=0.0013)**: il brain-age gap medio è 0.27 anni
+(quasi-nullo), indicando assenza di bias sistematico nel predittore. Il MAE=12.26 è nella
+parte alta dell'intervallo di letteratura (Franck et al. 2019: MAE≈8-12 su N>200), coerente
+con le attese per feature FC-only e assenza di MRI individuale. Il modello graph-theory
+(MAE=14.18, R²=-0.194) **non è significativo** per l'età: la dimensionalità di 8 scalari è
+insufficiente per catturare il gradiente età continuo, a differenza del target categoriale sesso.
+
+**Coerenza N=100→N=179**: le performance sono stabili (ΔMAE=-0.26, ΔBA=+0.082). Questo
+esclude l'ipotesi di overfitting severo a N=100 e valida la scelta del pipeline (aparc,
+PLV theta, LogReg-L2) come soluzione robusta per questa coorte.
 
 ---
 
@@ -134,12 +158,14 @@ localmente con ses-1 completa), aggiungendo 79 soggetti rispetto a FASE 1 (N=100
 
 ### 4.1 Dataset e generalizzabilità
 
-- **N=179 single-center**: tutti i soggetti provengono da un unico studio (ds005385),
-  limitando la generalizzabilità a popolazioni diverse. Il test di generalizzabilità
-  cross-cohort (FASE 2) ha confermato questa limitazione in modo quantitativo.
+- **N=179 single-center, single-site**: tutti i soggetti provengono da un unico studio
+  (ds005385, Dortmund), limitando la generalizzabilità. Il test cross-cohort (FASE 2) ha
+  **quantificato** questa limitazione: BA crolla a 0.500 su ds004504 (Alzheimer/FTD).
+  Non si può affermare generalizzabilità cross-site senza armonizzazione esplicita.
 - **Sorgenti su fsaverage**: la ricostruzione di sorgente usa il template fsaverage
   in assenza di MRI individuale. Questo introduce distorsioni spaziali per-soggetto
-  (stimata ≤10 mm di localizzazione errata; Hillebrand & Barnes 2002).
+  (stimate ≤10 mm; Hillebrand & Barnes 2002), potenzialmente riducenti la specificità
+  anatomica delle ROI parcellate.
 
 ### 4.2 Feature engineering
 
@@ -151,10 +177,12 @@ localmente con ses-1 completa), aggiungendo 79 soggetti rispetto a FASE 1 (N=100
 
 ### 4.3 Statistical power
 
-- A N=100, p-value ≥ 1/(n_perm+1) = 1/51 ≈ 0.0196. La risoluzione del permutation
-  test è limitata. N=179 con n_perm=1000 risolverà a 1/1001.
+- N=179 con n_perm=1000: risoluzione p_min=1/1001≈0.001. Entrambi i risultati principali
+  raggiungono p_fdr=0.0013 (il minimo empiricamente raggiungibile con questo protocollo).
 - Effetti piccoli (BA < 0.60, R² < 0.05) potrebbero non emergere significativi
-  a N=100-179; serve N>200 per alta potenza (G*Power post-hoc).
+  a N=179; per alta potenza su effetti deboli serve N>200-300 (G*Power post-hoc).
+- Il confidence interval di R² per l'età ([-0.014, 0.154]) include lo zero nel limite inferiore:
+  la predizione dell'età ha una componente reale ma modesta, non trascurabile ma non robusta.
 
 ### 4.4 Cross-cohort: limitazioni del transfer negativo
 
@@ -179,15 +207,69 @@ localmente con ses-1 completa), aggiungendo 79 soggetti rispetto a FASE 1 (N=100
 
 ---
 
-## Riferimenti chiave
+---
 
-- Babiloni C. et al. (2016). *Brain. Clin. Neurophysiol.* — EEG connectivity in Alzheimer
-- Cole JH, Franke K (2017). *Cereb. Cortex* — Brain-age overview
-- Engemann DA et al. (2022). *NeuroImage* — Multi-site EEG brain-age, Combat harmonization
-- Franck E et al. (2019). *J. Neurosci. Methods* — EEG brain-age MAE benchmark
-- Kollia E et al. (2022). *Clin. Neurophysiol.* — Sex classification EEG resting-state
-- Voytek B et al. (2015). *J. Neurosci.* — 1/f aperiodic EEG slope and E/I ratio
+## 6. Conclusion
+
+Questa tesi ha sviluppato e validato una pipeline EEG resting-state riproducibile per la
+classificazione del sesso biologico e la predizione dell'età cerebrale (*brain-age*) su
+adulti sani, basata esclusivamente su feature di connettività funzionale (FC) EEG sorgente
+e metriche di graph-theory.
+
+**Risultati principali su ds005385 (N=179)**:
+La classificazione del sesso raggiunge BA=0.795 (CI95=[0.744, 0.843], p_fdr=0.0013),
+superiore alla soglia di riferimento della letteratura (Kollia et al. 2022: BA≈0.70-0.75).
+La feature vincente — PLV theta nella banda 4-8 Hz, atlas aparc 68 ROI — individua una
+**firma di connettività theta occipito-parietale** sistematicamente differente tra sessi.
+Il segnale è catturabile anche da soli 8 scalari graph-theory (BA=0.656, p_fdr=0.0013),
+suggerendo che la firma di sesso nei network EEG resting-state sia **topologicamente globale**,
+distribuita sull'intera architettura del network, non localizzata in specifiche connessioni.
+
+La predizione dell'età raggiunge MAE=12.26 anni (CI95=[11.31, 13.32], p_fdr=0.0013), con
+brain-age gap quasi-nullo (0.27 anni), coerente con le attese per feature FC-only su
+singolo sito (Franck et al. 2019). Il segnale età è catturato dalla rappresentazione FC
+densa ma non dalla riduzione a 8 scalari, indicando che la struttura dell'invecchiamento
+è **più eterogenea e localizzata** di quella del sesso.
+
+**Negative finding come contributo scientifico (FASE 2)**:
+Il trasferimento zero-shot su ds004504 (Alzheimer/FTD) produce collasso a BA=0.500 e
+MAE=22.25 anni. Questo **non costituisce un fallimento architetturale** ma una
+quantificazione rigorosa della *cohort-specificity* delle feature EEG-FC: in assenza di
+armonizzazione cross-sito e in presenza di patologia neurodegenerativa, le firme
+demografiche intra-cohort non si trasferiscono. La quantificazione precisa del domain gap
+(ΔMAE=+9.73, ΔBA=-0.241) costituisce una baseline metodologicamente utile per lavori futuri
+di harmonization (Engemann et al. 2022).
+
+**Contributo metodologico**:
+La pipeline è completamente riproducibile (container Docker, seed deterministico, BIDS
+compliant, permutation test subject-level n=1000). Tutti i fix statistici (BCa bootstrap,
+nested CV, HARKing disclosure, Hedges g) sono documentati e testati. Il codice è open-source.
+
+**Impatto clinico potenziale**:
+Un classificatore del sesso con BA=0.795 da soli 5 minuti di EEG resting-state, senza MRI,
+potrebbe essere utile in screening clinico o come controllo di qualità del segnale EEG
+(sex-mismatch flag). La predizione del brain-age (MAE≈12 anni) è al confine dell'utilità
+clinica per studi di invecchiamento a singolo sito; la riduzione a MAE≈8-10 richiederebbe
+armonizzazione multi-sito o feature aggiuntive (aperiodic slope, Voytek et al. 2015).
+
+**Prospettive future**:
+Il contributo principale di questa tesi è aver stabilito che la *cohort-specificity* delle
+feature EEG-FC è il limite principale alla generalizzabilità — e averlo quantificato
+rigorosamente. Il passo naturale successivo è l'armonizzazione (Combat-EEG) su ≥3 dataset
+con popolazioni sovrapponibili, per testare se la firma demografica EEG persiste cross-sito.
 
 ---
 
-*Versione 3.0 — aggiornare §3 con risultati FASE 3 N=179 (ETA: post pipeline ~12h)*
+## Riferimenti chiave
+
+- Babiloni C. et al. (2016). *Clin. Neurophysiol.* — EEG connectivity in Alzheimer
+- Cole JH, Franke K (2017). *Cereb. Cortex* — Brain-age overview
+- Engemann DA et al. (2022). *NeuroImage* — Multi-site EEG brain-age, Combat harmonization
+- Franck E et al. (2019). *J. Neurosci. Methods* — EEG brain-age MAE benchmark
+- Hillebrand A, Barnes GR (2002). *J. Clin. Neurophysiol.* — EEG source localization accuracy
+- Kollia E et al. (2022). *Clin. Neurophysiol.* — Sex classification EEG resting-state
+- Voytek B et al. (2015). *J. Neurosci.* — 1/f aperiodic EEG slope and E/I balance
+
+---
+
+*Versione 3.1 — §3 completato con risultati FASE 3 N=179 + Conclusion. 2026-06-11*
