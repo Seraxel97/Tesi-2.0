@@ -323,7 +323,7 @@ if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (pos
                             "BA (mean)": f"{r.get('ba_mean', 0):.3f}",
                             "BA (std)": f"{r.get('ba_std', 0):.3f}",
                             "AUC": f"{r.get('auc_mean', float('nan')):.3f}",
-                            "p-value": format_pvalue(r.get("p_value", 1.0)),
+                            "p-value": format_pvalue(r.get("p_value", 1.0), r.get("n_perm", 1000)),
                             "n_perm": r.get("n_perm", "?"),
                         }
                     )
@@ -334,7 +334,7 @@ if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (pos
                             "MAE": f"{r.get('mae', 0):.2f}",
                             "R²": f"{r.get('r2', 0):.3f}",
                             "Brain-age gap": f"{r.get('brain_age_gap', 0):.2f}",
-                            "p-value": format_pvalue(r.get("p_value", 1.0)),
+                            "p-value": format_pvalue(r.get("p_value", 1.0), r.get("n_perm", 1000)),
                         }
                     )
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)

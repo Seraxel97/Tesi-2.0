@@ -121,14 +121,14 @@ with precomp_col:
                         "Modello": cname,
                         "MAE": f"{cv.get('mae', cv.get('mae_mean', '?')):.2f}" if isinstance(cv.get('mae', cv.get('mae_mean')), float) else "?",
                         "R²": f"{cv.get('r2', '?'):.3f}" if isinstance(cv.get('r2'), float) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0)),
+                        "p-val": format_pvalue(cv.get("p_value", 1.0), cv.get("n_perm", 1000)),
                     })
                 else:
                     rows.append({
                         "Modello": cname,
                         "BA": f"{cv.get('ba_mean', 0):.3f}",
                         "AUC": f"{cv.get('auc_mean', float('nan')):.3f}" if not (cv.get('auc_mean') != cv.get('auc_mean')) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0)),
+                        "p-val": format_pvalue(cv.get("p_value", 1.0), cv.get("n_perm", 1000)),
                     })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         else:
