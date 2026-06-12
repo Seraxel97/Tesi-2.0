@@ -28,6 +28,7 @@ _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from analysis.stats_utility import format_pvalue  # noqa: E402
+from dashboard.components.data_loader import load_ml_n179  # noqa: E402
 from dashboard.utils.data_loader import (  # noqa: E402
     list_available_combos,
     list_available_datasets,
@@ -139,7 +140,7 @@ combo_exists = False
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.title("🧠 ML Dashboard")
-    st.caption("ds005385 · N=50 · Positive-control: EO vs EC (validazione pipeline) · LOSO")
+    st.caption("Viewer interattivo positive-control (N=50, EO vs EC). Risultati finali N=179 in alto ☝️")
     st.markdown("---")
 
     # ── Dataset selector ─────────────────────────────────────────────────────
@@ -346,11 +347,38 @@ if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (pos
 # ---------------------------------------------------------------------------
 result = st.session_state.current_result
 
-st.title("EEG Source-Level FC — ML Classification Dashboard")
+st.title("EEG Source-Level FC — Classificazione Sesso & Predizione Età")
 st.caption(
-    "ds005385 · Dortmund Vital EEG · N=50 soggetti · "
-    "**Positive-control: EO vs EC (validazione pipeline)** · LOSO GroupKFold"
+    "ds005385 · Dortmund Vital EEG · N=179 soggetti (FASE 3) · "
+    "GroupKFold subject-level · permutation n=1000 · FDR-BH"
 )
+
+# Sommario risultati finali N=179 (landing scientifico — numeri dal JSON ufficiale)
+_n179 = load_ml_n179()
+if _n179:
+    _sb = _n179.get("sex_baseline", {})
+    _ab = _n179.get("age_baseline", {})
+    _pf = _n179.get("fdr", {}).get("p_fdr", {})
+    _sci_ci = _sb.get("ba_ci95") or [float("nan"), float("nan")]
+    _age_ci = _ab.get("mae_ci95") or [float("nan"), float("nan")]
+    _m1, _m2 = st.columns(2)
+    _m1.metric(
+        "Sesso — Balanced Accuracy",
+        f"{_sb.get('ba_mean', 0):.3f}",
+        help=f"CI95 [{_sci_ci[0]:.3f}, {_sci_ci[1]:.3f}] · p_fdr={_pf.get('sex_baseline', float('nan')):.4f} — significativo",
+    )
+    _m2.metric(
+        "Età — MAE (anni)",
+        f"{_ab.get('mae', 0):.2f}",
+        help=f"CI95 [{_age_ci[0]:.2f}, {_age_ci[1]:.2f}] · R²={_ab.get('r2', 0):.3f} · p_fdr={_pf.get('age_baseline', float('nan')):.4f} — modesto ma significativo",
+    )
+    st.info(
+        "**Lettura onesta**: la connettività EEG source-level predice il **sesso** in modo robusto, "
+        "mentre l'**età** solo modestamente (R² basso; graph-theory 8-dim cattura la firma sesso ma "
+        "non predice l'età, p_fdr n.s.). EO/EC è positive-control (effetto Berger, noto dal 1929), "
+        "non un biomarker. Dettaglio per-tab nella sidebar (1-6)."
+    )
+    st.markdown("---")
 
 if result is None:
     st.info(

@@ -25,8 +25,7 @@ from analysis.stats_utility import format_pvalue  # noqa: E402
 from dashboard.components.data_loader import (  # noqa: E402
     list_available_combos,
     load_feature_matrix,
-    load_ml_age_results,
-    load_ml_sex_results,
+    load_ml_n179,
 )
 from dashboard.components.ml_runner import run_classification, run_regression  # noqa: E402
 
@@ -46,9 +45,9 @@ with st.sidebar:
     st.header("Selettori ML")
     target = st.selectbox(
         "Target",
-        ["EO vs EC (positive-control)", "Sesso (M/F)", "Età (regressione)"],
+        ["Sesso (M/F)", "Età (regressione)", "EO vs EC (positive-control)"],
         index=0,
-        help="EO/EC = effetto Berger (positive-control pipeline). Sesso/Età = target scientifici.",
+        help="Sesso/Età = target scientifici (risultati finali N=179). EO/EC = effetto Berger (positive-control pipeline).",
     )
     st.divider()
 
@@ -79,7 +78,7 @@ with st.sidebar:
     run_btn = st.button("▶ Esegui ML", type="primary", use_container_width=True)
 
 # ---------------------------------------------------------------------------
-# Carica risultati precomputed (N=100)
+# Carica risultati finali N=179 (FASE 3)
 # ---------------------------------------------------------------------------
 st.markdown("---")
 
@@ -94,52 +93,81 @@ if _is_eceo:
         "I target scientifici sono **sesso** e **età**."
     )
 
-# Mostra risultati pre-computed
+# Mostra risultati FINALI N=179 (FASE 3) — coerenti col manoscritto
 precomp_col, run_col = st.columns([1, 2])
 
+
+def _ci(d: dict, key: str) -> str:
+    """Formatta CI95 [lo, hi] in modo robusto."""
+    ci = d.get(key) or [float("nan"), float("nan")]
+    return f"[{ci[0]:.3f}, {ci[1]:.3f}]"
+
+
 with precomp_col:
-    st.subheader("Risultati N=100 (pre-computed)")
-    if _is_sex:
-        res_pre = load_ml_sex_results(n100=True)
-    elif _is_age:
-        res_pre = load_ml_age_results(n100=True)
-    else:
-        res_pre = {}
+    import pandas as pd
 
-    if res_pre:
-        n_sub_pre = res_pre.get("n_subjects", "?")
-        st.caption(f"N={n_sub_pre} soggetti · feat: {res_pre.get('feat_name', '?')}")
-        clf_key = "classifiers" if not _is_age else "regressors"
-        clfs = res_pre.get(clf_key, res_pre.get("classifiers", {}))
-        if clfs:
-            import pandas as pd
-
-            rows = []
-            for cname, cv in clfs.items():
-                if _is_age:
-                    rows.append({
-                        "Modello": cname,
-                        "MAE": f"{cv.get('mae', cv.get('mae_mean', '?')):.2f}" if isinstance(cv.get('mae', cv.get('mae_mean')), float) else "?",
-                        "R²": f"{cv.get('r2', '?'):.3f}" if isinstance(cv.get('r2'), float) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0), cv.get("n_perm", 1000)),
-                    })
-                else:
-                    rows.append({
-                        "Modello": cname,
-                        "BA": f"{cv.get('ba_mean', 0):.3f}",
-                        "AUC": f"{cv.get('auc_mean', float('nan')):.3f}" if not (cv.get('auc_mean') != cv.get('auc_mean')) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0), cv.get("n_perm", 1000)),
-                    })
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    n179 = load_ml_n179()
+    if (_is_sex or _is_age) and n179:
+        st.subheader("Risultati N=179 (finali — FASE 3)")
+        st.caption(
+            f"N={n179.get('n_subjects', 179)} soggetti · feat: {n179.get('feat_name', '?')} · "
+            "GroupKFold subject-level · permutation n=1000 · FDR-BH"
+        )
+        p_fdr = n179.get("fdr", {}).get("p_fdr", {})
+        if _is_sex:
+            base, gt = n179.get("sex_baseline", {}), n179.get("sex_gt", {})
+            rows = [
+                {
+                    "Modello": "Baseline 2278-dim (logreg)",
+                    "BA": f"{base.get('ba_mean', 0):.3f}",
+                    "CI 95%": _ci(base, "ba_ci95"),
+                    "p_fdr": format_pvalue(p_fdr.get("sex_baseline", 1.0), 1000),
+                },
+                {
+                    "Modello": "Graph-theory 8-dim",
+                    "BA": f"{gt.get('ba_mean', 0):.3f}",
+                    "CI 95%": _ci(gt, "ba_ci95"),
+                    "p_fdr": format_pvalue(p_fdr.get("sex_gt", 1.0), 1000),
+                },
+            ]
         else:
-            st.info("Risultati non disponibili — esegui ML interattivo")
+            base, gt = n179.get("age_baseline", {}), n179.get("age_gt", {})
+            rows = [
+                {
+                    "Modello": "Baseline 2278-dim (RF)",
+                    "MAE": f"{base.get('mae', 0):.2f}",
+                    "R²": f"{base.get('r2', 0):.3f}",
+                    "p_fdr": format_pvalue(p_fdr.get("age_baseline", 1.0), 1000),
+                },
+                {
+                    "Modello": "Graph-theory 8-dim",
+                    "MAE": f"{gt.get('mae', 0):.2f}",
+                    "R²": f"{gt.get('r2', 0):.3f}",
+                    "p_fdr": format_pvalue(p_fdr.get("age_gt", 1.0), 1000),
+                },
+            ]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        # Progressione trasparente N=100 → N=179 (replica + estensione)
+        cmp = n179.get("comparison_n100", {})
+        if cmp and _is_sex:
+            st.caption(
+                f"Replica N=100→N=179: BA {cmp.get('sex_ba_n100', '?')} → "
+                f"{base.get('ba_mean', 0):.3f} (Δ +{base.get('ba_mean', 0) - cmp.get('sex_ba_n100', 0):.3f})"
+            )
+        elif cmp and _is_age:
+            st.caption(
+                f"Replica N=100→N=179: MAE {cmp.get('age_mae_n100', '?')} → "
+                f"{base.get('mae', 0):.2f} anni · R² {cmp.get('age_r2_n100', '?')} → {base.get('r2', 0):.3f}"
+            )
     elif _is_eceo:
+        st.subheader("Positive-control N=50")
         st.markdown(
             "**N=50 winner** (aparc×plv×θ×logreg):\n\n"
-            "BA=**0.920** · CI=[0.870, 0.970] · p_perm<0.001"
+            "BA=**0.920** · CI=[0.870, 0.970] · p_perm<0.001\n\n"
+            "_Effetto Berger (noto dal 1929): valida la pipeline end-to-end, non è un biomarker._"
         )
     else:
-        st.info("Nessun risultato pre-computed")
+        st.info("Risultati N=179 non disponibili")
 
 # ---------------------------------------------------------------------------
 # Run interattivo
@@ -292,7 +320,7 @@ with run_col:
     else:
         st.info(
             "👈 Seleziona combo e premi **Esegui ML** per il run interattivo.\n\n"
-            "I risultati pre-computed N=100 sono disponibili nella colonna sinistra."
+            "I risultati finali N=179 sono mostrati nella colonna sinistra."
         )
 
 # ---------------------------------------------------------------------------
