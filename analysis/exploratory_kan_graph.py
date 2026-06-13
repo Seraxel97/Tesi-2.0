@@ -183,7 +183,10 @@ def load_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
     subjects = meta["subjects"]
 
     try:
-        _, y_sex = load_phenotype(subjects)
+        _, y_sex_per_sub = load_phenotype(subjects)
+        # broadcast label per-soggetto (n=179) → per-osservazione (n=358) via groups
+        # (stesso pattern di run_ml_age_sex_n179.py: y_sex = y_sex_per_sub[groups])
+        y_sex = np.asarray(y_sex_per_sub)[groups]
         real_labels = True
     except Exception as exc:
         warnings.warn(
