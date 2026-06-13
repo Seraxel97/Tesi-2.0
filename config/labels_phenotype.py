@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DS005385_TSV = Path("/home/seraxel/Scrivania/Tesi/data/ds005385/participants.tsv")
+# Path relativo alla root del repo (era hardcoded a /home/seraxel/Scrivania/Tesi/
+# — repo inesistente, mancava _2.0 — rompeva la riproducibilità di FASE 2).
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+DS005385_TSV = _REPO_ROOT / "data" / "raw" / "ds005385" / "participants.tsv"
 
 SEX_MAP = {"F": 0, "M": 1}
 
