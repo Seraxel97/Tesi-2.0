@@ -15,7 +15,7 @@ def data():
 
 def test_data_shape(data):
     X, y_age, groups = data
-    assert X.shape[0] == len(y_age) == len(groups) == 200  # 100 soggetti × 2 cond
+    assert X.shape[0] == len(y_age) == len(groups) == 358  # 179 soggetti × 2 condizioni (N=179)
 
 
 def test_y_age_range(data):
