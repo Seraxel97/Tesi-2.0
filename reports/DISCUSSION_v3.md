@@ -14,6 +14,13 @@ Questa sezione discute i risultati del progetto Tesi_2.0 seguendo il **framing D
 non è un fallimento architetturale ma un **contributo scientifico quantificato** che delimita
 i confini di generalizzabilità delle feature EEG-FC nel contesto brain-age/sex.
 
+**Risultati principali (N=179, in-dataset ds005385)**: dalla connettività funzionale EEG
+source-level (PLV banda theta, atlante aparc) la classificazione del **sesso** raggiunge
+**BA=0.795** (CI95 [0.744, 0.843], p_fdr=0.0013) e la predizione dell'**età** un
+**MAE=12.26 anni** (R²=0.082, p_fdr=0.0013). Il trasferimento verso una coorte clinica
+eterogenea (ds004504) crolla a livello di chance (sesso BA=0.500), quantificando il
+limite di generalizzabilità cross-cohort.
+
 ---
 
 ## 1. Risultati in-dataset (FASE 1) — ds005385 N=100
@@ -62,6 +69,13 @@ Per N=100 (proxy): y_age_mean=43.6 ± 15.0 anni (range atteso 20-70 dalla docume
 OpenNeuro ds005385). Sex ratio N=179: non recuperabile post-hoc senza `participants.tsv`
 (il file `y.npy` cached contiene le label condizione EO/EC, non sesso). Il ratio è
 disponibile nel BIDS sidecar per il revisore.
+
+**Nota di riproducibilità (FASE 2 cross-dataset)**: lo script `analysis/cross_dataset_eval.py`
+usa path relativi alla root del repo. Le feature FC sono già incluse (`data/features/ds005385/`,
+`data/features/ds004504/`); per rigenerare le label fenotipiche è sufficiente posizionare i
+`participants.tsv` di ds005385 e ds004504 (scaricabili da OpenNeuro, non versionati per policy
+BIDS) in `data/raw/<dataset>/`. I numeri di transfer riportati (sesso BA=0.500, età MAE=22.25)
+provengono da un run documentato in `reports/CROSS_DATASET_TRANSFER.md`.
 
 ### 2.2 Risultati
 
@@ -117,7 +131,8 @@ nessun campionamento stocastico), aggiungendo 79 soggetti rispetto a FASE 1 (N=1
 crescere del campione in-dataset, (ii) produrre stime statistiche più potenti
 (n_perm=1000 subject-level, n_boot=1000 cluster-subject).
 
-**Ipotesi a priori** (pre-registrazione `docs/OSF_PREREG_FASE3.md`):
+**Ipotesi a priori** (pre-registrazione `docs/OSF_PREREG_FASE3.md` — scritta prima del run
+N=179; pre-registrazione interna, submit pubblico su OSF da completare a cura dell'autore):
 - Sesso: BA_N179 ≈ 0.71 ± 0.03 (equivalenza con N=100, possibile miglioramento)
 - Età: MAE_N179 ≈ 11-13 anni (riduzione modesta attesa con N maggiore)
 
