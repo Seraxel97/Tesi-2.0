@@ -1,0 +1,42 @@
+{
+  "ba_kan_mean": 0.44994047619047617,
+  "ba_kan_std": 0.06751752942788526,
+  "ba_lr_mean": 0.48327380952380955,
+  "ba_lr_std": 0.054121645340206206,
+  "n_params_kan": 180,
+  "n_params_lr": 9,
+  "feature_importance": {
+    "mean_degree": 1.5960278511047363,
+    "mean_strength": 1.6918461322784424,
+    "clustering_coeff": 1.585752248764038,
+    "path_length": 1.8224681615829468,
+    "global_efficiency": 1.7692737579345703,
+    "local_efficiency": 1.4457248449325562,
+    "modularity_q": 1.8763675689697266,
+    "small_worldness": 1.6170467138290405
+  },
+  "top_features_ranked": [
+    "modularity_q",
+    "path_length",
+    "global_efficiency",
+    "mean_strength",
+    "small_worldness",
+    "mean_degree",
+    "clustering_coeff",
+    "local_efficiency"
+  ],
+  "ba_kan_folds": [
+    0.32380952380952377,
+    0.50625,
+    0.4476190476190476,
+    0.5095238095238095,
+    0.4625
+  ],
+  "ba_lr_folds": [
+    0.40714285714285714,
+    0.46875,
+    0.5761904761904761,
+    0.48095238095238096,
+    0.48333333333333334
+  ]
+}
