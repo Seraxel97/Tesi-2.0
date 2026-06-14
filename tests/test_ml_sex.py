@@ -34,6 +34,7 @@ def test_groups_aligned(data):
         ), f"Soggetto {g} ha sessi diversi!"
 
 
+@pytest.mark.slow
 def test_shuffle_leakage():
     """Shuffle y_sex → BA deve essere vicino a 0.5 (no leakage)."""
     X, y_sex, groups = load_data()

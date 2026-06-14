@@ -48,6 +48,7 @@ def test_dummy_r2_leq_zero():
     assert res["r2"] <= 0.1, f"Dummy R²={res['r2']:.3f} insolitamente alto"
 
 
+@pytest.mark.slow
 def test_shuffle_leakage():
     """Shuffle y_age → R² deve essere basso (no data leakage)."""
     X, y_age, groups = load_data()
