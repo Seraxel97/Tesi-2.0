@@ -16,7 +16,7 @@ def data():
 def test_data_shape(data):
     X, y_sex, groups = data
     assert X.shape[0] == len(y_sex) == len(groups)
-    assert X.shape[0] == 200  # 100 soggetti × 2 condizioni
+    assert X.shape[0] == 358  # 179 soggetti × 2 condizioni (N=179)
 
 
 def test_y_sex_binary(data):
@@ -34,6 +34,7 @@ def test_groups_aligned(data):
         ), f"Soggetto {g} ha sessi diversi!"
 
 
+@pytest.mark.slow
 def test_shuffle_leakage():
     """Shuffle y_sex → BA deve essere vicino a 0.5 (no leakage)."""
     X, y_sex, groups = load_data()

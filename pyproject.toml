@@ -19,3 +19,6 @@ ignore = ["E501"]
 testpaths = ["tests"]
 addopts = "-v --strict-markers"
 pythonpath = ["."]
+markers = [
+    "slow: test lenti (>60s, ML multi-classificatore/permutazioni); esclusi dai run veloci con -m 'not slow'",
+]
