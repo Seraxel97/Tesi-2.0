@@ -115,14 +115,18 @@ localmente con ses-1 completa), aggiungendo 79 soggetti rispetto a FASE 1 (N=100
 
 ### 3.2 Risultati
 
-*[DA COMPLETARE — inserire valori reali da `reports/AGE_SEX_FASE3_N179.md`]*
+Valori reali da `reports/AGE_SEX_FASE3_N179.md` (FASE 3, N=179). **Headline finale: sesso BA=0.795.**
 
 | Target | Metrica | N=100 FASE 1 | N=179 FASE 3 | Δ |
 |--------|---------|-------------|-------------|---|
-| Sesso | BA | 0.713 | TBD | TBD |
-| Sesso | p_fdr | 0.026 | TBD | — |
-| Età | MAE | 12.52 | TBD | TBD |
-| Età | R² | 0.097 | TBD | TBD |
+| Sesso | BA | 0.713 | **0.795** | +0.082 |
+| Sesso | p_fdr | 0.026 | 0.0013 | — |
+| Età | MAE (anni) | 12.52 | 12.26 | −0.26 |
+| Età | R² | 0.097 | 0.082 | −0.015 |
+
+> **Nota headline (F1):** il risultato da citare è **BA=0.795 a N=179** (campione finale), non
+> 0.713 (intermedio N=100). L'effetto-età resta **debole** (R²<0.10, CI95 include 0): segnale
+> presente ma non clinicamente utile — vedi caveat in `AGE_SEX_FASE3_N179.md`.
 
 ### 3.3 Interpretazione
 
