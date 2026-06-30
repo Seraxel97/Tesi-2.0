@@ -16,7 +16,11 @@ def data():
 def test_data_shape(data):
     X, y_sex, groups = data
     assert X.shape[0] == len(y_sex) == len(groups)
-    assert X.shape[0] == 200  # 100 soggetti × 2 condizioni
+    # Invariante robusto (non un magic-number): ogni soggetto ha 2 condizioni (EO/EC).
+    # Vale per qualsiasi N (era hardcoded 200=100×2 → si rompeva a N=179/358).
+    n_subjects = len(np.unique(groups))
+    assert X.shape[0] == 2 * n_subjects
+    assert X.shape[0] % 2 == 0
 
 
 def test_y_sex_binary(data):
