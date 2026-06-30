@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore")
 
 BIDS_ROOT = Path("data/raw/ds005385")
 DERIV = Path("data/derivatives/mne-bids-pipeline")
-SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 FSAVERAGE = "fsaverage"
 
 PILOT_SUBJECTS = ["sub-007", "sub-010", "sub-011", "sub-026", "sub-031"]

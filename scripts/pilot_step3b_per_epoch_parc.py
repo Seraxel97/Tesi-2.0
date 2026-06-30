@@ -26,7 +26,7 @@ from parcellation.extract_label_tc import get_labels  # noqa: E402
 DERIV = Path("data/derivatives/mne-bids-pipeline")
 OUT_DIR = Path("data/label_ts/ds005385")
 REPORT_PATH = Path("reports/STEP3b_DS005385_PER_EPOCH.md")
-SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 
 SUBJECTS = ["sub-007", "sub-010", "sub-011", "sub-026", "sub-031"]
 ATLASES = ["aparc", "schaefer100"]

@@ -58,7 +58,7 @@ CONN_DIR = Path("data/connectivity/ds005385")
 FEAT_DIR = Path("data/features/ds005385")
 RESULTS_DIR = Path("data/results/ds005385")
 HEARTBEAT_PATH = Path(".planning/heartbeats_tesi/sonnet-tesi-1.json")
-SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 
 SESSION = "ses-1"
 ACQ = "acq-pre"
@@ -111,7 +111,7 @@ def write_hb(step: str, progress: str, disk_gb: float, extra: dict | None = None
 
 
 def disk_free() -> float:
-    return shutil.disk_usage("/home/seraxel/Scrivania/").free / 1e9
+    return shutil.disk_usage(str(Path(__file__).resolve().parents[1])).free / 1e9
 
 
 # ── STEP 2 — Forward + inverse ────────────────────────────────────────────────

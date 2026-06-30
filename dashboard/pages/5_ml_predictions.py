@@ -166,8 +166,8 @@ with run_col:
                 try:
                     from config.labels_phenotype import load_phenotype  # noqa: E402,PLC0415
 
-                    tsv = Path("/home/seraxel/Scrivania/Tesi_2.0/data/raw/ds005385/participants.tsv")
-                    y_age_all, y_sex_all = load_phenotype(subjects_list, tsv_path=tsv)
+                    # TSV risolto repo-relativo dentro labels_phenotype (F0): default corretto.
+                    y_age_all, y_sex_all = load_phenotype(subjects_list)
                     # Ogni soggetto ha 2 campioni (EO + EC) → ripeti
                     y_age = np.repeat(y_age_all, 2)
                     y_sex = np.repeat(y_sex_all, 2)

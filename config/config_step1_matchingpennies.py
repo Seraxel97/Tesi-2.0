@@ -8,9 +8,12 @@ Adattata da: mne_bids_pipeline/tests/configs/config_eeg_matchingpennies.py
 NON modificare per source/connectivity/ML: questi step appartengono a STEP 2+.
 """
 
-# ── Percorsi ──────────────────────────────────────────────────────────────
-bids_root = "/home/seraxel/Scrivania/Tesi_2.0/data/eeg_matchingpennies"
-deriv_root = "/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline"
+# ── Percorsi (repo-relativi, riproducibilità F0) ────────────────────────────
+from pathlib import Path as _Path  # noqa: E402
+
+_REPO = _Path(__file__).resolve().parents[1]
+bids_root = str(_REPO / "data" / "eeg_matchingpennies")
+deriv_root = str(_REPO / "data" / "derivatives" / "mne-bids-pipeline")
 
 # ── Soggetti / task ───────────────────────────────────────────────────────
 subjects = ["05"]

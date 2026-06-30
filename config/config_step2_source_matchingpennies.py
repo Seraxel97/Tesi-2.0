@@ -6,10 +6,16 @@ per BEM + forward + inverse. Niente parcellazione, niente connettività.
 Smoke test della source reconstruction end-to-end.
 """
 
-# ── Percorsi ──────────────────────────────────────────────────────────────
-bids_root = "/home/seraxel/Scrivania/Tesi_2.0/data/eeg_matchingpennies"
-deriv_root = "/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline"
-subjects_dir = "/home/seraxel/mne_data/MNE-fsaverage-data"
+# ── Percorsi (repo-relativi + env-override fsaverage, riproducibilità F0) ────
+import os as _os  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+_REPO = _Path(__file__).resolve().parents[1]
+bids_root = str(_REPO / "data" / "eeg_matchingpennies")
+deriv_root = str(_REPO / "data" / "derivatives" / "mne-bids-pipeline")
+subjects_dir = _os.environ.get(
+    "TESI_SUBJECTS_DIR", str(_Path.home() / "mne_data" / "MNE-fsaverage-data")
+)
 
 # ── Soggetti / task ───────────────────────────────────────────────────────
 subjects = ["05"]

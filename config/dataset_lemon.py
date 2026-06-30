@@ -21,7 +21,7 @@ from pathlib import Path
 
 # ── Path operatore (da configurare) ──────────────────────────────────────────
 # BLOCCO OPERATORE: impostare il path reale dopo download LEMON BIDS.
-LEMON_RAW_PATH: Path | None = None  # es. Path("/home/seraxel/Scrivania/LEMON_BIDS")
+LEMON_RAW_PATH: Path | None = None  # es. Path("~/data/LEMON_BIDS").expanduser()
 
 # ── Configurazione pipeline ───────────────────────────────────────────────────
 DATASET_ID = "lemon"

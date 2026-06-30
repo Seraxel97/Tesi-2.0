@@ -178,7 +178,7 @@ def write_report(results: list[dict], total_elapsed: float, disk_pre_gb: float, 
 
 def main() -> None:
     import shutil
-    disk_pre = shutil.disk_usage("/home/seraxel/Scrivania/").free / 1e9
+    disk_pre = shutil.disk_usage(str(Path(__file__).resolve().parents[1])).free / 1e9
     print(f"STEP 2b per-epoch STC pilot | disk free: {disk_pre:.1f} GB")
     print(f"Subjects: {SUBJECTS} | Method: {METHOD} | Epochs: {EPOCH_DURATION}s overlap={EPOCH_OVERLAP}s")
 
@@ -187,14 +187,14 @@ def main() -> None:
     for sub in SUBJECTS:
         res = process_subject(sub)
         all_results.append(res)
-        disk_now = shutil.disk_usage("/home/seraxel/Scrivania/").free / 1e9
+        disk_now = shutil.disk_usage(str(Path(__file__).resolve().parents[1])).free / 1e9
         print(f"  Disk free after {sub}: {disk_now:.1f} GB")
         if disk_now < 5.0:
             print("WARNING: disk < 5 GB, stopping early")
             break
 
     total = time.perf_counter() - t_total
-    disk_post = shutil.disk_usage("/home/seraxel/Scrivania/").free / 1e9
+    disk_post = shutil.disk_usage(str(Path(__file__).resolve().parents[1])).free / 1e9
     print(f"\nTotal: {total:.1f}s | Disk: {disk_pre:.1f} → {disk_post:.1f} GB free")
 
     write_report(all_results, total, disk_pre, disk_post)

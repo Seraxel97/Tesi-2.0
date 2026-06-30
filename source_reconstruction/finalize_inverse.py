@@ -17,12 +17,19 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 import mne
 
-DERIV = Path("/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline")
+# Repo-relativo + env-override (riproducibilità F0). Prima era assoluto hardcoded.
+_DERIV_ENV = os.environ.get("TESI_DERIV", "").strip()
+DERIV = (
+    Path(_DERIV_ENV).expanduser()
+    if _DERIV_ENV
+    else Path(__file__).resolve().parents[1] / "data" / "derivatives" / "mne-bids-pipeline"
+)
 
 
 def finalize(subject: str, task: str, *, method: str = "dSPM", lambda2: float = 1.0 / 9.0) -> None:

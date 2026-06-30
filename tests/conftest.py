@@ -4,6 +4,7 @@ Puntano ai dati reali sub-05 matchingpennies (read-only).
 I test che richiedono file reali vengono skippati se il file non esiste.
 """
 
+import os
 from pathlib import Path
 
 import pytest
@@ -11,10 +12,15 @@ import pytest
 pytest_plugins = ["tests.fixtures.synthetic"]
 
 
-_BIDS_ROOT = Path("/home/seraxel/Scrivania/Tesi_2.0/data/eeg_matchingpennies")
-_DERIV = Path("/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline")
+# Path repo-relativi + env-override (riproducibilità F0): i test girano su qualsiasi macchina.
+_REPO = Path(__file__).resolve().parents[1]
+_BIDS_ROOT = Path(os.environ.get("TESI_BIDS_ROOT", "").strip()
+                  or _REPO / "data" / "eeg_matchingpennies")
+_DERIV = Path(os.environ.get("TESI_DERIV", "").strip()
+              or _REPO / "data" / "derivatives" / "mne-bids-pipeline")
 _SUB05 = _DERIV / "sub-05" / "eeg"
-_SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+_SUBJECTS_DIR = Path(os.environ.get("TESI_SUBJECTS_DIR", "").strip()
+                     or Path.home() / "mne_data" / "MNE-fsaverage-data")
 
 
 @pytest.fixture(scope="session")

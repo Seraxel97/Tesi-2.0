@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-DS005385_TSV = Path("/home/seraxel/Scrivania/Tesi/data/ds005385/participants.tsv")
+# Path repo-relativo (riproducibilità F0): default <repo>/data/raw/ds005385/participants.tsv,
+# override opzionale via env TESI_DS005385_TSV. (Prima era un assoluto hardcoded e ROTTO:
+# puntava a .../Tesi/data/ds005385/... — nome-repo vecchio e sottopath errato.)
+_TSV_ENV = os.environ.get("TESI_DS005385_TSV", "").strip()
+DS005385_TSV = (
+    Path(_TSV_ENV).expanduser()
+    if _TSV_ENV
+    else Path(__file__).resolve().parents[1] / "data" / "raw" / "ds005385" / "participants.tsv"
+)
 
 SEX_MAP = {"F": 0, "M": 1}
 
