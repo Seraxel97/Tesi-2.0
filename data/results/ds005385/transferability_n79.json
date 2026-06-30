@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-06-30T16:56:40+00:00",
+  "feature": "X_aparc_plv_theta",
+  "n_train": 100,
+  "n_test_holdout": 79,
+  "best_C": 0.01,
+  "ba_holdout_79": 0.7758736559139785,
+  "ci95_holdout": [
+    0.7000888836444705,
+    0.8388904325774286
+  ],
+  "p_perm_holdout": 0.000999000999000999,
+  "n_perm": 1000,
+  "n_boot": 1000,
+  "ba_cv_n179_reference": 0.795,
+  "optimism_gap": 0.0191
+}
