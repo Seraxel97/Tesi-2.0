@@ -1,0 +1,55 @@
+{
+  "band": "theta",
+  "atlas": "aparc",
+  "rationale": "PLV sensibile a volume-conduction; wPLI/imcoh robuste (ignorano lag-zero)",
+  "results": {
+    "plv": {
+      "feature": "X_aparc_plv_theta",
+      "ba_mean": 0.7951949917127935,
+      "ba_std": 0.04084373695019454,
+      "ba_ci95": [
+        0.7435913540482506,
+        0.8430202372830082
+      ],
+      "p_perm": 0.000999000999000999,
+      "null_ba_mean": 0.4989909762865058,
+      "n_perm": 1000,
+      "n_boot": 1000,
+      "elapsed_s": 2747
+    },
+    "wpli": {
+      "feature": "X_aparc_wpli_theta",
+      "ba_mean": 0.5703680638247202,
+      "ba_std": 0.0522635090772872,
+      "ba_ci95": [
+        0.5148390942413001,
+        0.6265034432987946
+      ],
+      "p_perm": 0.023976023976023976,
+      "null_ba_mean": 0.4996215831612169,
+      "n_perm": 1000,
+      "n_boot": 1000,
+      "elapsed_s": 2413
+    },
+    "imcoh": {
+      "feature": "X_aparc_imcoh_theta",
+      "ba_mean": 0.5740998271594246,
+      "ba_std": 0.07621685234218499,
+      "ba_ci95": [
+        0.5149588314163867,
+        0.6273248976720309
+      ],
+      "p_perm": 0.023976023976023976,
+      "null_ba_mean": 0.5005585473134019,
+      "n_perm": 1000,
+      "n_boot": 1000,
+      "elapsed_s": 2868
+    }
+  },
+  "robust_significant": true,
+  "plv_ba": 0.7951949917127935,
+  "robust_mean_ba": 0.5722339454920724,
+  "effect_retained_frac": 0.24469908880551594,
+  "verdict": "SEGNALE PARZIALMENTE REALE MA PLV GONFIATO DA VOLUME-CONDUCTION: con wPLI/imcoh il sesso resta decodificabile sopra il caso (BA\u22480.57, p<0.05) ma l'effetto sopra-il-caso crolla da 0.295 (PLV) a 0.072 (solo il 24% conservato) \u2192 il BA-headline PLV 0.795 \u00e8 sostanzialmente inflazionato dalla conduzione spuria a lag-zero. Limitazione da dichiarare in evidenza",
+  "timestamp": "2026-07-06T17:50:28+00:00"
+}
