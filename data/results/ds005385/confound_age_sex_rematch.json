@@ -1,0 +1,43 @@
+{
+  "feature": "X_aparc_plv_theta",
+  "method": "1:1 optimal age-matching (Hungarian su |age_M-age_F|), poi LogReg-L2 GroupKFold 5/3 + permutation subject-level + bootstrap-cluster",
+  "confound_before": {
+    "n_F": 112,
+    "n_M": 67,
+    "age_F_median": 42.5,
+    "age_M_median": 50.0,
+    "mannwhitney_U": 2832.0,
+    "p_value": 0.006110160499740677,
+    "age_differs_by_sex": true
+  },
+  "confound_after_matching": {
+    "n_F": 67,
+    "n_M": 67,
+    "age_F_median": 50.0,
+    "age_M_median": 50.0,
+    "mannwhitney_U": 2208.5,
+    "p_value": 0.8743998169362015,
+    "age_differs_by_sex": false
+  },
+  "matching": {
+    "n_pairs": 67,
+    "n_matched_subjects": 134,
+    "mean_age_diff_within_pair": 0.582089552238806,
+    "max_age_diff_within_pair": 8.0,
+    "caliper_years": 0.0
+  },
+  "sex_matched": {
+    "ba_mean": 0.7186159673659673,
+    "ba_std": 0.06389316780759302,
+    "ba_ci95": [
+      0.6573618438852814,
+      0.7840585937500001
+    ],
+    "p_perm": 0.000999000999000999,
+    "null_ba_mean": 0.5017907327740536,
+    "n_perm": 1000,
+    "n_boot": 1000,
+    "elapsed_s": 1626
+  },
+  "timestamp": "2026-07-06T15:31:31+00:00"
+}
