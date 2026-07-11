@@ -42,15 +42,24 @@ headline 0.795 è sostanzialmente inflazionato dal volume conduction**; l'effect
 è modesto (~0.57). Limitazione da dichiarare in **evidenza**, non in nota.
 (`scripts/sensitivity_conn_metric.py`)
 
-### 3. Generalizzazione cross-dataset — NON DIMOSTRATA (non smentita)
-Transfer ds005385 → **ds004504**: sesso BA = **0.500** (caso), età MAE = 22.25 anni (vs 12.52
-in-dataset). MA il test è **confuso**: ds004504 è una coorte **Alzheimer + controlli**
-(49–79 anni), popolazione clinica e range d'età diversi da ds005385 (adulti sani 20–70). Il
-fallimento del transfer può riflettere la differenza di popolazione, non (solo) la non-
-generalizzabilità del segnale-sesso. Una validazione esterna su coorte sana appaiata (LEMON
-EEG-BIDS) **non è stata completata**. → Conclusione onesta: **la generalizzazione resta
-non-dimostrata**, va detto esplicitamente; non affermare "generalizzazione confermata".
-(`analysis/cross_dataset_eval.py`, `reports/CROSS_DATASET_TRANSFER.md`)
+### 3. Generalizzazione cross-dataset — TESTATA su coorte SANA: NON generalizza
+Test PULITO e reale: LEMON EEG scaricato davvero (FTP GWDG, adulti **sani** resting-state,
+47 sogg/94 sample), processato con la **stessa pipeline** (feature aparc/theta 2278-dim
+compatibili). Transfer ds005385(N=179) → LEMON, no-leakage (scaler su train), inference-only:
+
+| Metrica | Volume-conduction | BA transfer → LEMON |
+|---|---|---|
+| PLV (winner) | sensibile | **0.583** |
+| wPLI | robusta | 0.508 |
+| imcoh | robusta | 0.506 |
+
+vs 0.795 in-dataset. Nessun label-flip (BA ≥ 0.5). → **Il sesso NON generalizza a una coorte
+sana indipendente**: PLV appena sopra il caso, metriche robuste al caso. **Risultato
+dataset-specifico.** (`scripts/cross_dataset_lemon.py`, `reports/CROSS_DATASET_LEMON_SEX_ALTO2.md`)
+
+> ⚠️ Il vecchio transfer su ds004504 (BA=0.500) era confuso (coorte Alzheimer/età-diversa); e
+> l'ADR-004 che vantava LEMON BA=0.833 è un FANTASMA (nessun dato/file a supporto, mai eseguito
+> — vedi vault `020_DECISIONS/ADR-004`, ora SUPERSEDED). Questo è il primo numero LEMON REALE.
 
 ## Claim difendibile (da mettere in Discussione/Conclusione)
 
@@ -59,8 +68,8 @@ non-dimostrata**, va detto esplicitamente; non affermare "generalizzazione confe
 > dell'età** (regge l'age-matching, BA=0.719) ed è **parzialmente reale** ma **modesto** una
 > volta rimosso il volume conduction (wPLI/imcoh BA≈0.57): il valore 0.795 del PLV è
 > sostanzialmente inflazionato da conduzione spuria. La **generalizzazione a un dataset
-> indipendente non è dimostrata** (transfer su coorte Alzheimer = caso, ma confuso da
-> popolazione/età; validazione su coorte sana appaiata non completata). L'**età** è un
+> indipendente NON regge**: su una coorte sana (LEMON), il transfer del sesso è ~0.58 col PLV e
+> al caso con le metriche robuste → il risultato è **specifico di ds005385**. L'**età** è un
 > risultato quasi-nullo (MAE vicino al Dummy).
 
 ## Il vero contributo (posizionamento onesto)
