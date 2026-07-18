@@ -15,7 +15,8 @@ def data():
 
 def test_data_shape(data):
     X, y_age, groups = data
-    assert X.shape[0] == len(y_age) == len(groups) == 200  # 100 soggetti × 2 cond
+    # invariante: 2 condizioni (EO/EC) per soggetto — robusto al variare di N
+    assert X.shape[0] == len(y_age) == len(groups) == 2 * len(np.unique(groups))
 
 
 def test_y_age_range(data):
