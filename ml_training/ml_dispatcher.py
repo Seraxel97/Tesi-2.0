@@ -120,9 +120,14 @@ def run_cv(
     CVResult con balanced_accuracy per fold + media/std.
     """
     if groups is not None:
+        # GroupKFold: tutte le epoch dello stesso soggetto finiscono nello
+        # stesso fold (train O test, mai in entrambi) — impedisce al modello
+        # di "imparare" un soggetto specifico invece del pattern generale.
         cv = GroupKFold(n_splits=n_splits)
         splits = cv.split(X, y, groups=groups)
     else:
+        # Nessuna informazione sui soggetti: fallback a split stratificato
+        # per etichetta (mantiene le proporzioni tra classi in ogni fold).
         cv_strat = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         splits = cv_strat.split(X, y)
 
@@ -141,10 +146,12 @@ def run_cv(
     best_c_per_fold: list[float] = []
 
     for train_idx, test_idx in splits:
+        # train_idx/test_idx sono indici di riga: X_te e y_te restano
+        # completamente invisibili al modello durante il fit (niente leakage).
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
 
-        pipe = _make_pipeline(algorithm)
+        pipe = _make_pipeline(algorithm)  # nuova pipeline ad ogni fold, mai riusata
         if algorithm == "logreg_nested":
             # Aggiorna il cv del GridSearchCV al tipo appropriato per questo run
             pipe.named_steps["clf"].cv = inner_cv
@@ -153,6 +160,9 @@ def run_cv(
             else:
                 pipe.fit(X_tr, y_tr)
         else:
+            # StandardScaler dentro la pipeline: la media/varianza per la
+            # normalizzazione si stima SOLO sul train fold, mai sul test
+            # (altrimenti l'informazione del test "trapelerebbe" nel train).
             pipe.fit(X_tr, y_tr)
         if algorithm == "logreg_nested":
             best_c = pipe.named_steps["clf"].best_params_.get("C", float("nan"))

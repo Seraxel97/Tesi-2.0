@@ -88,9 +88,15 @@ def compute_fc(
             n_jobs=n_jobs,
             verbose=False,
         )
-        # get_data("dense") → (n_labels, n_labels, 1); lower triangle only, diag=0
+        # mne-connectivity restituisce solo il triangolo inferiore della matrice
+        # (la connettività tra ROI-i e ROI-j è simmetrica, calcolarla due volte
+        # sarebbe ridondante). squeeze(-1) toglie la dimensione-frequenza fittizia
+        # (faverage=True l'ha già mediata a 1 valore per banda).
         mat = con.get_data(output="dense").squeeze(-1)
-        # Symmetrize: mat (lower) + mat.T (upper) - diag (doubled by transpose, diag=0)
+        # Ricostruisco la matrice piena specchiando il triangolo inferiore su
+        # quello superiore (mat.T). La diagonale è già 0 in mat, ma sommando
+        # mat + mat.T verrebbe raddoppiata (0+0=0 qui non serve, ma per
+        # sicurezza la sottraggo esplicitamente con np.diag(np.diag(mat))).
         mat = mat + mat.T - np.diag(np.diag(mat))
         out[band_name] = mat
     return out

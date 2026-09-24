@@ -57,14 +57,21 @@ def _permute_labels(
         return rng.permutation(y)
     groups = np.asarray(groups)
     uniq = np.unique(groups)
+    # Controlla se la label è la stessa per tutti i campioni di ogni soggetto
+    # (es. sesso: un soggetto ha sempre lo stesso sesso in tutte le sue epoch).
     constant_within = all(len(np.unique(y[groups == g])) == 1 for g in uniq)
     y_perm = np.empty_like(y)
     if constant_within:
+        # Disegno BETWEEN-subject: prendo un'etichetta per soggetto, la mescolo
+        # tra soggetti e la riassegno a tutte le epoch dello stesso soggetto
+        # (mantiene la struttura interna, rompe solo il legame soggetto-label).
         subj_labels = np.array([y[groups == g][0] for g in uniq])
         permuted = rng.permutation(subj_labels)
         for g, lab in zip(uniq, permuted):
             y_perm[groups == g] = lab
     else:
+        # Disegno WITHIN-subject (es. EO/EC): mescolo le etichette solo dentro
+        # ogni soggetto, mai tra soggetti diversi (permutazione appaiata).
         for g in uniq:
             mask = groups == g
             y_perm[mask] = rng.permutation(y[mask])
@@ -162,18 +169,21 @@ def fdr_correction(
     """
     p_values = np.asarray(p_values, dtype=float)
     n = len(p_values)
-    order = np.argsort(p_values)
-    rank = np.arange(1, n + 1)
+    order = np.argsort(p_values)  # indici che ordinano p_values dal più piccolo
+    rank = np.arange(1, n + 1)  # posizione (1-based) nell'ordine crescente
 
-    # BH threshold: p_i <= alpha * i/n (ordinate)
+    # Soglia BH: p_i <= alpha * i/n (i = rango nell'ordine crescente)
     threshold = alpha * rank / n
     p_sorted = p_values[order]
 
-    # Trova il massimo k per cui p_k <= threshold_k
+    # Step-up: si parte dal p-value più grande e si scende; il primo che supera
+    # la soglia "salva" anche tutti quelli più piccoli di lui (da qui il nome
+    # step-up). maximum.accumulate su array invertito implementa esattamente
+    # questa propagazione "dal fondo verso l'inizio".
     cummax = np.maximum.accumulate((p_sorted <= threshold)[::-1])[::-1]
 
     reject = np.zeros(n, dtype=bool)
-    reject[order] = cummax
+    reject[order] = cummax  # riporta il risultato all'ordine originale
 
     # P-value corretti: p_adj_i = min(p_i * n/rank_i, 1) nel senso BH
     p_corrected = np.zeros(n)

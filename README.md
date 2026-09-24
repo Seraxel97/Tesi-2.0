@@ -1,6 +1,6 @@
 # Tesi_2.0 — EEG Source-Space FC Pipeline
 
-![tests](https://img.shields.io/badge/tests-273%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-430%20passed-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-56%25-yellow)
 ![lint](https://img.shields.io/badge/lint-ruff-blue)
 ![docs](https://img.shields.io/badge/docs-pdoc-blue)
@@ -12,6 +12,9 @@ Estensione modulare di `mne-bids-pipeline` con parcellazione atlastica, connetti
 e classificazione ML. Progetto di tesi magistrale.
 
 Stato corrente: vedi [PROGRESS.md](PROGRESS.md).
+
+**Per il relatore**: guida rapida in italiano su come avviare la pipeline e dove
+trovare i risultati → [docs/GUIDA_PROFESSORE.md](docs/GUIDA_PROFESSORE.md).
 
 ---
 
@@ -136,7 +139,7 @@ Versioni attese:
 I comandi piu' comuni sono disponibili tramite `make`. Eseguire `make help` per la lista completa.
 
 ```bash
-make test        # pytest tests/ -v  (273 test)
+make test        # pytest tests/ -v  (430 test se i derivati sub-05 sono già generati, altrimenti alcuni skip)
 make lint        # ruff check + format --check
 make format      # ruff autofix + format
 make run-step1   # preprocessing matchingpennies sub-05
@@ -159,15 +162,32 @@ Output: `data/derivatives/mne-bids-pipeline/sub-05/eeg/*_clean_epo.fif`
 
 ```bash
 make run-step2
-# oppure direttamente:
-mne_bids_pipeline --config config/config_step2_source_matchingpennies.py \
-    --steps preprocessing,sensor,source
+# equivalente:
+python -m cli.main step2
+```
+
+Output: `data/derivatives/.../sub-05/eeg/*-stc-*-dSPM-{lh,rh}.stc`
+
+**Nota — bug upstream `mne-bids-pipeline==1.10.1` con `noise_cov="ad-hoc"`:**
+lo step `sensor/_06_make_cov` non scrive mai `<sub>_proc-adhoc_rank.json`
+quando `noise_cov="ad-hoc"`, ma `source/_05_make_inverse` lo richiede
+comunque come input obbligatorio → `AssertionError: missing in_files["rank"]`.
+`cli/main.py step2` applica il workaround automaticamente (vedi
+`source_reconstruction/adhoc_rank.py`) spezzando l'esecuzione in due fasi
+(`preprocessing,sensor` → patch rank.json → `source`). Se si invoca
+`mne_bids_pipeline` a mano in un colpo solo con `--steps
+preprocessing,sensor,source`, il rank.json va calcolato manualmente prima
+dello step `source`:
+
+```bash
+mne_bids_pipeline --config config/config_step2_source_matchingpennies.py --steps preprocessing,sensor
+python -c "from source_reconstruction.adhoc_rank import ensure_adhoc_rank_json; \
+    ensure_adhoc_rank_json('config/config_step2_source_matchingpennies.py', '05', 'matchingpennies')"
+mne_bids_pipeline --config config/config_step2_source_matchingpennies.py --steps source
 python source_reconstruction/finalize_inverse.py \
     --subject 05 --task matchingpennies \
     --method dSPM --loose 0.2 --depth 0.8 --lambda2 0.111
 ```
-
-Output: `data/derivatives/.../sub-05/eeg/*-stc-*-dSPM-{lh,rh}.stc`
 
 ### Benchmark matrix (STEP 8)
 
@@ -184,7 +204,11 @@ Output: `reports/BENCH_MATRIX_RESULTS.json` + `reports/BENCH_MATRIX_SUMMARY.md`
 ### E2E smoke completo
 
 ```bash
-python pipeline_mne_bids/run_e2e_matchingpennies.py
+python -m pipeline_mne_bids.run_e2e_matchingpennies
+# NB: va lanciato come modulo (-m) o con PYTHONPATH=. — l'invocazione diretta
+# `python pipeline_mne_bids/run_e2e_matchingpennies.py` fallisce con
+# ModuleNotFoundError perché lo script importa pacchetti a livello di repo
+# root (connectivity, features, ml_training, ...).
 ```
 
 ### Test suite
