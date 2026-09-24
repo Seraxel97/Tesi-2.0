@@ -19,9 +19,9 @@ if str(_ROOT) not in sys.path:
 
 from dashboard.components.data_loader import load_cohort_df, load_metadata  # noqa: E402
 
-st.set_page_config(page_title="Dataset & Cohort — Tesi 2.0", page_icon="🎛️", layout="wide")
+st.set_page_config(page_title="Dataset & Cohort — Tesi 2.0", page_icon="", layout="wide")
 
-st.title("🎛️ Dataset & Cohort — ds005385")
+st.title(" Dataset & Cohort — ds005385")
 st.caption(
     "Dortmund Vital EEG · N=100 soggetti whitelist · condizioni: EO (Eyes Open) / EC (Eyes Closed)"
 )

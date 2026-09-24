@@ -363,7 +363,7 @@ def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
 def _render_report(report: ValidationReport) -> str:
     ts = report.timestamp
     verdict = report.verdict
-    verdict_icon = {"PASS": "✅", "WARN": "⚠️", "FAIL": "❌"}[verdict]
+    verdict_icon = {"PASS": "[OK]", "WARN": "[WARNING]", "FAIL": "[FAIL]"}[verdict]
 
     lines = [
         "# N=15 Outputs — Validation Report",

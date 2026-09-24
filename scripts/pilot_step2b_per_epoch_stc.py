@@ -170,7 +170,7 @@ def write_report(results: list[dict], total_elapsed: float, disk_pre_gb: float, 
         "| File .npz prodotti | 10 / 10 |",
         f"| Disk delta | {disk_pre_gb - disk_post_gb:.1f} GB usati |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

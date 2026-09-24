@@ -147,7 +147,7 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"**Timestamp**: {ts}",
         "**Sprint**: S-106 (sonnet1-ts)",
         "",
-        "> ⚠️ **n=10 campioni, 5-fold LOSO = 1 test sample per fold.**",
+        "> [WARNING] **n=10 campioni, 5-fold LOSO = 1 test sample per fold.**",
         "> Risultati INDICATIVI per pipeline validation. Non statisticamente robusti.",
         "",
         "---", "",
@@ -190,7 +190,7 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"| Wall-clock totale | {total_elapsed:.2f}s |",
         "| Nota | n=10, risultati indicativi |",
         "| Figura | reports/figures/fig04_ml.png |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

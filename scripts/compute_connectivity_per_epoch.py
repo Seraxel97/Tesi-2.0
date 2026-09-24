@@ -164,7 +164,7 @@ def write_report(results: list[dict], total_elapsed: float, metrics: list[str], 
     for r in results[:40]:
         lines.append(
             f"| {r['sub']} | {r['atlas']} | {r['cond']} | {r['metric']} | {r['band']} "
-            f"| {r['n_epochs']} | {r['mean_upper']:.4f} | {'✅' if r.get('skipped') else '🆕'} |"
+            f"| {r['n_epochs']} | {r['mean_upper']:.4f} | {'[OK]' if r.get('skipped') else '🆕'} |"
         )
     lines += [
         "", "---", "",
@@ -175,7 +175,7 @@ def write_report(results: list[dict], total_elapsed: float, metrics: list[str], 
         f"| File skippati (esistenti) | {n_skip} |",
         f"| Totale processati | {len(results)} |",
         f"| Wall-clock | {total_elapsed:.1f}s ({total_elapsed/60:.1f} min) |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

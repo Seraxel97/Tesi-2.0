@@ -48,7 +48,7 @@ def main() -> None:
         "|-------|--------|------------|---------|--------|--------|-----|",
     ]
     for r in results:
-        sig = "✅" if r.get("p_perm", 1.0) < 0.05 else "❌"
+        sig = "[OK]" if r.get("p_perm", 1.0) < 0.05 else "[FAIL]"
         lines.append(
             f"| {r['atlas']} | {r['metric']} | {r['classifier']} "
             f"| **{r['ba_mean']:.3f}** ±{r.get('ba_std', 0):.3f} "
@@ -79,7 +79,7 @@ def main() -> None:
         "## Best configuration", "",
         f"**Winner**: `{w_atlas} × {w_metric} × {w_clf}`",
         f"**Balanced Accuracy**: {w_ba:.3f}  CI=[{w_ci_lo:.3f}, {w_ci_hi:.3f}]",
-        f"**p_perm**: {w_p:.3f} ({'p<0.05 ✅' if w_p < 0.05 else 'p>=0.05 ⚠️'})",
+        f"**p_perm**: {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'})",
         "",
         "### PILOT (n=10) → Full (N=15) — schaefer100 × coh × logreg",
         "",
@@ -98,7 +98,7 @@ def main() -> None:
         f"| Winner | {w_atlas} × {w_metric} × {w_clf} |",
         f"| Best bal_acc | {w_ba:.3f} CI=[{w_ci_lo:.3f},{w_ci_hi:.3f}] |",
         f"| Best p_perm | {w_p:.3f} |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
@@ -115,12 +115,12 @@ def main() -> None:
 
 | Step | Descrizione | Soggetti | Stato | Sprint |
 |------|-------------|----------|-------|--------|
-| 2 | Forward + inverse operator | 15/15 | ✅ | S-101, S-FULL-N15 |
-| 2b | Source reconstruction per-epoch (dSPM) | 15/15 | ✅ | S-101b, S-FULL-N15 |
-| 3b | Parcellazione per-epoch | 15×2×2=60 file | ✅ | S-103b, S-FULL-N15 |
-| 4b | FC spettrale per-epoch (wPLI+coh) | 120/120 file | ✅ | S-104b, S-FULL-N15 |
-| 5 | Feature extraction upper-triangle | X (30,*) × 4 combos | ✅ | S-FULL-N15 |
-| 6+7 | ML LOSO-15 + perm test | 12 combos | ✅ | S-FULL-N15, S-AGG-N15 |
+| 2 | Forward + inverse operator | 15/15 | [OK] | S-101, S-FULL-N15 |
+| 2b | Source reconstruction per-epoch (dSPM) | 15/15 | [OK] | S-101b, S-FULL-N15 |
+| 3b | Parcellazione per-epoch | 15×2×2=60 file | [OK] | S-103b, S-FULL-N15 |
+| 4b | FC spettrale per-epoch (wPLI+coh) | 120/120 file | [OK] | S-104b, S-FULL-N15 |
+| 5 | Feature extraction upper-triangle | X (30,*) × 4 combos | [OK] | S-FULL-N15 |
+| 6+7 | ML LOSO-15 + perm test | 12 combos | [OK] | S-FULL-N15, S-AGG-N15 |
 
 ## Risultati finali — N=15
 
@@ -133,9 +133,9 @@ def main() -> None:
 | Combos significativi | {n_sig}/{len(results)} |
 | **Winner** | **{w_atlas} × {w_metric} × {w_clf}** |
 | **Best bal_acc** | **{w_ba:.3f}** CI=[{w_ci_lo:.3f},{w_ci_hi:.3f}] |
-| **p_perm** | **{w_p:.3f}** ({'p<0.05 ✅' if w_p < 0.05 else 'p>=0.05 ⚠️'}) |
+| **p_perm** | **{w_p:.3f}** ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'}) |
 | Confronto PILOT | schaefer100×coh×logreg: 0.900→{pilot_str} |
-| Verdict pipeline | **PASS** ✅ |
+| Verdict pipeline | **PASS** [OK] |
 """
     STATUS_PATH.write_text(status)
     print(f"Status → {STATUS_PATH}")

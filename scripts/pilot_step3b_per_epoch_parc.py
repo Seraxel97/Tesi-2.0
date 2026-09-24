@@ -177,7 +177,7 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "|---------|--------|",
         f"| File .npz prodotti | {len(results)} / 20 |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

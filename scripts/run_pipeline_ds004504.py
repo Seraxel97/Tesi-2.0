@@ -397,7 +397,7 @@ def main() -> None:
             stcs_npz.unlink()
             print("  [cleanup] stcs.npz rimosso — disco preservato")
 
-    print("\n✅ Pipeline step 2.2 complete")
+    print("\n[OK] Pipeline step 2.2 complete")
 
 
 if __name__ == "__main__":

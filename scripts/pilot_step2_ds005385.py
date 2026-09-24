@@ -252,7 +252,7 @@ def _write_report(results: list[dict], total_elapsed: float) -> None:
             status = cres.get("status", "?")
             if status != "ok":
                 all_ok = False
-                lines.append(f"- `{cond}`: **{status}** ⚠️")
+                lines.append(f"- `{cond}`: **{status}** [WARNING]")
             else:
                 lines.append(
                     f"- `{cond}`: {cres['n_epochs']} epochs | "
@@ -263,7 +263,7 @@ def _write_report(results: list[dict], total_elapsed: float) -> None:
                 )
         if r.get("warnings"):
             for w in r["warnings"]:
-                lines.append(f"- ⚠️ {w}")
+                lines.append(f"- [WARNING] {w}")
         lines.append("")
 
     lines += [
@@ -276,7 +276,7 @@ def _write_report(results: list[dict], total_elapsed: float) -> None:
         f"| Soggetti | {len(results)} |",
         "| Condizioni | EO, EC (task-EyesOpen, task-EyesClosed) |",
         f"| Wall-clock totale | {total_elapsed:.1f}s ({total_elapsed/60:.1f} min) |",
-        f"| Verdict | {'**PASS** ✅' if all_ok else '**WARN** ⚠️'} |",
+        f"| Verdict | {'**PASS** [OK]' if all_ok else '**WARN** [WARNING]'} |",
         "",
     ]
 

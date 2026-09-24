@@ -184,7 +184,7 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
     ]
     for r in results:
         ci = [r.get("ci_lo", float("nan")), r.get("ci_hi", float("nan"))]
-        sig = "✅" if r.get("p_perm", 1.0) < 0.05 else "❌"
+        sig = "[OK]" if r.get("p_perm", 1.0) < 0.05 else "[FAIL]"
         lines.append(
             f"| {r.get('atlas','?')} | {r.get('metric','?')} | {r.get('band','?')} "
             f"| {r.get('classifier','?')} "
@@ -212,7 +212,7 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         "## Best configuration", "",
         f"**Winner**: `{w_atlas} × {w_metric} × {w_clf}`",
         f"**Balanced Accuracy**: {w_bal:.3f}  CI=[{w_ci[0]:.3f}, {w_ci[1]:.3f}]",
-        f"**p_perm**: {w_p:.3f} ({'p<0.05 ✅' if w_p < 0.05 else 'p>=0.05 ⚠️'})",
+        f"**p_perm**: {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'})",
         "",
         "### PILOT (n=10) → Full (N=15)",
         "",
@@ -231,7 +231,7 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         f"| Best bal_acc | {w_bal:.3f} |",
         f"| Best p_perm | {w_p:.3f} |",
         f"| Wall-clock totale | {total_s:.1f}s |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
@@ -255,12 +255,12 @@ def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
 
 | Step | Stato |
 |------|-------|
-| 2 | ✅ forward + inverse 15/15 |
-| 2b | ✅ per-epoch STC 15/15 |
-| 3b | ✅ parcellazione 15×2×2 |
-| 4b | ✅ FC 120/120 |
-| 5 | ✅ X (30, n_feat) × 4 combos |
-| 6+7 | ✅ LOSO-15 + perm test via aggregate_n15 |
+| 2 | [OK] forward + inverse 15/15 |
+| 2b | [OK] per-epoch STC 15/15 |
+| 3b | [OK] parcellazione 15×2×2 |
+| 4b | [OK] FC 120/120 |
+| 5 | [OK] X (30, n_feat) × 4 combos |
+| 6+7 | [OK] LOSO-15 + perm test via aggregate_n15 |
 
 ## Risultati finali
 
@@ -270,9 +270,9 @@ def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
 | Campioni | {len(subjects)*2} |
 | Winner | {w} |
 | bal_acc | {w_bal:.3f} |
-| p_perm | {w_p:.3f} ({'p<0.05 ✅' if w_p < 0.05 else 'p>=0.05 ⚠️'}) |
+| p_perm | {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'}) |
 | Wall-clock pipeline | ~{total_s/60:.0f} min |
-| Verdict | **PASS** ✅ |
+| Verdict | **PASS** [OK] |
 """
     STATUS_PATH.write_text(content)
     print(f"Status → {STATUS_PATH}")

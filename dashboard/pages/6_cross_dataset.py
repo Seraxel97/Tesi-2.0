@@ -33,17 +33,17 @@ from dashboard.components.data_loader import (  # noqa: E402
 )
 
 st.set_page_config(
-    page_title="Cross-Dataset — Tesi 2.0", page_icon="🔀", layout="wide"
+    page_title="Cross-Dataset — Tesi 2.0", page_icon="", layout="wide"
 )
 
-st.title("🔍 Cross-Cohort Generalization — Negative Finding")
+st.title(" Cross-Cohort Generalization — Negative Finding")
 st.caption(
     "Train: ds005385 N=100 (adulti sani) · Test: ds004504 N=49 (Alzheimer + controlli) · "
     "aparc × plv × θ"
 )
 
 st.error(
-    "**⚠ Domain shift catastrofico — risultato scientificamente legittimo, non bug pipeline.**  \n"
+    "**[WARNING] Domain shift catastrofico — risultato scientificamente legittimo, non bug pipeline.**  \n"
     "Le feature EEG-FC (PLV theta) generalizzano all'interno di una popolazione omogenea "
     "(sex BA=0.713 su sani ds005385) ma **non cross-cohort** quando il target dataset "
     "differisce per patologia, range età e laboratorio.  \n"
@@ -185,7 +185,7 @@ with col_run:
                     atlas=atlas_t, metric=metric_t, band=band_t,
                     clf_name=clf_t, target=target_t,
                 )
-                st.success(f"✅ Done in {result_t['wall_clock_s']:.1f}s")
+                st.success(f"[OK] Done in {result_t['wall_clock_s']:.1f}s")
                 st.metric(
                     f"{result_t['metric_name']} (transfer)",
                     f"{result_t['score']:.3f}" + (" anni" if target_t == "age" else ""),
@@ -204,7 +204,7 @@ with col_run:
             except Exception as exc:
                 st.error(f"Errore transfer: {exc}")
     else:
-        st.info("👈 Configura e premi **Esegui Transfer** per il run interattivo")
+        st.info(" Configura e premi **Esegui Transfer** per il run interattivo")
 
 with col_interp:
     st.markdown(

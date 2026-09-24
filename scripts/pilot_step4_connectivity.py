@@ -172,7 +172,7 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"| File .npz prodotti | {len(results)} / 40 |",
         f"| NaN totali (upper triangle) | {n_nan_total} |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        f"| Verdict | {'**PASS** ✅' if all_ok else '**WARN** ⚠️ (NaN presenti)'} |",
+        f"| Verdict | {'**PASS** [OK]' if all_ok else '**WARN** [WARNING] (NaN presenti)'} |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

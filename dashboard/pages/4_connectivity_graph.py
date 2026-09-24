@@ -28,10 +28,10 @@ from dashboard.components.network_viz import (  # noqa: E402
 )
 
 st.set_page_config(
-    page_title="Connectivity & Graph — Tesi 2.0", page_icon="🌐", layout="wide"
+    page_title="Connectivity & Graph — Tesi 2.0", page_icon="", layout="wide"
 )
 
-st.title("🌐 Connectivity & Graph Theory")
+st.title(" Connectivity & Graph Theory")
 st.caption(
     "Matrice connectome · rete interattiva · hub detection · metriche small-world"
 )

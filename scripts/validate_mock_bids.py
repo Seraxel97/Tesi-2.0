@@ -53,7 +53,7 @@ def validate_mock_bids(
             return results
 
         results["checks"]["generate"] = "PASS"
-        print("  ✓ Dataset generated")
+        print("  [OK] Dataset generated")
 
         # 2. Valida struttura directory
         print("[VALIDATE] Checking directory structure")
@@ -66,7 +66,7 @@ def validate_mock_bids(
                 results["errors"].append(f"Missing: {fpath.name}")
                 results["status"] = "FAIL"
             else:
-                print(f"  ✓ {fpath.name} exists")
+                print(f"  [OK] {fpath.name} exists")
 
         # 3. Valida dataset_description.json
         print("[VALIDATE] Checking dataset_description.json")
@@ -80,7 +80,7 @@ def validate_mock_bids(
                 results["errors"].append(f"dataset_description missing: {key}")
                 results["status"] = "FAIL"
             else:
-                print(f"  ✓ {key}: {desc[key]}")
+                print(f"  [OK] {key}: {desc[key]}")
 
         # 4. Valida subject directories
         print(f"[VALIDATE] Checking {n_subjects} subject directories")
@@ -92,7 +92,7 @@ def validate_mock_bids(
                 # Check for at least one file
                 eeg_files = list(sub_dir.glob("*.fif")) + list(sub_dir.glob("*.vhdr"))
                 if eeg_files:
-                    print(f"  ✓ sub-{i:02d}: {len(eeg_files)} file(s)")
+                    print(f"  [OK] sub-{i:02d}: {len(eeg_files)} file(s)")
                 else:
                     results["errors"].append(f"sub-{i:02d}: no EEG files")
             else:
@@ -107,7 +107,7 @@ def validate_mock_bids(
         try:
             mne_bids.BIDSPath(subject="01", task="restingstate", run=1, datatype="eeg")
             results["checks"]["mne_bids_import"] = "OK"
-            print("  ✓ mne_bids imported successfully")
+            print("  [OK] mne_bids imported successfully")
         except Exception as e:
             results["errors"].append(f"mne_bids error: {e}")
             results["checks"]["mne_bids_import"] = "FAIL"

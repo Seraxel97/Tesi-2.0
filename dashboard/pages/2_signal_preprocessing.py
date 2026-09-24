@@ -22,9 +22,9 @@ from dashboard.components.data_loader import (  # noqa: E402
     load_connectivity_matrix,
 )
 
-st.set_page_config(page_title="Signal & Preprocessing — Tesi 2.0", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Signal & Preprocessing — Tesi 2.0", page_icon="", layout="wide")
 
-st.title("📊 Signal & Preprocessing")
+st.title(" Signal & Preprocessing")
 st.caption(
     "Visualizzazione matrici FC per-soggetto · condizione EO vs EC · aparc 68 ROI"
 )
@@ -81,7 +81,7 @@ if not has_ec and not has_eo:
 # Tabs visualizzazione
 # ---------------------------------------------------------------------------
 tab_ec, tab_eo, tab_diff, tab_spectrum = st.tabs(
-    ["🟦 EC (Eyes Closed)", "🟥 EO (Eyes Open)", "⚖️ EC − EO", "📈 Distribuzione FC"]
+    [" EC (Eyes Closed)", " EO (Eyes Open)", "⚖ EC − EO", " Distribuzione FC"]
 )
 
 with tab_ec:

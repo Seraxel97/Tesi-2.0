@@ -60,7 +60,7 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
                         found = True
                         results["total_present"] += 1
                         sprint_result["deliverables"].append(
-                            {"path": deliverable, "status": "✓"}
+                            {"path": deliverable, "status": "[OK]"}
                         )
                         break
 
@@ -68,7 +68,7 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
                     all_present = False
                     results["total_missing"] += 1
                     sprint_result["deliverables"].append(
-                        {"path": deliverable, "status": "✗"}
+                        {"path": deliverable, "status": "[FAIL]"}
                     )
 
             sprint_result["verdict"] = "PASS" if all_present else "MISSING"
@@ -91,9 +91,9 @@ def format_report(audit_results: dict) -> str:
 
     # Summary verdict
     if audit_results["total_missing"] == 0:
-        lines.append("**Verdict**: CLEAN ✓")
+        lines.append("**Verdict**: CLEAN [OK]")
     else:
-        lines.append("**Verdict**: MISSING FILES ⚠")
+        lines.append("**Verdict**: MISSING FILES [WARNING]")
 
     lines.extend([
         "",
@@ -124,7 +124,7 @@ def format_report(audit_results: dict) -> str:
     ]
 
     if not missing:
-        lines.append("✓ All deliverables present")
+        lines.append("[OK] All deliverables present")
     else:
         lines.append("The following sprints have missing deliverables:")
         lines.append("")
@@ -132,7 +132,7 @@ def format_report(audit_results: dict) -> str:
             lines.append(f"### {sprint['id']}")
             lines.append("")
             for d in sprint["deliverables"]:
-                if d["status"] == "✗":
+                if d["status"] == "[FAIL]":
                     lines.append(f"- **MISSING**: {d['path']}")
             lines.append("")
 

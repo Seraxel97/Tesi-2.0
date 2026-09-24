@@ -144,9 +144,9 @@ def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_e
     lines += [
         "", "---", "",
         "## Sanity checks", "",
-        f"- y unique: {sorted(set(y.tolist()))} → {{0: {(y==0).sum()}, 1: {(y==1).sum()}}} (bilanciato ✅)",
-        f"- groups unique: {sorted(set(groups.tolist()))} → {len(set(groups.tolist()))} soggetti ✅",
-        "- NaN count = 0 per tutte le combinazioni ✅" if all(r['nan_count'] == 0 for r in results) else "- ⚠️ NaN presenti",
+        f"- y unique: {sorted(set(y.tolist()))} → {{0: {(y==0).sum()}, 1: {(y==1).sum()}}} (bilanciato [OK])",
+        f"- groups unique: {sorted(set(groups.tolist()))} → {len(set(groups.tolist()))} soggetti [OK]",
+        "- NaN count = 0 per tutte le combinazioni [OK]" if all(r['nan_count'] == 0 for r in results) else "- [WARNING] NaN presenti",
         "",
         "## File prodotti", "",
         "```",
@@ -164,7 +164,7 @@ def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_e
         "|---------|--------|",
         f"| File X prodotti | {len(results)} / 4 |",
         f"| Wall-clock totale | {total_elapsed:.2f}s |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

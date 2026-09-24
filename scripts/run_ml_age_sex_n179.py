@@ -311,7 +311,7 @@ def write_report(results: dict, path: Path) -> None:
     for lbl in labels:
         p_raw = fdr["p_raw"][lbl]
         p_fdr_ = fdr["p_fdr"][lbl]
-        sig = "✅" if fdr["reject"][lbl] else "❌"
+        sig = "[OK]" if fdr["reject"][lbl] else "[FAIL]"
         if lbl == "sex_baseline":
             score = f"BA={sx['ba_mean']:.3f}"
         elif lbl == "sex_gt":
@@ -438,7 +438,7 @@ def main():
     print("\nFDR-BH risultati:")
     for k in keys:
         print(f"  {k}: p_raw={p_raw[k]:.4f} p_fdr={fdr_results['p_fdr'][k]:.4f} "
-              f"{'✅' if fdr_results['reject'][k] else '❌'}")
+              f"{'[OK]' if fdr_results['reject'][k] else '[FAIL]'}")
 
     # Assembla risultati
     results = {

@@ -23,9 +23,9 @@ from dashboard.components.data_loader import (  # noqa: E402
     load_connectivity_matrix,
 )
 
-st.set_page_config(page_title="Source & Parcellazione — Tesi 2.0", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Source & Parcellazione — Tesi 2.0", page_icon="", layout="wide")
 
-st.title("🧠 Source Space & Parcellazione")
+st.title(" Source Space & Parcellazione")
 st.caption(
     "Heatmap FC per parcel · confronto atlas aparc vs schaefer100 · "
     "source reconstruction dSPM fsaverage"

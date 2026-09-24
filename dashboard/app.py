@@ -68,7 +68,7 @@ def _load_for_importance(result: dict, dataset_id: str = "ds005385"):
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="ML Dashboard — Tesi 2.0",
-    page_icon="🧠",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -138,7 +138,7 @@ combo_exists = False
 # Sidebar
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.title("🧠 ML Dashboard")
+    st.title(" ML Dashboard")
     st.caption("ds005385 · N=50 · Positive-control: EO vs EC (validazione pipeline) · LOSO")
     st.markdown("---")
 
@@ -198,10 +198,10 @@ with st.sidebar:
         with col1:
             run_btn = st.button("▶ Run combo", use_container_width=True, type="primary")
         with col2:
-            load_btn = st.button("📂 Load reports/", use_container_width=True)
+            load_btn = st.button(" Load reports/", use_container_width=True)
 
         winner_btn = st.button(
-            "🏆 Load N=50 winner",
+            " Load N=50 winner",
             use_container_width=True,
             help="Carica aparc×plv×theta×logreg BA=0.920 (pre-calcolato)",
         )
@@ -213,11 +213,11 @@ with st.sidebar:
             for c in available
         )
         if not combo_exists:
-            st.warning(f"⚠ Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz")
+            st.warning(f"[WARNING] Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz")
 
         # Tooltip scientifici
         st.markdown("---")
-        st.subheader("📖 Info scientifica")
+        st.subheader(" Info scientifica")
         for key in [sel_metric, sel_band, sel_clf, sel_atlas]:
             if key in TOOLTIPS:
                 with st.expander(key.upper(), expanded=False):
@@ -236,7 +236,7 @@ if winner_btn:
     st.session_state.current_result = result
     if result not in st.session_state.all_results:
         st.session_state.all_results.append(result)
-    st.success("✅ Winner N=50 caricato (BA=0.920, p_perm<0.001)")
+    st.success("[OK] Winner N=50 caricato (BA=0.920, p_perm<0.001)")
 
 if run_btn:
     if not combo_exists:
@@ -252,7 +252,7 @@ if run_btn:
             st.session_state.all_results.append(result)
         elapsed = time.time() - t0
         st.success(
-            f"✅ Done in {elapsed:.1f}s — BA={result['ba']:.3f} "
+            f"[OK] Done in {elapsed:.1f}s — BA={result['ba']:.3f} "
             f"CI=[{result['ci_lo']:.3f},{result['ci_hi']:.3f}]"
         )
 
@@ -280,7 +280,7 @@ if load_btn:
             "source": "ml_results.json",
         }
         st.session_state.all_results.append(norm)
-    st.success(f"📂 Caricati {len(existing)} risultati da reports/")
+    st.success(f" Caricati {len(existing)} risultati da reports/")
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +293,7 @@ if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (pos
         "ml_sex_results.json" if is_sex else "ml_age_results.json"
     )
 
-    st.title(f"{'🚻 Classificazione Sesso' if is_sex else '🎂 Predizione Età'}")
+    st.title(f"{' Classificazione Sesso' if is_sex else ' Predizione Età'}")
     st.caption(
         "Positive-control EO/EC: seleziona 'EO/EC (positive-control)' dalla sidebar."
     )
@@ -305,7 +305,7 @@ if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (pos
         )
     else:
         res = json.loads(results_path.read_text())
-        st.success(f"✅ Risultati caricati da `{results_path.name}`")
+        st.success(f"[OK] Risultati caricati da `{results_path.name}`")
         st.markdown(
             f"**N soggetti**: {res.get('n_subjects', '?')} | "
             f"**N campioni**: {res.get('n_samples', '?')}"
@@ -354,7 +354,7 @@ st.caption(
 
 if result is None:
     st.info(
-        "👈 Seleziona una combo e premi **Run combo**, oppure carica il **N=50 winner** dalla sidebar."
+        " Seleziona una combo e premi **Run combo**, oppure carica il **N=50 winner** dalla sidebar."
     )
     st.markdown("---")
     # Show comparison of all loaded results if any
@@ -365,7 +365,7 @@ if result is None:
 else:
     # --- Statistics panel ---
     st.markdown("---")
-    st.subheader("📊 Statistics Panel")
+    st.subheader(" Statistics Panel")
     c1, c2, c3, c4, c5 = st.columns(5)
     ba_val = result.get("ba", 0)
     ci_lo = result.get("ci_lo")
@@ -399,26 +399,26 @@ else:
     )
     if ba_val >= 0.90:
         st.success(
-            "✅ **Positive-control PASS** — BA ≥ 0.90: PLV-theta phase synchronization "
+            "[OK] **Positive-control PASS** — BA ≥ 0.90: PLV-theta phase synchronization "
             "distinguishes EC from EO at source level (effetto Berger atteso — "
             "valida la pipeline end-to-end, non è il risultato scientifico principale)."
         )
     elif ba_val >= 0.75:
-        st.warning("⚠ Moderate discriminability — BA ≥ 0.75")
+        st.warning("[WARNING] Moderate discriminability — BA ≥ 0.75")
     else:
-        st.error("❌ Low discriminability — BA < 0.75 (near chance level)")
+        st.error("[FAIL] Low discriminability — BA < 0.75 (near chance level)")
 
     st.markdown("---")
 
     # --- Plots tabs ---
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         [
-            "🔲 Confusion Matrix",
-            "📈 ROC Curve",
-            "📉 Learning Curve",
-            "🎲 Permutation Null",
-            "🏷 Feature Importance",
-            "📊 Comparison",
+            " Confusion Matrix",
+            " ROC Curve",
+            " Learning Curve",
+            " Permutation Null",
+            " Feature Importance",
+            " Comparison",
         ]
     )
 
@@ -530,7 +530,7 @@ else:
 
     # --- Export section ---
     st.markdown("---")
-    st.subheader("📤 Export figure pub-quality")
+    st.subheader(" Export figure pub-quality")
     exp_col1, exp_col2, exp_col3 = st.columns(3)
     with exp_col1:
         exp_fmt = st.selectbox("Formato", ["png", "svg", "pdf"], index=0)
@@ -538,14 +538,14 @@ else:
         exp_dir = st.text_input("Output dir", value="reports/figures/export/")
     with exp_col3:
         st.markdown("&nbsp;", unsafe_allow_html=True)
-        export_btn = st.button("💾 Esporta tutte", use_container_width=True)
+        export_btn = st.button(" Esporta tutte", use_container_width=True)
 
     if export_btn:
         out_dir = _ROOT / exp_dir
         with st.spinner(f"Esportazione in {out_dir} ({exp_fmt})..."):
             paths = export_all(result, out_dir, fmt=exp_fmt)
         if paths:
-            st.success(f"✅ {len(paths)} figure esportate in `{out_dir}`")
+            st.success(f"[OK] {len(paths)} figure esportate in `{out_dir}`")
             for p in paths:
                 st.code(str(p))
         else:

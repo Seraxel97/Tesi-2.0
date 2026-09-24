@@ -31,10 +31,10 @@ from dashboard.components.data_loader import (  # noqa: E402
 from dashboard.components.ml_runner import run_classification, run_regression  # noqa: E402
 
 st.set_page_config(
-    page_title="ML & Predictions — Tesi 2.0", page_icon="🤖", layout="wide"
+    page_title="ML & Predictions — Tesi 2.0", page_icon="", layout="wide"
 )
 
-st.title("🤖 ML & Predictions")
+st.title(" ML & Predictions")
 st.caption(
     "GroupKFold subject-level · permutation p-value · bootstrap CI · FDR-BH adjustment"
 )
@@ -190,7 +190,7 @@ with run_col:
                 else:
                     result = run_classification(X, y_target, groups, clf_name=clf_name, n_perm=n_perm, n_boot=n_boot)
 
-            st.success(f"✅ Done in {result['wall_clock_s']:.1f}s")
+            st.success(f"[OK] Done in {result['wall_clock_s']:.1f}s")
 
             # Metriche principali
             st.markdown("---")
@@ -291,7 +291,7 @@ with run_col:
                         )
     else:
         st.info(
-            "👈 Seleziona combo e premi **Esegui ML** per il run interattivo.\n\n"
+            " Seleziona combo e premi **Esegui ML** per il run interattivo.\n\n"
             "I risultati pre-computed N=100 sono disponibili nella colonna sinistra."
         )
 

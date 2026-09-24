@@ -483,9 +483,9 @@ def run(
                 skipped.append(fname)
             else:
                 produced.append(fname)
-                print(f"  ✓ {fname}")
+                print(f"  [OK] {fname}")
         else:
-            print(f"  ✗ {fname} (skipped — data unavailable)")
+            print(f"  [FAIL] {fname} (skipped — data unavailable)")
 
     print(f"\nProduced: {len(produced)} | Skipped (cached): {len(skipped)}")
     print(f"Output dir: {out_dir}")

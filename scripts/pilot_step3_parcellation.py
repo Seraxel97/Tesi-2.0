@@ -147,7 +147,7 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"| File .npz prodotti | {len(results)} / 20 |",
         f"| Atlases | {', '.join(ATLASES)} |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        f"| Verdict | {'**PASS** ✅' if all_ok else '**WARN** ⚠️'} |",
+        f"| Verdict | {'**PASS** [OK]' if all_ok else '**WARN** [WARNING]'} |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")

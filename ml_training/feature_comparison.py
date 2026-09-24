@@ -188,7 +188,7 @@ if __name__ == "__main__":
     print(f"\nSalvato: {p}")
     print("\n=== CONFRONTO FEATURE ===")
     for name, r in res["comparisons"].items():
-        sig = "✓ sig" if r["significant_fdr"] else "  ns"
+        sig = "[OK] sig" if r["significant_fdr"] else "  ns"
         print(
             f"  {name}: {r['metric']}={r['score']:.3f} "
             f"p_raw={r['p_raw']:.4f} p_fdr={r['p_fdr']:.4f} {sig}"
