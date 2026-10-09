@@ -16,14 +16,37 @@ from common.state_lib import (
 # ── Fixture: JSONL temporaneo con record senza severity ──────────────────────
 
 _SAMPLE_RECORDS = [
-    {"id": "S-01", "sprint": "test sprint 1", "owner": None, "status": "queued",
-     "deps": [], "scope": "test/s01", "branch": "test/s01", "created": "2026-05-01T00:00:00Z"},
-    {"id": "S-02", "sprint": "test sprint 2", "owner": "sonnet1-ts", "status": "done",
-     "deps": ["S-01"], "scope": "test/s02", "branch": "test/s02",
-     "created": "2026-05-01T00:01:00Z", "severity": "HIGH"},
-    {"id": "DR-01", "sprint": "deep review 1", "owner": None, "status": "queued",
-     "deps": [], "scope": "fix/dr01", "branch": "fix/dr01",
-     "created": "2026-05-01T00:02:00Z"},
+    {
+        "id": "S-01",
+        "sprint": "test sprint 1",
+        "owner": None,
+        "status": "queued",
+        "deps": [],
+        "scope": "test/s01",
+        "branch": "test/s01",
+        "created": "2026-05-01T00:00:00Z",
+    },
+    {
+        "id": "S-02",
+        "sprint": "test sprint 2",
+        "owner": "sonnet1-ts",
+        "status": "done",
+        "deps": ["S-01"],
+        "scope": "test/s02",
+        "branch": "test/s02",
+        "created": "2026-05-01T00:01:00Z",
+        "severity": "HIGH",
+    },
+    {
+        "id": "DR-01",
+        "sprint": "deep review 1",
+        "owner": None,
+        "status": "queued",
+        "deps": [],
+        "scope": "fix/dr01",
+        "branch": "fix/dr01",
+        "created": "2026-05-01T00:02:00Z",
+    },
 ]
 
 
@@ -46,6 +69,7 @@ def load_migrations():
 
 # ── Test 1: apply 001 e 002 ───────────────────────────────────────────────────
 
+
 def test_apply_001_and_002(tmp_queue: Path):
     r001 = apply_migration("001", tmp_queue)
     assert r001["status"] == "applied"
@@ -67,6 +91,7 @@ def test_apply_001_and_002(tmp_queue: Path):
 
 # ── Test 2: rollback 002 ──────────────────────────────────────────────────────
 
+
 def test_rollback_002(tmp_queue: Path):
     apply_migration("001", tmp_queue)
     apply_migration("002", tmp_queue)
@@ -85,6 +110,7 @@ def test_rollback_002(tmp_queue: Path):
 
 
 # ── Test 3: migrate_on_load idempotente ───────────────────────────────────────
+
 
 def test_migrate_on_load_idempotent(tmp_queue: Path):
     results_first = migrate_on_load(tmp_queue, target_version="002")

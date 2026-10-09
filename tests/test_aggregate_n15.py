@@ -115,7 +115,9 @@ def test_unit_clear_signal(tmp_path):
     )
     assert result["winner"] is not None, "Deve trovare un winner con dati separabili"
     winner = result["winner"]
-    assert winner["ba_mean"] >= 0.9, f"BA attesa >= 0.90 su dati separabili, trovata {winner['ba_mean']:.3f}"
+    assert winner["ba_mean"] >= 0.9, (
+        f"BA attesa >= 0.90 su dati separabili, trovata {winner['ba_mean']:.3f}"
+    )
     assert winner["p_perm"] < 0.05, f"p_perm atteso < 0.05, trovato {winner['p_perm']:.4f}"
 
 
@@ -207,9 +209,17 @@ def test_winner_fields(tmp_path):
     )
     winner = result["winner"]
     expected_keys = {
-        "atlas", "metric", "band", "classifier",
-        "ba_mean", "ba_std", "ci_lo", "ci_hi", "p_perm",
-        "n_subjects", "n_features",
+        "atlas",
+        "metric",
+        "band",
+        "classifier",
+        "ba_mean",
+        "ba_std",
+        "ci_lo",
+        "ci_hi",
+        "p_perm",
+        "n_subjects",
+        "n_features",
     }
     assert expected_keys <= set(winner.keys()), (
         f"Chiavi mancanti: {expected_keys - set(winner.keys())}"
@@ -223,12 +233,14 @@ def test_winner_fields(tmp_path):
 
 def test_build_pipeline_lda():
     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
     pipe = _build_pipeline("lda")
     assert any(isinstance(s, LinearDiscriminantAnalysis) for _, s in pipe.steps)
 
 
 def test_build_pipeline_svm_rbf():
     from sklearn.svm import SVC
+
     pipe = _build_pipeline("svm_rbf")
     assert any(isinstance(s, SVC) and s.kernel == "rbf" for _, s in pipe.steps)
 

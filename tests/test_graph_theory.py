@@ -26,16 +26,27 @@ def metrics(W_sym):
 
 def test_output_keys(metrics):
     expected = {
-        "mean_degree", "mean_strength", "clustering_coeff",
-        "path_length", "global_efficiency", "local_efficiency",
-        "modularity_q", "small_worldness",
+        "mean_degree",
+        "mean_strength",
+        "clustering_coeff",
+        "path_length",
+        "global_efficiency",
+        "local_efficiency",
+        "modularity_q",
+        "small_worldness",
     }
     assert set(metrics.keys()) == expected
 
 
 def test_no_nan_core(metrics):
-    for key in ("mean_degree", "mean_strength", "clustering_coeff",
-                "global_efficiency", "local_efficiency", "modularity_q"):
+    for key in (
+        "mean_degree",
+        "mean_strength",
+        "clustering_coeff",
+        "global_efficiency",
+        "local_efficiency",
+        "modularity_q",
+    ):
         assert not np.isnan(metrics[key]), f"{key} is NaN"
 
 

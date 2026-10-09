@@ -42,7 +42,8 @@ def test_get_labels_no_excluded(atlas: str) -> None:
     """Nessuna label esclusa (unknown, medial_wall, background) presente."""
     labels = get_labels(atlas)  # type: ignore[arg-type]
     bad = [
-        lbl.name for lbl in labels
+        lbl.name
+        for lbl in labels
         if any(kw in lbl.name.lower() for kw in ("unknown", "medial_wall", "background"))
     ]
     assert bad == [], f"{atlas}: label escluse ancora presenti: {bad}"
@@ -63,9 +64,7 @@ def test_extract_tc_shape(stc_path: Path, fwd_path: Path, atlas: str) -> None:
     )
     n_roi = _EXPECTED_NROI[atlas]
     assert tc.ndim == 2, f"tc deve essere 2D, trovato {tc.ndim}D"
-    assert tc.shape[0] == n_roi, (
-        f"{atlas}: attese {n_roi} righe, trovato {tc.shape[0]}"
-    )
+    assert tc.shape[0] == n_roi, f"{atlas}: attese {n_roi} righe, trovato {tc.shape[0]}"
     assert tc.shape[1] > 0, "n_times deve essere > 0"
     assert len(names) == n_roi, "len(names) != n_roi"
 
@@ -89,9 +88,7 @@ def test_extract_tc_names_are_strings(stc_path: Path, fwd_path: Path, atlas: str
         atlas,  # type: ignore[arg-type]
         fwd_path=fwd_path,
     )
-    assert all(isinstance(n, str) and len(n) > 0 for n in names), (
-        f"{atlas}: nomi label non validi"
-    )
+    assert all(isinstance(n, str) and len(n) > 0 for n in names), f"{atlas}: nomi label non validi"
 
 
 # ---------------------------------------------------------------------------
@@ -136,19 +133,29 @@ def fake_stcs_and_src(inv_path, epochs_path):
     rng = np.random.default_rng(99)
     n_ep = 3
     data = rng.standard_normal((n_ep, info["nchan"], n_times)) * 1e-6
-    events = np.column_stack([
-        np.arange(n_ep) * (n_times + 10),
-        np.zeros(n_ep, int),
-        np.ones(n_ep, int),
-    ])
+    events = np.column_stack(
+        [
+            np.arange(n_ep) * (n_times + 10),
+            np.zeros(n_ep, int),
+            np.ones(n_ep, int),
+        ]
+    )
     fake_epochs = mne.EpochsArray(data, info, events=events, tmin=tmin, verbose=False)
     import warnings
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        stcs = list(mne.minimum_norm.apply_inverse_epochs(
-            fake_epochs, inv, lambda2=1.0 / 9.0, method="dSPM",
-            pick_ori="normal", return_generator=False, verbose=False,
-        ))
+        stcs = list(
+            mne.minimum_norm.apply_inverse_epochs(
+                fake_epochs,
+                inv,
+                lambda2=1.0 / 9.0,
+                method="dSPM",
+                pick_ori="normal",
+                return_generator=False,
+                verbose=False,
+            )
+        )
     return stcs, inv["src"]
 
 
@@ -177,7 +184,9 @@ def test_extract_tc_batch_consistent_with_per_epoch(fake_stcs_and_src):
     for i, stc in enumerate(stcs):
         tc_single, names_single = extract_tc(stc, "aparc", src)
         np.testing.assert_allclose(
-            tc_batch[i], tc_single, rtol=1e-5,
+            tc_batch[i],
+            tc_single,
+            rtol=1e-5,
             err_msg=f"Epoch {i}: batch != per-epoch",
         )
     assert names_batch == names_single

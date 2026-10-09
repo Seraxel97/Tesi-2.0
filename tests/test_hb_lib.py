@@ -80,8 +80,8 @@ def test_read_all_heartbeats_three_files(tmp_path: Path) -> None:
     """read_all_heartbeats legge 3 HB fake e aggiunge _source_file."""
     workers = [
         {"worker": "sonnet1-ts", "status": "working", "sprint_id": "S-01"},
-        {"worker": "sonnet2-ts", "status": "done",    "sprint_id": "S-02"},
-        {"worker": "haiku1-ts",  "status": "idle",    "sprint_id": None},
+        {"worker": "sonnet2-ts", "status": "done", "sprint_id": "S-02"},
+        {"worker": "haiku1-ts", "status": "idle", "sprint_id": None},
     ]
     for w in workers:
         write_heartbeat(tmp_path / f"{w['worker']}.json", w)
@@ -144,13 +144,14 @@ def test_is_stale_threshold_variable(tmp_path: Path) -> None:
     """Threshold variabile: stesso HB è stale con threshold=1 ma non con threshold=60."""
     ts_5min_ago = time.time() - 5 * 60
     hb = {"ts": ts_5min_ago, "status": "working"}
-    assert is_stale(hb, threshold_min=1)       # 5 min > 1 min → stale
+    assert is_stale(hb, threshold_min=1)  # 5 min > 1 min → stale
     assert not is_stale(hb, threshold_min=60)  # 5 min < 60 min → fresh
 
 
 def test_is_stale_iso_timestamp(tmp_path: Path) -> None:
     """is_stale riconosce campo timestamp in formato ISO-8601."""
     from datetime import UTC, datetime, timedelta
+
     recent = (datetime.now(UTC) - timedelta(minutes=2)).isoformat()
     old = (datetime.now(UTC) - timedelta(minutes=30)).isoformat()
     assert not is_stale({"timestamp": recent}, threshold_min=10)
@@ -160,6 +161,7 @@ def test_is_stale_iso_timestamp(tmp_path: Path) -> None:
 def test_is_stale_ts_takes_priority_over_timestamp(tmp_path: Path) -> None:
     """Campo ts ha priorità su timestamp."""
     from datetime import UTC, datetime, timedelta
+
     # ts recente, timestamp vecchio → non stale (ts vince)
     recent_ts = time.time()
     old_iso = (datetime.now(UTC) - timedelta(minutes=30)).isoformat()

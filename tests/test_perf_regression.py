@@ -59,9 +59,7 @@ def test_fc_speed(synthetic_label_tc, baselines):
     assert "alpha" in fc, "FC: banda alpha mancante"
     assert fc["alpha"].shape == (_N_LABELS, _N_LABELS), "FC: shape errata"
     threshold = baselines["functional_connectivity"]
-    assert elapsed <= threshold, (
-        f"FC troppo lenta: {elapsed:.2f}s > soglia {threshold}s"
-    )
+    assert elapsed <= threshold, f"FC troppo lenta: {elapsed:.2f}s > soglia {threshold}s"
 
 
 def test_feature_extraction_speed(synthetic_label_tc, baselines):
@@ -155,8 +153,13 @@ def test_inverse_parcellation_batch_speed(inv_path, epochs_path, baselines):
         warnings.simplefilter("ignore")
         stcs = list(
             mne.minimum_norm.apply_inverse_epochs(
-                epochs, inv_op, lambda2=1.0 / 9.0, method="dSPM",
-                pick_ori=None, return_generator=False, verbose=False,
+                epochs,
+                inv_op,
+                lambda2=1.0 / 9.0,
+                method="dSPM",
+                pick_ori=None,
+                return_generator=False,
+                verbose=False,
             )
         )
     label_tc, names = extract_tc_batch(stcs, "aparc", src)

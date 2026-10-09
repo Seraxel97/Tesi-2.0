@@ -13,8 +13,7 @@ def test_build_X_graphtheory_shape():
     X_gt = build_X_graphtheory()
     # 8 metriche graph-theory (invariante); righe == campioni della matrice FC sorgente
     n_samples = np.load(
-        Path(__file__).parent.parent / "data" / "features" / "ds005385"
-        / "X_aparc_plv_theta.npz"
+        Path(__file__).parent.parent / "data" / "features" / "ds005385" / "X_aparc_plv_theta.npz"
     )["X"].shape[0]
     assert X_gt.shape == (n_samples, 8)
 

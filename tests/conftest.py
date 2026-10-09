@@ -14,13 +14,17 @@ pytest_plugins = ["tests.fixtures.synthetic"]
 
 # Path repo-relativi + env-override (riproducibilità F0): i test girano su qualsiasi macchina.
 _REPO = Path(__file__).resolve().parents[1]
-_BIDS_ROOT = Path(os.environ.get("TESI_BIDS_ROOT", "").strip()
-                  or _REPO / "data" / "eeg_matchingpennies")
-_DERIV = Path(os.environ.get("TESI_DERIV", "").strip()
-              or _REPO / "data" / "derivatives" / "mne-bids-pipeline")
+_BIDS_ROOT = Path(
+    os.environ.get("TESI_BIDS_ROOT", "").strip() or _REPO / "data" / "eeg_matchingpennies"
+)
+_DERIV = Path(
+    os.environ.get("TESI_DERIV", "").strip() or _REPO / "data" / "derivatives" / "mne-bids-pipeline"
+)
 _SUB05 = _DERIV / "sub-05" / "eeg"
-_SUBJECTS_DIR = Path(os.environ.get("TESI_SUBJECTS_DIR", "").strip()
-                     or Path.home() / "mne_data" / "MNE-fsaverage-data")
+_SUBJECTS_DIR = Path(
+    os.environ.get("TESI_SUBJECTS_DIR", "").strip()
+    or Path.home() / "mne_data" / "MNE-fsaverage-data"
+)
 
 
 @pytest.fixture(scope="session")

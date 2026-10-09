@@ -33,9 +33,7 @@ def test_groups_aligned(data):
     # Stesso soggetto deve avere stesso sesso nelle due righe
     for g in np.unique(groups):
         mask = groups == g
-        assert (
-            len(np.unique(y_sex[mask])) == 1
-        ), f"Soggetto {g} ha sessi diversi!"
+        assert len(np.unique(y_sex[mask])) == 1, f"Soggetto {g} ha sessi diversi!"
 
 
 def test_shuffle_leakage():

@@ -32,14 +32,14 @@ from dashboard.components.ml_runner import (  # noqa: E402
 def test_assert_no_leakage_ok():
     groups = np.array([0, 0, 1, 1, 2, 2])
     train_idx = np.array([0, 1, 2, 3])  # soggetti 0 e 1
-    test_idx = np.array([4, 5])          # soggetto 2
+    test_idx = np.array([4, 5])  # soggetto 2
     _assert_no_leakage(groups, train_idx, test_idx)  # non deve lanciare
 
 
 def test_assert_no_leakage_raises_on_overlap():
     groups = np.array([0, 0, 1, 1, 2, 2])
     train_idx = np.array([0, 1, 2, 3])  # soggetti 0 e 1
-    test_idx = np.array([0, 4])          # soggetto 0 anche in test → leakage
+    test_idx = np.array([0, 4])  # soggetto 0 anche in test → leakage
     with pytest.raises(RuntimeError, match="Subject leakage"):
         _assert_no_leakage(groups, train_idx, test_idx)
 

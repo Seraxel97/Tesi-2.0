@@ -91,7 +91,10 @@ class TestGitShortHelper:
 
     def test_fallback_on_git_error(self, monkeypatch):
         import subprocess
-        monkeypatch.setattr(subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(FileNotFoundError()))
+
+        monkeypatch.setattr(
+            subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(FileNotFoundError())
+        )
         result = _git_sha_short()
         assert result == "nogit"
 

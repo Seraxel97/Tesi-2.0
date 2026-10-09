@@ -33,9 +33,7 @@ class TestPathsSecurity:
 
             # Simulate traversal attempt: use a path that resolves to tmpdir
             traversal_path = test_dir / ".." / "test"
-            resolved = _validate_env_path(
-                "TEST_PATH", traversal_path, must_exist=False
-            )
+            resolved = _validate_env_path("TEST_PATH", traversal_path, must_exist=False)
 
             # Should resolve to canonical absolute path
             assert resolved.is_absolute(), "Should be absolute"

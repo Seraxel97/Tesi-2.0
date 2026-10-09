@@ -1,4 +1,5 @@
 """Test del confound check età↔sesso (F3). Deterministico, su dati sintetici."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -10,7 +11,7 @@ def test_no_confound_when_age_identical():
     """Stessa distribuzione d'età nei due sessi → p alto, no confound."""
     rng = np.random.default_rng(0)
     age = rng.normal(45, 10, 200)
-    sex = np.array([0, 1] * 100)        # alternati, indipendenti dall'età
+    sex = np.array([0, 1] * 100)  # alternati, indipendenti dall'età
     res = age_sex_confound(age, sex)
     assert res["age_differs_by_sex"] is False
     assert res["p_value"] > 0.05

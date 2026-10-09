@@ -1,4 +1,5 @@
 """Tests per S-FC-EXTEND: PLV, ImCoh, multi-banda."""
+
 from __future__ import annotations
 
 import sys
@@ -11,8 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from connectivity.fc_dispatcher import compute_fc
 
 
-def _mock_label_tc(n_epochs: int = 10, n_labels: int = 10, n_times: int = 100,
-                   sfreq: float = 250.0) -> np.ndarray:
+def _mock_label_tc(
+    n_epochs: int = 10, n_labels: int = 10, n_times: int = 100, sfreq: float = 250.0
+) -> np.ndarray:
     """Genera label_tc random fisiologico (n_epochs, n_labels, n_times)."""
     rng = np.random.default_rng(42)
     t = np.linspace(0, n_times / sfreq, n_times)
@@ -61,7 +63,7 @@ def test_multi_band_returns_all_bands():
     """compute_fc con 4 bande restituisce dict con 4 chiavi."""
     tc = _mock_label_tc()
     fc = compute_fc(tc, SFREQ, "wpli", bands=ALL_BANDS)
-    assert set(fc.keys()) == set(ALL_BANDS.keys()), f"Bande mancanti: {set(ALL_BANDS)-set(fc)}"
+    assert set(fc.keys()) == set(ALL_BANDS.keys()), f"Bande mancanti: {set(ALL_BANDS) - set(fc)}"
     for band_name, mat in fc.items():
         assert mat.shape == (10, 10), f"{band_name}: shape {mat.shape} ≠ (10,10)"
 
@@ -89,6 +91,7 @@ def test_multi_metric_multi_band_combinations():
 def test_idempotency_flag_in_compute_script(tmp_path):
     """npz_out con band nel nome consente idempotenza per file esistenti."""
     from scripts.compute_connectivity_per_epoch import npz_out
+
     p1 = npz_out("sub-007", "aparc", "EO", "wpli", "alpha")
     p2 = npz_out("sub-007", "aparc", "EO", "wpli", "beta")
     p3 = npz_out("sub-007", "aparc", "EO", "coh", "alpha")

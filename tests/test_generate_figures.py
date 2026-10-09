@@ -38,23 +38,44 @@ def n15_comparison(tmp_path):
         "_meta": {"band": "alpha", "n_permutations": 100, "n_subjects": 5},
         "results": [
             {
-                "atlas": "aparc", "metric": "wpli", "band": "alpha",
-                "classifier": "logreg", "ba_mean": 0.75, "ba_std": 0.05,
-                "ci_lo": 0.65, "ci_hi": 0.85, "p_perm": 0.02,
-                "n_subjects": 5, "n_features": 100,
+                "atlas": "aparc",
+                "metric": "wpli",
+                "band": "alpha",
+                "classifier": "logreg",
+                "ba_mean": 0.75,
+                "ba_std": 0.05,
+                "ci_lo": 0.65,
+                "ci_hi": 0.85,
+                "p_perm": 0.02,
+                "n_subjects": 5,
+                "n_features": 100,
             },
             {
-                "atlas": "aparc", "metric": "coh", "band": "alpha",
-                "classifier": "lda", "ba_mean": 0.80, "ba_std": 0.04,
-                "ci_lo": 0.70, "ci_hi": 0.90, "p_perm": 0.01,
-                "n_subjects": 5, "n_features": 100,
+                "atlas": "aparc",
+                "metric": "coh",
+                "band": "alpha",
+                "classifier": "lda",
+                "ba_mean": 0.80,
+                "ba_std": 0.04,
+                "ci_lo": 0.70,
+                "ci_hi": 0.90,
+                "p_perm": 0.01,
+                "n_subjects": 5,
+                "n_features": 100,
             },
         ],
         "winner": {
-            "atlas": "aparc", "metric": "coh", "band": "alpha",
-            "classifier": "lda", "ba_mean": 0.80, "ba_std": 0.04,
-            "ci_lo": 0.70, "ci_hi": 0.90, "p_perm": 0.01,
-            "n_subjects": 5, "n_features": 100,
+            "atlas": "aparc",
+            "metric": "coh",
+            "band": "alpha",
+            "classifier": "lda",
+            "ba_mean": 0.80,
+            "ba_std": 0.04,
+            "ci_lo": 0.70,
+            "ci_hi": 0.90,
+            "p_perm": 0.01,
+            "n_subjects": 5,
+            "n_features": 100,
         },
     }
     p = tmp_path / "comparison_matrix_N15.json"
@@ -92,8 +113,12 @@ def test_smoke_pilot_schema(pilot_comparison, synthetic_features, tmp_path):
     )
     assert ret == 0
     # At least bar, heatmap, pperm, summary table must exist
-    for fname in ["fig_balacc_bar.png", "fig_balacc_heatmap.png",
-                  "fig_pperm_bar.png", "fig_summary_table.png"]:
+    for fname in [
+        "fig_balacc_bar.png",
+        "fig_balacc_heatmap.png",
+        "fig_pperm_bar.png",
+        "fig_summary_table.png",
+    ]:
         assert (out_dir / fname).exists(), f"Missing: {fname}"
 
 
@@ -119,12 +144,22 @@ def test_idempotent(pilot_comparison, synthetic_features, tmp_path):
     from scripts.generate_figures import run
 
     out_dir = tmp_path / "figs_idem"
-    run(comparison=pilot_comparison, features_dir=synthetic_features,
-        fc_dir=tmp_path, out_dir=out_dir, force=True)
+    run(
+        comparison=pilot_comparison,
+        features_dir=synthetic_features,
+        fc_dir=tmp_path,
+        out_dir=out_dir,
+        force=True,
+    )
     mtimes_before = {f.name: f.stat().st_mtime for f in out_dir.glob("*.png")}
 
-    run(comparison=pilot_comparison, features_dir=synthetic_features,
-        fc_dir=tmp_path, out_dir=out_dir, force=False)
+    run(
+        comparison=pilot_comparison,
+        features_dir=synthetic_features,
+        fc_dir=tmp_path,
+        out_dir=out_dir,
+        force=False,
+    )
     for fname, mtime in mtimes_before.items():
         assert (out_dir / fname).stat().st_mtime == mtime, f"{fname} was modified on second run"
 

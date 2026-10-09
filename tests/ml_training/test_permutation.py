@@ -5,6 +5,7 @@ Verificano le due correzioni:
   2. `_empirical_pvalue` usa la correzione di continuità +1/+1 (mai p=0).
 I test toccano SOLO gli helper puri → niente CV pesante, deterministici.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -14,7 +15,7 @@ from ml_training.permutation import _empirical_pvalue, _permute_labels
 
 def test_empirical_pvalue_never_zero():
     """Con tutte le null sotto l'osservato, p = 1/(n+1), non 0."""
-    null = np.zeros(99)          # tutte 0
+    null = np.zeros(99)  # tutte 0
     p = _empirical_pvalue(null, observed_ba=0.9)
     assert p == 1 / 100
     assert p > 0
@@ -36,7 +37,7 @@ def test_permute_between_subject_constant_within():
     """Disegno between-subject (label costante per soggetto, es. sesso): la permutazione
     mantiene la label COSTANTE entro ogni soggetto (permuta tra soggetti)."""
     groups = np.array([0, 0, 1, 1, 2, 2, 3, 3])
-    y = np.array([0, 0, 1, 1, 0, 0, 1, 1])      # ogni soggetto ha una sola label
+    y = np.array([0, 0, 1, 1, 0, 0, 1, 1])  # ogni soggetto ha una sola label
     rng = np.random.default_rng(0)
     yp = _permute_labels(y, groups, rng)
     for g in np.unique(groups):
@@ -51,19 +52,20 @@ def test_permute_within_subject_paired():
     """Disegno within-subject (label varia entro soggetto, es. EO/EC): la permutazione
     avviene ENTRO ogni soggetto → ogni soggetto conserva il suo multiset di label."""
     groups = np.array([0, 0, 1, 1, 2, 2])
-    y = np.array([0, 1, 0, 1, 0, 1])            # ogni soggetto ha entrambe le condizioni
+    y = np.array([0, 1, 0, 1, 0, 1])  # ogni soggetto ha entrambe le condizioni
     rng = np.random.default_rng(1)
     yp = _permute_labels(y, groups, rng)
     for g in np.unique(groups):
-        assert sorted(yp[groups == g]) == sorted(y[groups == g]), \
+        assert sorted(yp[groups == g]) == sorted(y[groups == g]), (
             "il multiset di label per soggetto deve essere preservato (permutazione paired)"
+        )
 
 
 def test_permute_groups_none_is_sample_shuffle():
     y = np.array([0, 1, 2, 3, 4])
     rng = np.random.default_rng(2)
     yp = _permute_labels(y, None, rng)
-    assert sorted(yp.tolist()) == sorted(y.tolist())   # stessa composizione, riordino
+    assert sorted(yp.tolist()) == sorted(y.tolist())  # stessa composizione, riordino
 
 
 def test_permute_deterministic_with_seed():

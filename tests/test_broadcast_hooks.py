@@ -56,9 +56,7 @@ class TestBroadcastHooks:
             bc.LOG_PATH = log_path
 
             try:
-                update_status(
-                    queue_path, "S-20", status="claimed", owner="sonnet1-ts"
-                )
+                update_status(queue_path, "S-20", status="claimed", owner="sonnet1-ts")
 
                 events = read_log(log_path)
                 assert any(e["event"] == "sprint_claimed" for e in events)
