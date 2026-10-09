@@ -1,0 +1,65 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "reports/**"
+      - ".planning/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "reports/**"
+      - ".planning/**"
+
+# Cancel redundant runs on the same branch/PR (pattern da CLMForecast)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Test suite (Python ${{ matrix.python }} / ${{ matrix.os }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13"]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - uses: actions/setup-python@0c4b8a64e8531aecc2504de2c4af37da18253e60  # v5.1.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: actions/cache@13aadc3b3a44c4d4328bc8f713a588929b8b6949  # v4.0.1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-py${{ matrix.python }}-pip-${{ hashFiles('pyproject.toml', 'requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ matrix.python }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-cov
+
+      - name: Run pytest with coverage
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov --cov-report=html:htmlcov \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=60
+
+      - name: Upload coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-py${{ matrix.python }}
+          path: htmlcov/
+          retention-days: 14

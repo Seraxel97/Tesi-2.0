@@ -6,6 +6,38 @@
 
 ---
 
+## Verifica esecuzione 2026-09-23 (richiesta professore)
+
+Eseguita verifica end-to-end completa su richiesta del professore prima della
+consegna. Esito: **pipeline funzionante 1→7 su matchingpennies (sub-05)**,
+test suite verde. Trovati e risolti 3 problemi (nessuno relativo alla
+correttezza scientifica dei risultati, solo alla riproducibilità/esecuzione):
+
+1. **Bug upstream `mne-bids-pipeline==1.10.1`** — con `noise_cov="ad-hoc"`
+   lo step `sensor/_06_make_cov` non scrive `<sub>_proc-adhoc_rank.json`,
+   ma `source/_05_make_inverse` lo richiede comunque → pipeline abortiva.
+   Non presente nel run originale del 2026-05-01 (probabile drift di
+   versione della libreria nell'ambiente conda). Fix: `cli/main.py step2`
+   ora applica il workaround automaticamente via
+   `source_reconstruction/adhoc_rank.py`.
+2. **Bug repo**: `cli/main.py` (`make run-step2`) e il `README.md`
+   invocavano `finalize_inverse.py` con `--loose/--depth/--lambda2`, ma lo
+   script accettava solo `--subject/--task/--method` → `make run-step2`
+   falliva sempre. Fix: aggiunti i 3 argomenti a `finalize_inverse.py`.
+3. **Doc/usage**: `python pipeline_mne_bids/run_e2e_matchingpennies.py`
+   invocato direttamente dava `ModuleNotFoundError` (import a livello di
+   repo root). Va lanciato con `python -m pipeline_mne_bids.run_e2e_matchingpennies`.
+   README aggiornato di conseguenza.
+
+Dopo i fix: `make run-step1` → `make run-step2` → `python -m
+pipeline_mne_bids.run_e2e_matchingpennies` completano senza intervento
+manuale. `pytest tests/` con derivati sub-05 già generati: **430 passed, 0
+failed** (prima dei fix, senza derivati: 367 passed / 63 skipped). Lint
+`ruff check .`: pulito (3 errori minori corretti: import non ordinati in
+2 file + una variabile morta in `analysis/cross_dataset_eval.py`).
+
+---
+
 ## Stato step pipeline
 
 | Step | Titolo | Stato | Data | Log |

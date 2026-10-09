@@ -2,7 +2,7 @@
 
 Questa pagina spiega, con il minimo indispensabile, come avviare la pipeline e dove
 trovare i risultati. Per i dettagli tecnici (bug noti, parametri, struttura cartelle
-completa) vedi il [README.md](../README.md) principale.
+completa) vedi il [README.md](../README.md) principale. L'indice di tutti i report è in [reports/INDICE.md](../reports/INDICE.md).
 
 ## 1. Cosa fa il progetto, in una frase
 
@@ -14,7 +14,7 @@ provano a prevedere età/sesso del soggetto — con verifica statistica rigorosa
 
 ## 2. Come si avvia (dimostrazione rapida, ~1 minuto)
 
-Il dataset di dimostrazione (`eeg_matchingpennies`, un soggetto) è già incluso nel
+Il dataset di dimostrazione (`eeg_matchingpennies`, soggetto sub-05) è già incluso nel
 repository, non serve scaricare nulla. Da terminale, nella cartella del progetto:
 
 ```bash
@@ -33,13 +33,13 @@ tabelle, matrici di connettività) sono in `reports/`.
 make test
 ```
 
-Esegue tutta la batteria di test automatici (430 test) che controllano che ogni
+Esegue tutta la batteria di test automatici (circa 430 test; quelli che richiedono i derivati del dataset demo vengono saltati se mancano) che controllano che ogni
 singolo componente (lettura dati, connettività, classificazione, statistica) dia il
 risultato atteso. Se tutti i test sono verdi (`passed`), il codice è affidabile.
 
 ## 4. Dove sono i risultati scientifici veri (dataset completo, non la demo)
 
-Il dataset scientifico è `ds005385` (Dortmund Vital Study). I risultati finali,
+Il dataset scientifico è `ds005385` (Dortmund Vital Study, N=179); la validazione esterna usa LEMON. I risultati finali,
 onesti e con tutti i limiti dichiarati, sono riassunti in un unico file pensato
 apposta per la lettura da parte del relatore:
 
