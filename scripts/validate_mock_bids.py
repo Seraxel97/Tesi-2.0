@@ -1,4 +1,22 @@
-"""Valida struttura BIDS di dataset mock generato (smoke test S-29)."""
+"""Smoke test S-29: valida la struttura BIDS di un dataset mock.
+
+Scopo:
+    Genera un piccolo dataset BIDS sintetico con ``generate_mock_bids.py``,
+    ne controlla la struttura (file obbligatori, chiavi di
+    dataset_description.json, cartelle soggetto, import di mne_bids) e lo
+    cancella a fine test.
+
+Input:
+    Nessun dato reale; argomenti CLI ``--n-subjects``, ``--output-dir``,
+    ``--report``.
+
+Output:
+    Report Markdown (default ``reports/MOCK_VALIDATION.md``); la cartella
+    mock temporanea viene rimossa. Exit code 0 se tutto OK, 1 altrimenti.
+
+Esempio:
+    python scripts/validate_mock_bids.py --n-subjects 5
+"""
 
 from __future__ import annotations
 
@@ -11,22 +29,30 @@ from pathlib import Path
 import mne_bids
 
 
+# ===== 1. Validazione del dataset mock =====
 def validate_mock_bids(
     output_dir: str | Path = "data/mock_validation_test",
     n_subjects: int = 5,
 ) -> dict:
-    """Genera mock dataset e valida struttura BIDS.
+    """Genera un dataset mock e ne valida la struttura BIDS.
 
     Parameters
     ----------
     output_dir:
-        Directory output per test (sarà creata e cancellata dopo).
+        Directory di output del test (creata e cancellata alla fine).
     n_subjects:
-        Numero soggetti per test.
+        Numero di soggetti da generare e verificare.
 
     Returns
     -------
-    dict con risultati validazione.
+    dict
+        Chiavi ``status`` (OK/FAIL/ERROR), ``n_subjects``, ``checks``
+        (esito dei singoli controlli) ed ``errors`` (messaggi).
+
+    Side effects
+    ------------
+    Lancia ``scripts/generate_mock_bids.py`` in un sottoprocesso (timeout 300 s),
+    scrive in ``output_dir`` e lo rimuove nel blocco ``finally``.
     """
     output_dir = Path(output_dir)
     results = {
@@ -40,11 +66,16 @@ def validate_mock_bids(
         # 1. Genera dataset mock
         print(f"[VALIDATE] Generating mock dataset → {output_dir}")
         cmd = [
-            "python", "scripts/generate_mock_bids.py",
-            "--n-subjects", str(n_subjects),
-            "--output-dir", str(output_dir),
-            "--sfreq", "250",
-            "--duration", "60",
+            "python",
+            "scripts/generate_mock_bids.py",
+            "--n-subjects",
+            str(n_subjects),
+            "--output-dir",
+            str(output_dir),
+            "--sfreq",
+            "250",
+            "--duration",
+            "60",
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         if result.returncode != 0:
@@ -89,7 +120,7 @@ def validate_mock_bids(
             sub_dir = output_dir / f"sub-{i:02d}" / "eeg"
             if sub_dir.exists():
                 subjects_found += 1
-                # Check for at least one file
+                # Serve almeno un file EEG (.fif o .vhdr)
                 eeg_files = list(sub_dir.glob("*.fif")) + list(sub_dir.glob("*.vhdr"))
                 if eeg_files:
                     print(f"  [OK] sub-{i:02d}: {len(eeg_files)} file(s)")
@@ -127,6 +158,7 @@ def validate_mock_bids(
     return results
 
 
+# ===== 2. Entry point CLI =====
 if __name__ == "__main__":
     import argparse
 
@@ -142,7 +174,7 @@ if __name__ == "__main__":
 
     results = validate_mock_bids(args.output_dir, args.n_subjects)
 
-    # Write report
+    # Scrittura del report Markdown
     report_lines = [
         "# Mock BIDS Validation Report",
         "",
@@ -157,11 +189,13 @@ if __name__ == "__main__":
         report_lines.append(f"- {check}: {status}")
 
     if results["errors"]:
-        report_lines.extend([
-            "",
-            "## Errors",
-            "",
-        ])
+        report_lines.extend(
+            [
+                "",
+                "## Errors",
+                "",
+            ]
+        )
         for err in results["errors"]:
             report_lines.append(f"- {err}")
 

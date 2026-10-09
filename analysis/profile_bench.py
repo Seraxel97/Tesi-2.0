@@ -6,6 +6,8 @@ Output: reports/PROFILE_STATS.txt (top-30 per cumtime) + stampa top-10 a console
 
 Uso:
     python analysis/profile_bench.py [--n-epochs-max N] [--out-stats PATH]
+
+Posizione nella pipeline: post-STEP 6/7: analisi e confronto dei risultati (non e' uno step di elaborazione).
 """
 
 from __future__ import annotations
@@ -26,8 +28,11 @@ from ml_training.ml_dispatcher import run_cv
 from parcellation.extract_label_tc import extract_tc
 
 # ── Sub-set per profiling ─────────────────────────────────────────────────────
-_ATLAS: str = "aparc"          # 68 ROI — più veloce
-_METRICS = ["wpli", "plv"]    # 2 metriche
+
+# ===== Configurazione =====
+
+_ATLAS: str = "aparc"  # 68 ROI — più veloce
+_METRICS = ["wpli", "plv"]  # 2 metriche
 _ALGO: str = "logreg"
 _BANDS = {
     "alpha": (8.0, 13.0),
@@ -44,7 +49,21 @@ _LABEL_MAP = {
 }
 
 
+# ===== Benchmark su sottoinsieme =====
+
+
 def _build_y(epochs: mne.Epochs) -> np.ndarray:
+    """Costruisce il vettore di label numeriche dalle epoche.
+
+    Mappa il nome dell'evento di ciascuna epoca tramite `_LABEL_MAP`;
+    gli eventi non riconosciuti ricevono -1 (da scartare a valle).
+
+    Args:
+        epochs: Epoche MNE con `event_id` ed `events` valorizzati.
+
+    Returns:
+        Array int di shape (n_epochs,) con la label per epoca (-1 = sconosciuta).
+    """
     event_ids_inv = {v: k for k, v in epochs.event_id.items()}
     return np.array(
         [_LABEL_MAP.get(event_ids_inv.get(ev, ""), -1) for ev in epochs.events[:, 2]],
@@ -94,7 +113,9 @@ def _bench_subset(n_epochs_max: int = 20) -> None:
     for metric in _METRICS:
         for band_name, (fmin, fmax) in _BANDS.items():
             fc = compute_fc(
-                label_tc, sfreq, metric,  # type: ignore[arg-type]
+                label_tc,
+                sfreq,
+                metric,  # type: ignore[arg-type]
                 bands={band_name: (fmin, fmax)},
             )
 
@@ -102,6 +123,9 @@ def _bench_subset(n_epochs_max: int = 20) -> None:
             X, _ = build_X(label_tc, sfreq, fc, include_univariate=False)
             n_splits = min(3, int(min(np.bincount(y))))
             run_cv(X, y, groups=None, algorithm=_ALGO, n_splits=n_splits)  # type: ignore[arg-type]
+
+
+# ===== Profiling e report =====
 
 
 def profile_and_report(
@@ -127,8 +151,10 @@ def profile_and_report(
     out_stats = Path(out_stats)
     out_stats.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"[PERF] profiling subset: atlas={_ATLAS}, metrics={_METRICS}, "
-          f"algo={_ALGO}, bande={list(_BANDS)}, n_epochs_max={n_epochs_max}")
+    print(
+        f"[PERF] profiling subset: atlas={_ATLAS}, metrics={_METRICS}, "
+        f"algo={_ALGO}, bande={list(_BANDS)}, n_epochs_max={n_epochs_max}"
+    )
     t0 = time.time()
 
     pr = cProfile.Profile()
@@ -182,20 +208,24 @@ def _parse_top_stats(stats_txt: str, n: int = 10) -> list[dict]:
         if len(parts) < 6:
             continue
         try:
-            rows.append({
-                "ncalls": parts[0],
-                "tottime": float(parts[1]),
-                "percall_tot": float(parts[2]),
-                "cumtime": float(parts[3]),
-                "percall_cum": float(parts[4]),
-                "func": parts[5].strip(),
-            })
+            rows.append(
+                {
+                    "ncalls": parts[0],
+                    "tottime": float(parts[1]),
+                    "percall_tot": float(parts[2]),
+                    "cumtime": float(parts[3]),
+                    "percall_cum": float(parts[4]),
+                    "func": parts[5].strip(),
+                }
+            )
         except ValueError:
             continue
         if len(rows) >= n:
             break
     return rows
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="cProfile bench S-08 hot path")

@@ -2,6 +2,8 @@
 
 Visualizzazione connettività per-epoca (proxy del segnale EEG preprocessato),
 PSD e matrici raw per soggetto selezionato.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -25,9 +27,7 @@ from dashboard.components.data_loader import (  # noqa: E402
 st.set_page_config(page_title="Signal & Preprocessing — Tesi 2.0", page_icon="", layout="wide")
 
 st.title(" Signal & Preprocessing")
-st.caption(
-    "Visualizzazione matrici FC per-soggetto · condizione EO vs EC · aparc 68 ROI"
-)
+st.caption("Visualizzazione matrici FC per-soggetto · condizione EO vs EC · aparc 68 ROI")
 st.info(
     "**Nota**: questa tab mostra le matrici di connettività funzionale (FC) source-level "
     "come proxy del segnale preprocessato. Il raw EEG viewer (MNE interactive) richiede "

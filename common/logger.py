@@ -18,6 +18,8 @@ Schema di ogni entry JSONL:
         "run_id":  <str>     Identificatore della run,
         ...                  Campi extra passati come kwargs
     }
+
+Posizione nella pipeline: infrastruttura trasversale agli STEP 1-7 (non appartiene a un singolo step).
 """
 
 from __future__ import annotations
@@ -48,6 +50,12 @@ class JsonLogger:
         run_id: str,
         log_dir: Path | str = Path("reports/runs"),
     ) -> None:
+        """Inizializza il logger JSONL.
+
+        Args:
+            run_id: Identificativo del run (nome del file `<run_id>.jsonl`).
+            log_dir: Cartella dei log (creata se assente).
+        """
         self.run_id = run_id
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -101,4 +109,5 @@ class JsonLogger:
         return events
 
     def __repr__(self) -> str:
+        """Rappresentazione testuale con run_id e percorso del log."""
         return f"JsonLogger(run_id={self.run_id!r}, path={self.path})"

@@ -20,7 +20,10 @@ LEMON_TSV = (
     else Path(__file__).resolve().parents[1] / "data" / "raw" / "lemon" / "participants.tsv"
 )
 
+# Codifica del sesso: F -> 0, M -> 1
+# Codifica sesso; coerente con ds005385 e ds004504
 SEX_MAP = {"F": 0, "M": 1}
+# Nome della colonna eta' nel TSV (bin di 5 anni)
 _AGE_COL = "age (5-year bins)"
 
 

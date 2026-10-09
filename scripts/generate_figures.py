@@ -20,6 +20,13 @@ Usage
         --fc-dir data/connectivity/ds005385 \\
         --out-dir reports/figures
 
+Input:
+    JSON della matrice di confronto, feature X/y (``--features-dir``) e matrici FC
+    per-epoch (``--fc-dir``); tutto in sola lettura.
+
+Output:
+    PNG nella cartella ``--out-dir`` (default ``reports/figures``).
+
 Figures produced
 ----------------
     fig_balacc_bar.png      Balanced accuracy bar chart (grouped by atlas)
@@ -47,18 +54,27 @@ import numpy as np  # noqa: E402
 
 plt.style.use("default")
 
-_FIGSIZE_WIDE = (10, 5)
-_FIGSIZE_SQ = (7, 7)
-_DPI = 300
+# ===== 1. Configurazione grafica =====
+_FIGSIZE_WIDE = (10, 5)  # pollici: grafici a barre larghi
+_FIGSIZE_SQ = (7, 7)  # pollici: scatter quadrato (PCA)
+_DPI = 300  # risoluzione per pubblicazione
+# argomenti comuni a savefig (taglia i margini bianchi)
 _SAVEKW = {"dpi": _DPI, "bbox_inches": "tight"}
 
 
-# ---------------------------------------------------------------------------
-# Data model — normalise both schemas
-# ---------------------------------------------------------------------------
-
+# ===== 2. Modello dati (normalizza i due schemi JSON) =====
 @dataclass
 class ConfigResult:
+    """Risultato di una configurazione atlante x metrica x classificatore.
+
+    Attributes:
+        atlas, metric, classifier: identificano la configurazione.
+        bal_acc: balanced accuracy media.
+        ci_lo, ci_hi: estremi dell'intervallo di confidenza 95% (NaN se assenti).
+        p_perm: p-value del permutation test (NaN se assente).
+        n_subjects: numero di soggetti usati.
+    """
+
     atlas: str
     metric: str
     classifier: str
@@ -71,6 +87,17 @@ class ConfigResult:
 
 @dataclass
 class ComparisonData:
+    """Matrice di confronto normalizzata, indipendente dallo schema di origine.
+
+    Attributes:
+        results: tutte le configurazioni.
+        source_file: percorso del JSON letto (usato per l'idempotenza).
+        n_subjects: numero di soggetti.
+        schema: ``"pilot"`` oppure ``"n15"``.
+        winner: configurazione migliore, se nota.
+        extra: campi aggiuntivi opzionali.
+    """
+
     results: list[ConfigResult]
     source_file: str
     n_subjects: int
@@ -80,39 +107,65 @@ class ComparisonData:
 
 
 def _parse_pilot(data: dict, source: str) -> ComparisonData:
-    """Parse old PILOT nested-dict schema."""
+    """Interpreta il vecchio schema PILOT (dict annidato atlas > metrica > classificatore).
+
+    Args:
+        data: JSON caricato.
+        source: percorso del file (solo per tracciabilita').
+
+    Returns:
+        ``ComparisonData`` con winner = massima balanced accuracy.
+    """
     results = []
     matrix = data.get("matrix", {})
     for atlas, metrics_d in matrix.items():
         for metric, clfs_d in metrics_d.items():
             for clf, scores in clfs_d.items():
-                results.append(ConfigResult(
-                    atlas=atlas,
-                    metric=metric,
-                    classifier=clf,
-                    bal_acc=float(scores.get("bal_acc", scores.get("acc", float("nan")))),
-                    n_subjects=int(data.get("description", "n=10").split("n=")[-1].split()[0])
-                    if "n=" in data.get("description", "") else 5,
-                ))
+                results.append(
+                    ConfigResult(
+                        atlas=atlas,
+                        metric=metric,
+                        classifier=clf,
+                        bal_acc=float(scores.get("bal_acc", scores.get("acc", float("nan")))),
+                        n_subjects=int(data.get("description", "n=10").split("n=")[-1].split()[0])
+                        if "n=" in data.get("description", "")
+                        else 5,
+                    )
+                )
     winner = max(results, key=lambda r: r.bal_acc) if results else None
-    return ComparisonData(results=results, source_file=source, n_subjects=winner.n_subjects if winner else 5,
-                          schema="pilot", winner=winner)
+    return ComparisonData(
+        results=results,
+        source_file=source,
+        n_subjects=winner.n_subjects if winner else 5,
+        schema="pilot",
+        winner=winner,
+    )
 
 
 def _parse_n15(data: dict, source: str) -> ComparisonData:
-    """Parse N=15 aggregate schema (aggregate_classify_n15 output)."""
+    """Interpreta lo schema N=15 (lista ``results`` di ``aggregate_classify_n15``).
+
+    Args:
+        data: JSON caricato.
+        source: percorso del file.
+
+    Returns:
+        ``ComparisonData`` con il winner indicato nel JSON (se presente).
+    """
     results = []
     for r in data.get("results", []):
-        results.append(ConfigResult(
-            atlas=r["atlas"],
-            metric=r["metric"],
-            classifier=r["classifier"],
-            bal_acc=float(r["ba_mean"]),
-            ci_lo=float(r.get("ci_lo", float("nan"))),
-            ci_hi=float(r.get("ci_hi", float("nan"))),
-            p_perm=float(r.get("p_perm", float("nan"))),
-            n_subjects=int(r.get("n_subjects", 15)),
-        ))
+        results.append(
+            ConfigResult(
+                atlas=r["atlas"],
+                metric=r["metric"],
+                classifier=r["classifier"],
+                bal_acc=float(r["ba_mean"]),
+                ci_lo=float(r.get("ci_lo", float("nan"))),
+                ci_hi=float(r.get("ci_hi", float("nan"))),
+                p_perm=float(r.get("p_perm", float("nan"))),
+                n_subjects=int(r.get("n_subjects", 15)),
+            )
+        )
     winner_d = data.get("winner")
     winner = None
     if winner_d:
@@ -127,12 +180,20 @@ def _parse_n15(data: dict, source: str) -> ComparisonData:
             n_subjects=int(winner_d.get("n_subjects", 15)),
         )
     n_sub = results[0].n_subjects if results else 15
-    return ComparisonData(results=results, source_file=source, n_subjects=n_sub,
-                          schema="n15", winner=winner)
+    return ComparisonData(
+        results=results, source_file=source, n_subjects=n_sub, schema="n15", winner=winner
+    )
 
 
 def load_comparison(path: Path) -> ComparisonData:
-    """Load comparison JSON and dispatch to the right parser."""
+    """Carica il JSON di confronto e sceglie il parser in base allo schema.
+
+    Args:
+        path: file ``comparison_matrix*.json``.
+
+    Returns:
+        ``ComparisonData`` normalizzato. Schema sconosciuto: warning e parse PILOT.
+    """
     data = json.loads(path.read_text())
     source = str(path)
     if "results" in data:
@@ -143,22 +204,36 @@ def load_comparison(path: Path) -> ComparisonData:
     return _parse_pilot(data, source)
 
 
-# ---------------------------------------------------------------------------
-# Idempotency helper
-# ---------------------------------------------------------------------------
-
+# ===== 3. Idempotenza =====
 def _needs_update(out_path: Path, *inputs: Path, force: bool = False) -> bool:
+    """Dice se la figura va (ri)generata.
+
+    Args:
+        out_path: figura di output.
+        inputs: file da cui dipende (confronto di mtime).
+        force: se True rigenera sempre.
+
+    Returns:
+        True se manca l'output o un input e' piu' recente.
+    """
     if force or not out_path.exists():
         return True
     out_mtime = out_path.stat().st_mtime
     return any(p.exists() and p.stat().st_mtime > out_mtime for p in inputs)
 
 
-# ---------------------------------------------------------------------------
-# Figure 1 — Balanced accuracy bar chart
-# ---------------------------------------------------------------------------
-
+# ===== 4. Figura 1: barre della balanced accuracy =====
 def fig_balacc_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> None:
+    """Istogramma raggruppato della balanced accuracy con barre d'errore (CI 95%).
+
+    Args:
+        cd: dati di confronto normalizzati.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+
+    Side effects:
+        Scrive ``out`` (300 DPI) se necessario.
+    """
     if not _needs_update(out, Path(cd.source_file), force=force):
         return
 
@@ -180,8 +255,11 @@ def fig_balacc_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> Non
         ba_vals, err_lo, err_hi = [], [], []
         for atlas in atlases:
             for metric in metrics:
-                matches = [r for r in results if r.atlas == atlas
-                           and r.metric == metric and r.classifier == clf]
+                matches = [
+                    r
+                    for r in results
+                    if r.atlas == atlas and r.metric == metric and r.classifier == clf
+                ]
                 ba = matches[0].bal_acc if matches else float("nan")
                 lo = matches[0].ci_lo if matches else float("nan")
                 hi = matches[0].ci_hi if matches else float("nan")
@@ -192,8 +270,16 @@ def fig_balacc_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> Non
         offset = (ci - n_clfs / 2 + 0.5) * width
         has_ci = not all(np.isnan(err_lo))
         yerr = np.array([err_lo, err_hi]) if has_ci else None
-        ax.bar(x + offset, ba_vals, width, label=clf, color=colors[ci], yerr=yerr,
-               capsize=3, error_kw={"linewidth": 1})
+        ax.bar(
+            x + offset,
+            ba_vals,
+            width,
+            label=clf,
+            color=colors[ci],
+            yerr=yerr,
+            capsize=3,
+            error_kw={"linewidth": 1},
+        )
 
     ax.axhline(0.5, linestyle="--", color="gray", linewidth=0.8, label="Chance (0.5)")
     ax.set_xticks(x)
@@ -208,11 +294,18 @@ def fig_balacc_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> Non
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Figure 2 — Balanced accuracy heatmap
-# ---------------------------------------------------------------------------
-
+# ===== 5. Figura 2: heatmap della balanced accuracy =====
 def fig_balacc_heatmap(cd: ComparisonData, out: Path, *, force: bool = False) -> None:
+    """Heatmap (atlante x metrica) vs classificatore della balanced accuracy.
+
+    Args:
+        cd: dati di confronto.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+
+    Side effects:
+        Scrive ``out``.
+    """
     if not _needs_update(out, Path(cd.source_file), force=force):
         return
 
@@ -224,8 +317,11 @@ def fig_balacc_heatmap(cd: ComparisonData, out: Path, *, force: bool = False) ->
     mat = np.full((len(rows), len(classifiers)), float("nan"))
     for i, (atlas, metric) in enumerate((a, m) for a in atlases for m in metrics):
         for j, clf in enumerate(classifiers):
-            matches = [r for r in cd.results if r.atlas == atlas
-                       and r.metric == metric and r.classifier == clf]
+            matches = [
+                r
+                for r in cd.results
+                if r.atlas == atlas and r.metric == metric and r.classifier == clf
+            ]
             if matches:
                 mat[i, j] = matches[0].bal_acc
 
@@ -243,19 +339,33 @@ def fig_balacc_heatmap(cd: ComparisonData, out: Path, *, force: bool = False) ->
         for j in range(len(classifiers)):
             val = mat[i, j]
             if not np.isnan(val):
-                ax.text(j, i, f"{val:.2f}", ha="center", va="center", fontsize=8,
-                        color="white" if val < 0.7 else "black")
+                ax.text(
+                    j,
+                    i,
+                    f"{val:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="white" if val < 0.7 else "black",
+                )
 
     fig.tight_layout()
     fig.savefig(out, **_SAVEKW)
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Figure 3 — -log10(p_perm) bar chart
-# ---------------------------------------------------------------------------
-
+# ===== 6. Figura 3: -log10(p_perm) =====
 def fig_pperm_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> None:
+    """Barre di -log10(p del permutation test) con soglia p = 0.05.
+
+    I p-value sono troncati a 1e-4 per evitare log infinito. Se nessun p e'
+    disponibile (schema PILOT) produce un grafico segnaposto.
+
+    Args:
+        cd: dati di confronto.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+    """
     if not _needs_update(out, Path(cd.source_file), force=force):
         return
 
@@ -263,8 +373,16 @@ def fig_pperm_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> None
     fig, ax = plt.subplots(figsize=_FIGSIZE_WIDE)
 
     if not results_with_p:
-        ax.text(0.5, 0.5, "p_perm non disponibile\n(schema PILOT — nessun permutation test)",
-                ha="center", va="center", transform=ax.transAxes, fontsize=11, color="gray")
+        ax.text(
+            0.5,
+            0.5,
+            "p_perm non disponibile\n(schema PILOT — nessun permutation test)",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=11,
+            color="gray",
+        )
         ax.set_title(f"Permutation p-value — {cd.schema.upper()} N={cd.n_subjects}")
     else:
         labels = [f"{r.atlas}\n{r.metric}\n{r.classifier}" for r in results_with_p]
@@ -273,8 +391,13 @@ def fig_pperm_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> None
 
         x = np.arange(len(labels))
         ax.bar(x, neg_log_p, color=colors)
-        ax.axhline(-np.log10(0.05), linestyle="--", color="red", linewidth=1,
-                   label=f"p=0.05 threshold ({-np.log10(0.05):.2f})")
+        ax.axhline(
+            -np.log10(0.05),
+            linestyle="--",
+            color="red",
+            linewidth=1,
+            label=f"p=0.05 threshold ({-np.log10(0.05):.2f})",
+        )
         ax.set_xticks(x)
         ax.set_xticklabels(labels, fontsize=7)
         ax.set_ylabel("-log₁₀(p_perm)")
@@ -287,19 +410,42 @@ def fig_pperm_bar(cd: ComparisonData, out: Path, *, force: bool = False) -> None
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Figure 4 — Average FC matrices (2×2)
-# ---------------------------------------------------------------------------
+# ===== 7. Figura 4: matrici FC medie (2x2) =====
+def fig_fc_avg(
+    fc_dir: Path, out: Path, *, force: bool = False, metric: str = "coh", band: str = "alpha"
+) -> None:
+    """Matrici FC medie sui soggetti, per atlante (righe) e condizione (colonne).
 
-def fig_fc_avg(fc_dir: Path, out: Path, *, force: bool = False,
-               metric: str = "coh", band: str = "alpha") -> None:
+    Args:
+        fc_dir: cartella dei file FC per-epoch.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+        metric: metrica di connettivita' (``coh`` o ``wpli``).
+        band: banda di frequenza nel nome file.
+
+    Side effects:
+        Scrive ``out``; i soggetti senza file vengono ignorati; la diagonale
+        e' azzerata solo ai fini del grafico.
+    """
     if not _needs_update(out, force=force):
         return
 
     subjects = [
-        "sub-007", "sub-010", "sub-011", "sub-026", "sub-031",
-        "sub-033", "sub-041", "sub-066", "sub-071", "sub-080",
-        "sub-125", "sub-157", "sub-169", "sub-185", "sub-195",
+        "sub-007",
+        "sub-010",
+        "sub-011",
+        "sub-026",
+        "sub-031",
+        "sub-033",
+        "sub-041",
+        "sub-066",
+        "sub-071",
+        "sub-080",
+        "sub-125",
+        "sub-157",
+        "sub-169",
+        "sub-185",
+        "sub-195",
     ]
     atlases = ["aparc", "schaefer100"]
     conditions = ["EO", "EC"]
@@ -312,8 +458,7 @@ def fig_fc_avg(fc_dir: Path, out: Path, *, force: bool = False,
         for ci, cond in enumerate(conditions):
             mats = []
             for sub in subjects:
-                fname = (f"{sub}_atlas-{atlas}_cond-{cond}"
-                         f"_metric-{metric}_band-{band}_per-epoch.npz")
+                fname = f"{sub}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-{band}_per-epoch.npz"
                 fp = fc_dir / fname
                 if fp.exists():
                     m = np.load(fp, allow_pickle=False)["fc_matrix"]
@@ -326,13 +471,12 @@ def fig_fc_avg(fc_dir: Path, out: Path, *, force: bool = False,
                 ax.set_title(f"{atlas} — {cond}\n(N={len(mats)}, {metric})", fontsize=9)
                 ax.tick_params(axis="both", which="both", labelsize=6)
             else:
-                ax.text(0.5, 0.5, "No data", ha="center", va="center",
-                        transform=ax.transAxes)
+                ax.text(0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes)
                 ax.set_title(f"{atlas} — {cond}")
 
     fig.suptitle(f"Average FC ({metric.upper()}, α band)", fontsize=12, y=1.01)
     fig.tight_layout()
-    # Shared colorbar
+    # Colorbar condivisa
     cbar_ax = fig.add_axes([1.01, 0.15, 0.02, 0.7])
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
     fig.colorbar(sm, cax=cbar_ax, label=metric.upper())
@@ -340,11 +484,20 @@ def fig_fc_avg(fc_dir: Path, out: Path, *, force: bool = False,
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Figure 5 — PCA 2-D scatter
-# ---------------------------------------------------------------------------
-
+# ===== 8. Figura 5: scatter PCA 2D =====
 def fig_X_pca2(features_dir: Path, out: Path, *, force: bool = False) -> None:
+    """Proiezione PCA a 2 componenti di ``X_schaefer100_coh_alpha``.
+
+    Il colore indica la classe (EO/EC), il marcatore il soggetto.
+
+    Args:
+        features_dir: cartella con ``X_schaefer100_coh_alpha.npz`` e ``y.npy``.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+
+    Side effects:
+        Scrive ``out``; se la feature manca emette un warning e non scrive nulla.
+    """
     npz_path = features_dir / "X_schaefer100_coh_alpha.npz"
     y_path = features_dir / "y.npy"
     if not _needs_update(out, npz_path, y_path, force=force):
@@ -367,8 +520,7 @@ def fig_X_pca2(features_dir: Path, out: Path, *, force: bool = False) -> None:
 
     colors = {0: "#1f77b4", 1: "#d62728"}
     labels = {0: "EO (y=0)", 1: "EC (y=1)"}
-    markers = ["o", "s", "^", "D", "v", "P", "*", "X", "h", "<",
-               ">", "p", "H", "+", "x"]
+    markers = ["o", "s", "^", "D", "v", "P", "*", "X", "h", "<", ">", "p", "H", "+", "x"]
 
     fig, ax = plt.subplots(figsize=_FIGSIZE_SQ)
     n_groups = len(np.unique(groups))
@@ -377,12 +529,17 @@ def fig_X_pca2(features_dir: Path, out: Path, *, force: bool = False) -> None:
         for cls in [0, 1]:
             idx = mask & (y == cls)
             if np.any(idx):
-                ax.scatter(X2[idx, 0], X2[idx, 1],
-                           c=colors[cls], marker=markers[gi % len(markers)],
-                           s=60, alpha=0.8,
-                           label=f"sub-{gi:03d} {labels[cls]}" if gi == 0 else None)
+                ax.scatter(
+                    X2[idx, 0],
+                    X2[idx, 1],
+                    c=colors[cls],
+                    marker=markers[gi % len(markers)],
+                    s=60,
+                    alpha=0.8,
+                    label=f"sub-{gi:03d} {labels[cls]}" if gi == 0 else None,
+                )
 
-    # Simple legend for class
+    # Legenda per classe
     for cls in [0, 1]:
         ax.scatter([], [], c=colors[cls], marker="o", s=60, label=labels[cls])
 
@@ -396,11 +553,15 @@ def fig_X_pca2(features_dir: Path, out: Path, *, force: bool = False) -> None:
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Figure 6 — Summary table (top-3)
-# ---------------------------------------------------------------------------
-
+# ===== 9. Figura 6: tabella riassuntiva (top-3) =====
 def fig_summary_table(cd: ComparisonData, out: Path, *, force: bool = False) -> None:
+    """Tabella delle 3 configurazioni con balanced accuracy piu' alta.
+
+    Args:
+        cd: dati di confronto.
+        out: PNG di output.
+        force: rigenera anche se aggiornato.
+    """
     if not _needs_update(out, Path(cd.source_file), force=force):
         return
 
@@ -408,8 +569,7 @@ def fig_summary_table(cd: ComparisonData, out: Path, *, force: bool = False) -> 
     col_labels = ["Atlas", "Metric", "Classifier", "BA", "CI 95%", "p_perm"]
     rows = []
     for r in sorted_res:
-        ci_str = (f"[{r.ci_lo:.3f}, {r.ci_hi:.3f}]"
-                  if not np.isnan(r.ci_lo) else "—")
+        ci_str = f"[{r.ci_lo:.3f}, {r.ci_hi:.3f}]" if not np.isnan(r.ci_lo) else "—"
         p_str = f"{r.p_perm:.4f}" if not np.isnan(r.p_perm) else "—"
         rows.append([r.atlas, r.metric, r.classifier, f"{r.bal_acc:.3f}", ci_str, p_str])
 
@@ -424,31 +584,29 @@ def fig_summary_table(cd: ComparisonData, out: Path, *, force: bool = False) -> 
     )
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(10)
-    # Header style
+    # Stile intestazione
     for j in range(len(col_labels)):
         tbl[(0, j)].set_facecolor("#2c3e50")
         tbl[(0, j)].set_text_props(color="white", fontweight="bold")
-    # Alternate row colors
+    # Righe a colori alternati
     for i in range(1, len(rows) + 1):
         bg = "#eaf2fb" if i % 2 == 0 else "#ffffff"
         for j in range(len(col_labels)):
             tbl[(i, j)].set_facecolor(bg)
-    # Winner row
+    # Riga vincitrice evidenziata
     if rows:
         for j in range(len(col_labels)):
             tbl[(1, j)].set_facecolor("#d5f5e3")
 
-    ax.set_title(f"Top-3 configurations — {cd.schema.upper()} N={cd.n_subjects}",
-                 pad=12, fontsize=11)
+    ax.set_title(
+        f"Top-3 configurations — {cd.schema.upper()} N={cd.n_subjects}", pad=12, fontsize=11
+    )
     fig.tight_layout()
     fig.savefig(out, **_SAVEKW)
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
+# ===== 10. Orchestrazione ed entry point =====
 def run(
     comparison: Path,
     features_dir: Path,
@@ -457,6 +615,18 @@ def run(
     *,
     force: bool = False,
 ) -> int:
+    """Genera tutte le figure (le gia' aggiornate vengono saltate).
+
+    Args:
+        comparison: JSON della matrice di confronto.
+        features_dir: cartella delle feature.
+        fc_dir: cartella delle matrici FC.
+        out_dir: cartella di output (creata se manca).
+        force: rigenera anche le figure aggiornate.
+
+    Returns:
+        0 (le figure con dati mancanti sono segnalate ma non causano errore).
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     cd = load_comparison(comparison)
 
@@ -493,12 +663,14 @@ def run(
 
 
 def main() -> int:
+    """Interpreta gli argomenti CLI e lancia :func:`run`."""
     ap = argparse.ArgumentParser(
         description="S-FIG-N15 — Generate classification result figures",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    ap.add_argument("--comparison", required=True, type=Path,
-                    help="comparison_matrix.json (PILOT or N=15)")
+    ap.add_argument(
+        "--comparison", required=True, type=Path, help="comparison_matrix.json (PILOT or N=15)"
+    )
     ap.add_argument("--features-dir", default="data/features/ds005385", type=Path)
     ap.add_argument("--fc-dir", default="data/connectivity/ds005385", type=Path)
     ap.add_argument("--out-dir", default="reports/figures", type=Path)

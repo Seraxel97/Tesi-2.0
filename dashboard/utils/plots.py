@@ -1,10 +1,16 @@
-"""Plotly figure generators for the ML dashboard."""
+"""Plotly figure generators for the ML dashboard.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
+"""
+
 from __future__ import annotations
 
 from typing import Any
 
 import numpy as np
 import plotly.graph_objects as go
+
+# ===== Figure di performance =====
 
 
 def plot_confusion_matrix(
@@ -16,28 +22,30 @@ def plot_confusion_matrix(
     labels = labels or ["EO (0)", "EC (1)"]
     cm_arr = np.array(cm)
     total = cm_arr.sum()
-    pct = [[f"{v/total*100:.1f}%" for v in row] for row in cm_arr]
+    pct = [[f"{v / total * 100:.1f}%" for v in row] for row in cm_arr]
     annotations_text = [
-        [f"{cm_arr[i,j]}<br><sub>{pct[i][j]}</sub>" for j in range(2)]
-        for i in range(2)
+        [f"{cm_arr[i, j]}<br><sub>{pct[i][j]}</sub>" for j in range(2)] for i in range(2)
     ]
 
-    fig = go.Figure(go.Heatmap(
-        z=cm_arr,
-        x=labels,
-        y=labels,
-        colorscale="Blues",
-        showscale=False,
-        text=annotations_text,
-        texttemplate="%{text}",
-        textfont={"size": 18},
-    ))
+    fig = go.Figure(
+        go.Heatmap(
+            z=cm_arr,
+            x=labels,
+            y=labels,
+            colorscale="Blues",
+            showscale=False,
+            text=annotations_text,
+            texttemplate="%{text}",
+            textfont={"size": 18},
+        )
+    )
     fig.update_layout(
         title=dict(text=title, font=dict(size=14)),
         xaxis_title="Predicted",
         yaxis_title="True",
         xaxis=dict(side="top"),
-        width=400, height=380,
+        width=400,
+        height=380,
         margin=dict(l=60, r=20, t=80, b=40),
     )
     return fig
@@ -51,19 +59,26 @@ def plot_roc_curve(
 ) -> go.Figure:
     """ROC curve with AUC annotation."""
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=fpr, y=tpr,
-        mode="lines",
-        name=f"ROC (AUC={auc_val:.3f})",
-        line=dict(color="#2166ac", width=2.5),
-        fill="tozeroy", fillcolor="rgba(33,102,172,0.08)",
-    ))
-    fig.add_trace(go.Scatter(
-        x=[0, 1], y=[0, 1],
-        mode="lines",
-        name="Chance",
-        line=dict(color="gray", width=1.2, dash="dash"),
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=fpr,
+            y=tpr,
+            mode="lines",
+            name=f"ROC (AUC={auc_val:.3f})",
+            line=dict(color="#2166ac", width=2.5),
+            fill="tozeroy",
+            fillcolor="rgba(33,102,172,0.08)",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[0, 1],
+            y=[0, 1],
+            mode="lines",
+            name="Chance",
+            line=dict(color="gray", width=1.2, dash="dash"),
+        )
+    )
     fig.update_layout(
         title=dict(text=title, font=dict(size=14)),
         xaxis_title="False Positive Rate",
@@ -71,7 +86,8 @@ def plot_roc_curve(
         legend=dict(x=0.6, y=0.05),
         xaxis=dict(range=[0, 1]),
         yaxis=dict(range=[0, 1.02]),
-        width=480, height=380,
+        width=480,
+        height=380,
         margin=dict(l=60, r=20, t=60, b=50),
     )
     return fig
@@ -86,13 +102,16 @@ def plot_learning_curve(
     mean_ba = float(np.mean(ba_per_fold))
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x, y=ba_per_fold,
-        mode="markers+lines",
-        name="BA per fold",
-        marker=dict(size=5, color="#4dac26"),
-        line=dict(color="#4dac26", width=1.2),
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=ba_per_fold,
+            mode="markers+lines",
+            name="BA per fold",
+            marker=dict(size=5, color="#4dac26"),
+            line=dict(color="#4dac26", width=1.2),
+        )
+    )
     fig.add_hline(
         y=mean_ba,
         line=dict(color="#d73027", width=1.5, dash="dash"),
@@ -110,7 +129,8 @@ def plot_learning_curve(
         xaxis_title="Fold (subject withheld)",
         yaxis_title="Balanced Accuracy",
         yaxis=dict(range=[0, 1.05]),
-        width=600, height=340,
+        width=600,
+        height=340,
         margin=dict(l=60, r=20, t=60, b=50),
     )
     return fig
@@ -131,12 +151,14 @@ def plot_permutation_null(
     n_label = f" (n={n_perm})" if n_perm else ""
 
     fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        x=null,
-        nbinsx=40,
-        name=f"Null distribution{n_label}",
-        marker=dict(color="#4575b4", opacity=0.75),
-    ))
+    fig.add_trace(
+        go.Histogram(
+            x=null,
+            nbinsx=40,
+            name=f"Null distribution{n_label}",
+            marker=dict(color="#4575b4", opacity=0.75),
+        )
+    )
     fig.add_vline(
         x=observed_ba,
         line=dict(color="#d73027", width=2.5),
@@ -155,10 +177,14 @@ def plot_permutation_null(
         xaxis_title="Balanced Accuracy (permuted labels)",
         yaxis_title="Count",
         showlegend=True,
-        width=580, height=360,
+        width=580,
+        height=360,
         margin=dict(l=60, r=20, t=60, b=50),
     )
     return fig
+
+
+# ===== Importanza e confronto =====
 
 
 def plot_feature_importance(
@@ -186,17 +212,20 @@ def plot_feature_importance(
     top_labels = [labels[i] if i < len(labels) else f"feat-{i}" for i in idx_sorted]
     colors = ["#d73027" if v >= 0 else "#4575b4" for v in top_coef]
 
-    fig = go.Figure(go.Bar(
-        x=top_coef,
-        y=top_labels,
-        orientation="h",
-        marker_color=colors,
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=top_coef,
+            y=top_labels,
+            orientation="h",
+            marker_color=colors,
+        )
+    )
     fig.update_layout(
         title=dict(text=title, font=dict(size=14)),
         xaxis_title="Coefficient (pos=EC, neg=EO)",
         yaxis=dict(autorange="reversed"),
-        width=640, height=max(300, n_top * 20 + 80),
+        width=640,
+        height=max(300, n_top * 20 + 80),
         margin=dict(l=220, r=20, t=60, b=50),
     )
     return fig
@@ -208,20 +237,22 @@ def plot_results_comparison(results: list[dict[str, Any]]) -> go.Figure:
         return go.Figure()
 
     labels = [
-        f"{r.get('atlas','?')}×{r.get('metric','?')}×{r.get('band','?')}×{r.get('clf',r.get('algorithm','?'))}"
+        f"{r.get('atlas', '?')}×{r.get('metric', '?')}×{r.get('band', '?')}×{r.get('clf', r.get('algorithm', '?'))}"
         for r in results
     ]
     bas = [r.get("ba", r.get("agg", {}).get("balanced_accuracy", 0)) for r in results]
     colors = ["#d73027" if b == max(bas) else "#4575b4" for b in bas]
 
-    fig = go.Figure(go.Bar(
-        x=bas,
-        y=labels,
-        orientation="h",
-        marker_color=colors,
-        text=[f"{b:.3f}" for b in bas],
-        textposition="outside",
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=bas,
+            y=labels,
+            orientation="h",
+            marker_color=colors,
+            text=[f"{b:.3f}" for b in bas],
+            textposition="outside",
+        )
+    )
     fig.add_vline(x=0.5, line=dict(color="gray", dash="dash", width=1))
     fig.update_layout(
         title=dict(text="Balanced Accuracy — tutte le combinazioni caricate", font=dict(size=14)),

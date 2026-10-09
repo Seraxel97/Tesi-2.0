@@ -21,24 +21,30 @@ from pathlib import Path
 
 # ── Path operatore (da configurare) ──────────────────────────────────────────
 # BLOCCO OPERATORE: impostare il path reale dopo download LEMON BIDS.
+# Radice del dataset LEMON BIDS su disco; None finche' l'operatore non la imposta
 LEMON_RAW_PATH: Path | None = None  # es. Path("~/data/LEMON_BIDS").expanduser()
 
 # ── Configurazione pipeline ───────────────────────────────────────────────────
+# Identificativo del dataset (usato in nomi file e log)
 DATASET_ID = "lemon"
-SFREQ_TARGET = 500  # Hz — stesso di ds005385
+SFREQ_TARGET = 500  # Hz: frequenza di campionamento dopo resampling (allineata a ds005385)
+# Paradigma sperimentale: confronto occhi chiusi vs aperti
 PARADIGM = "EC_EO"  # Eyes Closed / Eyes Open
 
 # Pilot whitelist (15 subjects, seed=42) — da aggiornare con sub-ID LEMON reali
 # NOTA: sub-ID LEMON seguono formato "sub-010001", "sub-010002", etc.
+# Numero di soggetti del pilota (stessa taglia della whitelist N=15)
 PILOT_N = 15
+# Seed del campionamento casuale (riproducibilita)
 PILOT_SEED = 42
 
 # Label mapping EC/EO per LEMON
 # LEMON usa "EC" e "EO" nei task names BIDS
-LABEL_MAP = {
+LABEL_MAP = {  # etichetta numerica per classificazione binaria
     "EC": 0,  # Eyes Closed → classe 0
     "EO": 1,  # Eyes Open → classe 1
 }
 
 # Atlanti supportati (stessi di ds005385)
+# Parcellazioni corticali usate (Desikan-Killiany e Schaefer 100 parcelle)
 ATLASES = ["aparc", "schaefer100"]

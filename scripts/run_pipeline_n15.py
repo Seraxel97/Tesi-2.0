@@ -1,12 +1,27 @@
-"""
-STEP 5→6→7 — Full run N=15 ds005385.
+"""Step 5 -> 6+7 su N=15 soggetti di ds005385 (EO vs EC, LOSO).
 
-Step 5: upper-triangle flatten FC per-epoch → X (30, n_feat), y, groups LOSO-ready.
-Step 6+7: aggregate_classify_n15 da ml_training.aggregate_n15 (S-AGG-N15, commit 4995662).
-          LOSO GroupKFold-15, bootstrap CI, permutation p-value, comparison_matrix_N15.json.
+Scopo:
+    Step 5: appiattisce il triangolo superiore delle matrici FC per-epoca in
+    una matrice X (30 campioni, n_feature) con vettori y (EO=0, EC=1) e groups
+    (indice soggetto) pronti per la LOSO.
+    Step 6+7: chiama aggregate_classify_n15 (ml_training.aggregate_n15) che
+    esegue LOSO GroupKFold-15, CI bootstrap, p-value da permutazione e salva
+    comparison_matrix_N15.json.
 
-Usage:
-    python scripts/run_pipeline_n15.py
+Input:
+    - data/connectivity/ds005385/*_per-epoch.npz (FC prodotte dallo step 4b)
+    - config.subjects_whitelist.SUBJECT_WHITELIST (15 soggetti)
+
+Output:
+    - data/features/ds005385/X_<atlante>_<metrica>_<banda>.npz, y.npy, groups.npy, metadata.json
+    - data/results/ds005385/ (risultati ML)
+    - reports/EXPERIMENTS_N15.md e reports/SCIENTIFIC_PIPELINE_STATUS.md
+
+Esempio:
+    python scripts/run_pipeline_n15.py                 # step 5 + 6+7
+    python scripts/run_pipeline_n15.py --step5-only    # solo feature
+    python scripts/run_pipeline_n15.py --n-perm 100    # test rapido
+
 """
 
 from __future__ import annotations
@@ -20,11 +35,14 @@ from pathlib import Path
 
 import numpy as np
 
+# Rende importabili i pacchetti del repository dalla cartella scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 warnings.filterwarnings("ignore")
 
 from config.subjects_whitelist import SUBJECT_WHITELIST  # noqa: E402
 from ml_training.aggregate_n15 import aggregate_classify_n15  # noqa: E402
+
+# ===== 1. Configurazione =====
 
 CONN_DIR = Path("data/connectivity/ds005385")
 FEAT_DIR = Path("data/features/ds005385")
@@ -42,25 +60,52 @@ BANDS: dict[str, tuple[float, float]] = {
     "gamma": (30.0, 45.0),
 }
 
+# Crea le cartelle di output già all'import del modulo
 FEAT_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ── Step 5 — Feature extraction ───────────────────────────────────────────────
-
+# ===== 2. Step 5 — Feature extraction =====
 def fc_path(sub: str, atlas: str, cond: str, metric: str, band: str) -> Path:
+    """Percorso del file FC per-epoca per soggetto/atlante/condizione/metrica/banda.
+
+    Args:
+        sub: id soggetto.
+        atlas: atlante.
+        cond: 'EO' o 'EC'.
+        metric: metrica FC.
+        band: nome banda.
+
+    Returns:
+        Path del file.
+    """
     return CONN_DIR / f"{sub}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-{band}_per-epoch.npz"
 
 
 def build_X(
     atlas: str, metric: str, band: str, subjects: list[str]
 ) -> tuple[np.ndarray, list[str]]:
+    """Costruisce la matrice di feature per una combinazione atlante/metrica/banda.
+
+    Args:
+        atlas: atlante.
+        metric: metrica FC.
+        band: banda.
+        subjects: soggetti, nell'ordine delle righe.
+
+    Returns:
+        tupla (X di forma (n_soggetti*2, n_archi), etichette di riga '<sub>_<cond>').
+
+    Side effects:
+        Nessuno (legge i file FC; solleva errore se mancanti).
+    """
     rows, row_labels = [], []
     for sub in subjects:
         for cond in CONDITIONS:
             d = np.load(fc_path(sub, atlas, cond, metric, band), allow_pickle=True)
             mat = d["fc_matrix"].astype(np.float64)
             n = mat.shape[0]
+            # Feature = triangolo superiore senza diagonale (FC simmetrica)
             idx = np.triu_indices(n, k=1)
             rows.append(mat[idx])
             row_labels.append(f"{sub}_{cond}")
@@ -68,22 +113,43 @@ def build_X(
 
 
 def build_y_groups(subjects: list[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Costruisce le etichette di classe e i gruppi per la LOSO.
+
+    Args:
+        subjects: lista soggetti.
+
+    Returns:
+        tupla (y con EO=0/EC=1, groups con l'indice del soggetto), entrambi int32.
+    """
     y, groups = [], []
     for i, _sub in enumerate(subjects):
         for cond in CONDITIONS:
+            # Codifica etichette: EO=0, EC=1; groups = indice soggetto
             y.append(0 if cond == "EO" else 1)
             groups.append(i)
     return np.array(y, dtype=np.int32), np.array(groups, dtype=np.int32)
 
 
 def run_step5(subjects: list[str], force: bool = False) -> list[dict]:
+    """Step 5: genera e salva tutte le matrici X (atlante x metrica x banda).
+
+    Args:
+        subjects: lista soggetti.
+        force: se True ricalcola anche i file già presenti.
+
+    Returns:
+        lista di dict con forma, range, NaN e tempi per ogni combinazione.
+
+    Side effects:
+        Scrive y.npy, groups.npy, X_*.npz e metadata.json in data/features/ds005385.
+    """
     n_combos = len(ATLASES) * len(METRICS) * len(BANDS)
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(
-        f"STEP 5 — Feature extraction | N={len(subjects)} sub → {len(subjects)*2} samples"
+        f"STEP 5 — Feature extraction | N={len(subjects)} sub → {len(subjects) * 2} samples"
         f" | {n_combos} combos (2 atlas × 4 metric × 4 band)"
     )
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     y, groups = build_y_groups(subjects)
     np.save(FEAT_DIR / "y.npy", y)
@@ -98,16 +164,24 @@ def run_step5(subjects: list[str], force: bool = False) -> list[dict]:
                 if not force and out_path.exists():
                     d = np.load(out_path, allow_pickle=True)
                     if d["X"].shape == (len(subjects) * 2, d["X"].shape[1]):
-                        print(f"  {atlas:12s} {metric:4s} {band:5s}  SKIP (exists, shape={d['X'].shape})")
-                        results.append({
-                            "atlas": atlas, "metric": metric, "band": band,
-                            "shape": list(d["X"].shape), "n_features": d["X"].shape[1],
-                            "x_min": round(float(np.nanmin(d["X"])), 4),
-                            "x_max": round(float(np.nanmax(d["X"])), 4),
-                            "x_mean": round(float(np.nanmean(d["X"])), 4),
-                            "nan_count": int(np.isnan(d["X"]).sum()),
-                            "elapsed_s": 0.0, "skipped": True,
-                        })
+                        print(
+                            f"  {atlas:12s} {metric:4s} {band:5s}  SKIP (exists, shape={d['X'].shape})"
+                        )
+                        results.append(
+                            {
+                                "atlas": atlas,
+                                "metric": metric,
+                                "band": band,
+                                "shape": list(d["X"].shape),
+                                "n_features": d["X"].shape[1],
+                                "x_min": round(float(np.nanmin(d["X"])), 4),
+                                "x_max": round(float(np.nanmax(d["X"])), 4),
+                                "x_mean": round(float(np.nanmean(d["X"])), 4),
+                                "nan_count": int(np.isnan(d["X"]).sum()),
+                                "elapsed_s": 0.0,
+                                "skipped": True,
+                            }
+                        )
                         continue
 
                 t0 = time.perf_counter()
@@ -122,35 +196,57 @@ def run_step5(subjects: list[str], force: bool = False) -> list[dict]:
                     f"range=[{float(np.nanmin(X)):.4f}, {float(np.nanmax(X)):.4f}]  "
                     f"nan={n_nan}  {elapsed:.3f}s"
                 )
-                results.append({
-                    "atlas": atlas, "metric": metric, "band": band,
-                    "shape": list(X.shape), "n_features": X.shape[1],
-                    "x_min": round(float(np.nanmin(X)), 4),
-                    "x_max": round(float(np.nanmax(X)), 4),
-                    "x_mean": round(float(np.nanmean(X)), 4),
-                    "nan_count": n_nan, "elapsed_s": round(elapsed, 3),
-                })
+                results.append(
+                    {
+                        "atlas": atlas,
+                        "metric": metric,
+                        "band": band,
+                        "shape": list(X.shape),
+                        "n_features": X.shape[1],
+                        "x_min": round(float(np.nanmin(X)), 4),
+                        "x_max": round(float(np.nanmax(X)), 4),
+                        "x_mean": round(float(np.nanmean(X)), 4),
+                        "nan_count": n_nan,
+                        "elapsed_s": round(elapsed, 3),
+                    }
+                )
 
     n_new = sum(1 for r in results if not r.get("skipped"))
     metadata = {
         "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
-        "subjects": subjects, "conditions": CONDITIONS,
-        "atlases": ATLASES, "metrics": METRICS,
+        "subjects": subjects,
+        "conditions": CONDITIONS,
+        "atlases": ATLASES,
+        "metrics": METRICS,
         "bands": list(BANDS.keys()),
         "band_hz": {b: list(hz) for b, hz in BANDS.items()},
         "y_encoding": {"EO": 0, "EC": 1},
         "row_order": [f"{s}_{c}" for s in subjects for c in CONDITIONS],
-        "n_subjects": len(subjects), "n_samples": len(subjects) * 2,
+        "n_subjects": len(subjects),
+        "n_samples": len(subjects) * 2,
         "n_combos": n_combos,
     }
     (FEAT_DIR / "metadata.json").write_text(json.dumps(metadata, indent=2))
-    print(f"\nStep 5 DONE — {n_new} nuovi + {len(results)-n_new} skip | 32 X totali")
+    print(f"\nStep 5 DONE — {n_new} nuovi + {len(results) - n_new} skip | 32 X totali")
     return results
 
 
-# ── Report finale ─────────────────────────────────────────────────────────────
-
+# ===== 3. Report finale =====
 def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: float) -> None:
+    """Scrive il report Markdown degli esperimenti N=15.
+
+    Args:
+        subjects: soggetti.
+        step5: risultati dello step 5.
+        agg: dict di aggregazione ML.
+        total_s: durata totale in secondi.
+
+    Returns:
+        None.
+
+    Side effects:
+        Scrive reports/EXPERIMENTS_N15.md.
+    """
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     results = agg.get("results", [])
     winner = agg.get("winner") or {}
@@ -161,12 +257,14 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         f"**Timestamp**: {ts}",
         "**Sprint**: S-FULL-N15 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
-        f"**Campioni**: {len(subjects)*2} (EO + EC)",
+        f"**Campioni**: {len(subjects) * 2} (EO + EC)",
         "**CV**: LOSO GroupKFold-15 (ml_training.aggregate_n15)",
         "**Modulo**: aggregate_classify_n15 — S-AGG-N15 commit 4995662",
         "",
-        "---", "",
-        "## STEP 5 — Feature Extraction", "",
+        "---",
+        "",
+        "## STEP 5 — Feature Extraction",
+        "",
         "| Atlas | Metric | Shape X | n_features | Range | Mean | NaN |",
         "|-------|--------|---------|------------|-------|------|-----|",
     ]
@@ -177,8 +275,11 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         )
 
     lines += [
-        "", "---", "",
-        "## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test", "",
+        "",
+        "---",
+        "",
+        "## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test",
+        "",
         "| Atlas | Metric | Band | Classifier | Bal.Acc | CI 95% | p_perm | Sig |",
         "|-------|--------|------|------------|---------|--------|--------|-----|",
     ]
@@ -186,8 +287,8 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         ci = [r.get("ci_lo", float("nan")), r.get("ci_hi", float("nan"))]
         sig = "[OK]" if r.get("p_perm", 1.0) < 0.05 else "[FAIL]"
         lines.append(
-            f"| {r.get('atlas','?')} | {r.get('metric','?')} | {r.get('band','?')} "
-            f"| {r.get('classifier','?')} "
+            f"| {r.get('atlas', '?')} | {r.get('metric', '?')} | {r.get('band', '?')} "
+            f"| {r.get('classifier', '?')} "
             f"| **{r.get('ba_mean', float('nan')):.3f}** ±{r.get('ba_std', float('nan')):.3f}"
             f"| [{ci[0]:.3f}, {ci[1]:.3f}] "
             f"| {r.get('p_perm', float('nan')):.3f} | {sig} |"
@@ -200,16 +301,25 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
     w_p = winner.get("p_perm", float("nan"))
     w_ci = [winner.get("ci_lo", float("nan")), winner.get("ci_hi", float("nan"))]
 
+    # Valore del pilota (n=10) da confrontare con il run completo
     pilot_schaefer_coh_logreg = next(
-        (r.get("ba_mean") for r in results
-         if r.get("atlas") == "schaefer100" and r.get("metric") == "coh"
-         and r.get("classifier") == "logreg" and r.get("band") == "alpha"),
-        float("nan")
+        (
+            r.get("ba_mean")
+            for r in results
+            if r.get("atlas") == "schaefer100"
+            and r.get("metric") == "coh"
+            and r.get("classifier") == "logreg"
+            and r.get("band") == "alpha"
+        ),
+        float("nan"),
     )
 
     lines += [
-        "", "---", "",
-        "## Best configuration", "",
+        "",
+        "---",
+        "",
+        "## Best configuration",
+        "",
         f"**Winner**: `{w_atlas} × {w_metric} × {w_clf}`",
         f"**Balanced Accuracy**: {w_bal:.3f}  CI=[{w_ci[0]:.3f}, {w_ci[1]:.3f}]",
         f"**p_perm**: {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'})",
@@ -220,12 +330,14 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         "|--------|-------|------|",
         f"| schaefer100 × coh × logreg | 0.900 | {pilot_schaefer_coh_logreg:.3f} |",
         "",
-        "---", "",
-        "## Summary", "",
+        "---",
+        "",
+        "## Summary",
+        "",
         "| Metrica | Valore |",
         "|---------|--------|",
         f"| Soggetti | {len(subjects)} |",
-        f"| Campioni | {len(subjects)*2} |",
+        f"| Campioni | {len(subjects) * 2} |",
         f"| Combos testati | {len(results)} |",
         f"| Winner | {w_atlas} × {w_metric} × {w_clf} |",
         f"| Best bal_acc | {w_bal:.3f} |",
@@ -239,9 +351,22 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
 
 
 def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
+    """Aggiorna il file di stato scientifico con il vincitore del run.
+
+    Args:
+        subjects: soggetti.
+        agg: dict di aggregazione ML.
+        total_s: durata in secondi.
+
+    Returns:
+        None.
+
+    Side effects:
+        Sovrascrive reports/SCIENTIFIC_PIPELINE_STATUS.md.
+    """
     winner = agg.get("winner") or {}
     ts = datetime.now(UTC).isoformat(timespec="seconds")
-    w = f"{winner.get('atlas','?')} × {winner.get('metric','?')} × {winner.get('classifier','?')}"
+    w = f"{winner.get('atlas', '?')} × {winner.get('metric', '?')} × {winner.get('classifier', '?')}"
     w_bal = winner.get("ba_mean", float("nan"))
     w_p = winner.get("p_perm", float("nan"))
 
@@ -267,49 +392,69 @@ def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
 | Metrica | Valore |
 |---------|--------|
 | Soggetti | {len(subjects)} |
-| Campioni | {len(subjects)*2} |
+| Campioni | {len(subjects) * 2} |
 | Winner | {w} |
 | bal_acc | {w_bal:.3f} |
-| p_perm | {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'}) |
-| Wall-clock pipeline | ~{total_s/60:.0f} min |
+| p_perm | {w_p:.3f} ({"p<0.05 [OK]" if w_p < 0.05 else "p>=0.05 [WARNING]"}) |
+| Wall-clock pipeline | ~{total_s / 60:.0f} min |
 | Verdict | **PASS** [OK] |
 """
     STATUS_PATH.write_text(content)
     print(f"Status → {STATUS_PATH}")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
+# ===== 4. Main =====
 def main() -> None:
+    """Punto di ingresso CLI: step 5 e, se non --step5-only, aggregazione ML e report.
+
+    Side effects:
+        Vedi run_step5, write_report e update_status.
+    """
     import argparse
+
     ap = argparse.ArgumentParser(description="STEP 5 feature extraction N=15 (+ optional 6+7)")
-    ap.add_argument("--step5-only", action="store_true",
-                    help="Run only Step 5 (feature extraction). Step 6+7 handled by sonnet-tesi-2.")
+    ap.add_argument(
+        "--step5-only",
+        action="store_true",
+        help="Run only Step 5 (feature extraction). Step 6+7 handled by sonnet-tesi-2.",
+    )
     ap.add_argument("--force", action="store_true", help="Force recompute even if X exists")
-    ap.add_argument("--n-perm", type=int, default=1000, dest="n_perm",
-                    help="Number of permutations for p-value (default: 1000)")
+    ap.add_argument(
+        "--n-perm",
+        type=int,
+        default=1000,
+        dest="n_perm",
+        help="Number of permutations for p-value (default: 1000)",
+    )
     args = ap.parse_args()
 
     subjects = SUBJECT_WHITELIST
-    print(f"STEP 5 N=15 | {len(subjects)} sub × {len(ATLASES)} atlas × {len(METRICS)} metric × {len(BANDS)} band = 32 X")
+    print(
+        f"STEP 5 N=15 | {len(subjects)} sub × {len(ATLASES)} atlas × {len(METRICS)} metric × {len(BANDS)} band = 32 X"
+    )
     t_total = time.perf_counter()
 
     step5_results = run_step5(subjects, force=args.force)
     total_s = time.perf_counter() - t_total
     n_new = sum(1 for r in step5_results if not r.get("skipped"))
 
-    print(f"\nStep 5 DONE in {total_s:.1f}s — {n_new} nuovi X, {len(step5_results)-n_new} skip")
+    print(f"\nStep 5 DONE in {total_s:.1f}s — {n_new} nuovi X, {len(step5_results) - n_new} skip")
 
     if not args.step5_only:
         # Trigger guard: S-FC-EXTEND deve aver prodotto ≥30 X files
+        # Guard: lo step 6+7 richiede le X complete (>=30 file)
         x_files = list(FEAT_DIR.glob("X_*.npz"))
         if len(x_files) < 30:
-            print(f"[WARN] Solo {len(x_files)} X file — S-FC-EXTEND non ancora done (≥30 richiesti).")
+            print(
+                f"[WARN] Solo {len(x_files)} X file — S-FC-EXTEND non ancora done (≥30 richiesti)."
+            )
             print("       Riesegui senza --step5-only quando S-FC-EXTEND è completato.")
             return
 
         _n_perm = args.n_perm  # default=1000 (paper-grade); usa --n-perm 100 per test rapidi
-        print(f"Step 6+7: {len(x_files)} X file trovati → avvio aggregate (192 combos, n_perm={_n_perm})")
+        print(
+            f"Step 6+7: {len(x_files)} X file trovati → avvio aggregate (192 combos, n_perm={_n_perm})"
+        )
         agg = aggregate_classify_n15(
             features_dir=FEAT_DIR,
             out_dir=RESULTS_DIR,
@@ -321,8 +466,10 @@ def main() -> None:
             random_state=42,
         )
         winner = agg.get("winner") or {}
-        print(f"Winner: {winner.get('atlas')} × {winner.get('metric')} × {winner.get('classifier')}"
-              f" — BA={winner.get('ba_mean', float('nan')):.3f} p={winner.get('p_perm', float('nan')):.4f}")
+        print(
+            f"Winner: {winner.get('atlas')} × {winner.get('metric')} × {winner.get('classifier')}"
+            f" — BA={winner.get('ba_mean', float('nan')):.3f} p={winner.get('p_perm', float('nan')):.4f}"
+        )
         write_report(subjects, step5_results, agg, total_s)
         update_status(subjects, agg, total_s)
 

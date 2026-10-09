@@ -42,6 +42,8 @@ from parcellation.extract_label_tc import AtlasName, extract_tc
 
 # ── Assi benchmark ────────────────────────────────────────────────────────────
 
+# ===== Configurazione =====
+
 ATLASES: list[AtlasName] = ["aparc", "destrieux", "schaefer100", "schaefer200"]
 
 METRICS = ["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"]
@@ -66,7 +68,15 @@ _LABEL_MAP = {
 _TZ = timezone(timedelta(hours=2))
 
 
+# ===== Utility =====
+
+
 def _git_sha() -> str:
+    """Restituisce lo SHA git corto del commit corrente.
+
+    Returns:
+        SHA abbreviato, oppure "unknown" se git non e' disponibile.
+    """
     try:
         return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
     except Exception:
@@ -74,11 +84,32 @@ def _git_sha() -> str:
 
 
 def _config_hash(subject: str, sfreq_target: float, n_epochs_max: int) -> str:
+    """Hash breve (md5, 8 caratteri) dei parametri di run per la tracciabilita'.
+
+    Args:
+        subject: Identificativo soggetto.
+        sfreq_target: Frequenza di campionamento target (Hz).
+        n_epochs_max: Numero massimo di epoche (0 = nessun limite).
+
+    Returns:
+        Stringa esadecimale di 8 caratteri.
+    """
     cfg = f"{subject}|{sfreq_target}|{n_epochs_max}"
     return hashlib.md5(cfg.encode()).hexdigest()[:8]
 
 
 def _build_y(epochs: mne.Epochs) -> np.ndarray:
+    """Costruisce il vettore di label numeriche dalle epoche.
+
+    Mappa il nome dell'evento di ciascuna epoca tramite `_LABEL_MAP`;
+    gli eventi non riconosciuti ricevono -1 (da scartare a valle).
+
+    Args:
+        epochs: Epoche MNE con `event_id` ed `events` valorizzati.
+
+    Returns:
+        Array int di shape (n_epochs,) con la label per epoca (-1 = sconosciuta).
+    """
     event_ids_inv = {v: k for k, v in epochs.event_id.items()}
     return np.array(
         [_LABEL_MAP.get(event_ids_inv.get(ev, ""), -1) for ev in epochs.events[:, 2]],
@@ -92,6 +123,23 @@ def _load_epochs_and_inv(
     sfreq_target: float,
     n_epochs_max: int,
 ) -> tuple[mne.Epochs, mne.minimum_norm.InverseOperator, np.ndarray, float]:
+    """Carica epoche preprocessate e operatore inverso di un soggetto.
+
+    Decima le epoche fino a `sfreq_target`, applica il limite `n_epochs_max`
+    e scarta le epoche con label sconosciuta.
+
+    Args:
+        sub_eeg: Cartella EEG del soggetto nei derivati.
+        subject: Identificativo soggetto (es. "sub-05").
+        sfreq_target: Frequenza di campionamento target (Hz).
+        n_epochs_max: Limite epoche (0 = tutte).
+
+    Returns:
+        Tuple (epochs, inv_op, y, sfreq) con y di shape (n_epochs,).
+
+    Raises:
+        FileNotFoundError: Se mancano i file `_epo.fif` o `_inv.fif`.
+    """
     epo_path = sub_eeg / f"{subject}_task-matchingpennies_epo.fif"
     epochs = mne.read_epochs(str(epo_path), preload=True, verbose=False)
 
@@ -121,6 +169,22 @@ def _compute_label_tc(
     lambda2: float = 1.0 / 9.0,
     inv_method: str = "dSPM",
 ) -> tuple[np.ndarray, list[str]]:
+    """Estrae le time-course per label atlas da ogni epoca (source space).
+
+    Per ogni epoca applica l'inversa sull'average dell'epoca e aggrega
+    i vertici nelle label dell'atlante.
+
+    Args:
+        epochs: Epoche MNE.
+        inv_op: Operatore inverso minimum-norm.
+        atlas: Nome dell'atlante di parcellazione.
+        lambda2: Regolarizzazione (1 / SNR^2, SNR=3 -> 1/9).
+        inv_method: Metodo inverso (es. "dSPM").
+
+    Returns:
+        Tuple (tc, names): tc di shape (n_epochs, n_labels, n_times) e
+        lista dei nomi delle label.
+    """
     src = inv_op["src"]
     tc_list: list[np.ndarray] = []
     names_: list[str] = []
@@ -131,6 +195,9 @@ def _compute_label_tc(
         tc_i, names_ = extract_tc(stc, atlas, src)
         tc_list.append(tc_i)
     return np.stack(tc_list, axis=0), names_
+
+
+# ===== Loop di benchmark =====
 
 
 def run_bench(
@@ -200,9 +267,7 @@ def run_bench(
     }
 
     print(f"[BENCH] carico epochs + inv per {subject}...")
-    epochs, inv_op, y, sfreq = _load_epochs_and_inv(
-        sub_eeg, subject, sfreq_target, n_epochs_max
-    )
+    epochs, inv_op, y, sfreq = _load_epochs_and_inv(sub_eeg, subject, sfreq_target, n_epochs_max)
     n_splits = min(n_cv_splits, int(min(np.bincount(y))))
     print(f"[BENCH] {len(epochs)} epoch, sfreq={sfreq:.0f}, classes={np.bincount(y).tolist()}")
     print(f"[BENCH] atlanti×bande×metriche×algo = {meta['n_runs']} run totali")
@@ -215,13 +280,15 @@ def run_bench(
         t_atlas = time.time()
 
         label_tc, _ = _compute_label_tc(epochs, inv_op, atlas, lambda2, inv_method)
-        print(f"[BENCH] label_tc: {label_tc.shape} ({time.time()-t_atlas:.1f}s)")
+        print(f"[BENCH] label_tc: {label_tc.shape} ({time.time() - t_atlas:.1f}s)")
 
         for band_name, (fmin, fmax) in BANDS.items():
             for metric in METRICS:
                 try:
                     fc = compute_fc(
-                        label_tc, sfreq, metric,  # type: ignore[arg-type]
+                        label_tc,
+                        sfreq,
+                        metric,  # type: ignore[arg-type]
                         bands={band_name: (fmin, fmax)},
                     )
                     X, _ = build_X(label_tc, sfreq, fc, include_univariate=False)
@@ -253,17 +320,21 @@ def run_bench(
                     if fc_ok:
                         try:
                             cv_res = run_all_algorithms(
-                                X, y, groups=None,
+                                X,
+                                y,
+                                groups=None,
                                 algorithms=[algorithm],  # type: ignore[arg-type]
                                 n_splits=n_splits,
                             )[algorithm]
                             elapsed = time.time() - t_run
-                            result.update({
-                                "balanced_accuracy": round(cv_res.ba_mean, 4),
-                                "ba_std": round(cv_res.ba_std, 4),
-                                "fit_time_s": round(elapsed, 2),
-                                "error": None,
-                            })
+                            result.update(
+                                {
+                                    "balanced_accuracy": round(cv_res.ba_mean, 4),
+                                    "ba_std": round(cv_res.ba_std, 4),
+                                    "fit_time_s": round(elapsed, 2),
+                                    "error": None,
+                                }
+                            )
                         except Exception as exc:
                             result["error"] = str(exc)
 
@@ -286,12 +357,29 @@ def run_bench(
     return runs
 
 
+# ===== Report =====
+
+
 def _dump_json(path: Path, meta: dict, runs: list[dict]) -> None:
+    """Scrive su disco meta-informazioni e risultati dei run in JSON.
+
+    Args:
+        path: File di output.
+        meta: Metadati del benchmark (soggetto, git SHA, timestamp...).
+        runs: Lista dei risultati per singolo run.
+    """
     data = {"meta": meta, "runs": runs}
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def _write_summary(path: Path, meta: dict, runs: list[dict]) -> None:
+    """Scrive il riepilogo Markdown del benchmark (top-10 e marginali per asse).
+
+    Args:
+        path: File Markdown di output.
+        meta: Metadati del benchmark.
+        runs: Lista dei risultati per singolo run.
+    """
     valid = [r for r in runs if r["balanced_accuracy"] is not None]
     failed = [r for r in runs if r["error"] is not None]
 
@@ -317,15 +405,29 @@ def _write_summary(path: Path, meta: dict, runs: list[dict]) -> None:
 
     # Marginal per asse
     def _marginal(runs: list[dict], key: str) -> dict[str, float]:
+        """Media della balanced accuracy raggruppata per un asse della matrice.
+
+        Args:
+            runs: Lista di dict di risultati (chiavi "balanced_accuracy" e `key`).
+            key: Asse di raggruppamento (es. "atlas", "band", "metric").
+
+        Returns:
+            Dict valore-asse -> BA media (arrotondata a 4 decimali); i run senza BA sono ignorati.
+        """
         from collections import defaultdict
+
         sums: dict[str, list[float]] = defaultdict(list)
         for r in runs:
             if r["balanced_accuracy"] is not None:
                 sums[r[key]].append(r["balanced_accuracy"])
         return {k: round(sum(v) / len(v), 4) for k, v in sums.items()}
 
-    for axis_key, axis_label in [("metric", "FC Metric"), ("atlas", "Atlas"),
-                                  ("algorithm", "Algorithm"), ("band", "Band")]:
+    for axis_key, axis_label in [
+        ("metric", "FC Metric"),
+        ("atlas", "Atlas"),
+        ("algorithm", "Algorithm"),
+        ("band", "Band"),
+    ]:
         marginals = _marginal(valid, axis_key)
         lines += ["", f"### {axis_label} (marginal BA)"]
         lines += [f"- {k}: {v}" for k, v in sorted(marginals.items(), key=lambda x: -x[1])]
@@ -333,13 +435,17 @@ def _write_summary(path: Path, meta: dict, runs: list[dict]) -> None:
     if failed:
         lines += ["", f"## Failed runs ({len(failed)})", ""]
         for r in failed[:10]:
-            lines.append(f"- run {r['run_id']} {r['atlas']}/{r['band']}/{r['metric']}: {r['error']}")
+            lines.append(
+                f"- run {r['run_id']} {r['atlas']}/{r['band']}/{r['metric']}: {r['error']}"
+            )
 
     wall = sum(r["fit_time_s"] or 0 for r in runs)
     lines += ["", "## Wall-clock budget", f"- Totale fit: {wall:.1f}s"]
 
     path.write_text("\n".join(lines))
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Bench matrix 700 run")

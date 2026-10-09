@@ -25,9 +25,12 @@ from parcellation.extract_label_tc import AtlasName, get_labels
 if TYPE_CHECKING:
     pass
 
+# ===== Configurazione =====
+
 _NEUROMAPS_AVAILABLE: bool
 try:
     import neuromaps  # noqa: F401
+
     _NEUROMAPS_AVAILABLE = True
 except ImportError:
     _NEUROMAPS_AVAILABLE = False
@@ -44,12 +47,16 @@ _DEFAULT_ANNOTATIONS: list[tuple[str, str, str, str]] = [
 
 
 def _warn_no_neuromaps() -> None:
+    """Emette un ImportWarning quando `neuromaps` non e' installato (fetch disabilitato)."""
     warnings.warn(
         "neuromaps non installato — fetch annotazioni disabilitato. "
         "Installa con: pip install neuromaps",
         ImportWarning,
         stacklevel=3,
     )
+
+
+# ===== Annotazioni neuromaps =====
 
 
 def fetch_annotation_for_atlas(

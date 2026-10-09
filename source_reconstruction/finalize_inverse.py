@@ -11,7 +11,8 @@ Allineato al vincolo "usare mne-bids-pipeline come base": tutto l'upstream
 API MNE pure.
 
 Usage:
-    python source_reconstruction/finalize_inverse.py --subject 05 --task matchingpennies
+    python source_reconstruction/finalize_inverse.py --subject 05 --task matchingpennies \
+        --method dSPM --loose 0.2 --depth 0.8 --lambda2 0.1111
 """
 
 from __future__ import annotations
@@ -32,13 +33,39 @@ DERIV = (
 )
 
 
-def finalize(subject: str, task: str, *, method: str = "dSPM", lambda2: float = 1.0 / 9.0) -> None:
+def finalize(
+    subject: str,
+    task: str,
+    *,
+    method: str = "dSPM",
+    loose: float = 0.2,
+    depth: float = 0.8,
+    lambda2: float = 1.0 / 9.0,
+) -> None:
+    """Costruisce e salva l'operatore inverso di un soggetto con covarianza ad-hoc.
+
+    Legge forward solution ed evoked, crea l'inversa minimum-norm e la scrive
+    in `sub-<subject>_inv.fif`.
+
+    Args:
+        subject: Identificativo soggetto (senza prefisso "sub-").
+        task: Nome del task BIDS.
+        method: Metodo inverso (default "dSPM").
+        loose: Vincolo sull'orientazione dei dipoli (0 = fissa, 1 = libera).
+        depth: Esponente di depth weighting.
+        lambda2: Regolarizzazione (1 / SNR^2, default SNR=3).
+
+    Raises:
+        SystemExit: Se mancano forward solution o evoked.
+    """
     sub_dir = DERIV / f"sub-{subject}" / "eeg"
     fwd_path = sub_dir / f"sub-{subject}_fwd.fif"
     ave_path = sub_dir / f"sub-{subject}_task-{task}_ave.fif"
 
     if not fwd_path.exists():
-        sys.exit(f"Forward solution missing: {fwd_path}. Run mne_bids_pipeline --steps source first.")
+        sys.exit(
+            f"Forward solution missing: {fwd_path}. Run mne_bids_pipeline --steps source first."
+        )
     if not ave_path.exists():
         sys.exit(f"Evoked missing: {ave_path}. Run --steps sensor first.")
 
@@ -47,9 +74,7 @@ def finalize(subject: str, task: str, *, method: str = "dSPM", lambda2: float = 
 
     info = evokeds[0].info
     noise_cov = mne.make_ad_hoc_cov(info)
-    inv_op = mne.minimum_norm.make_inverse_operator(
-        info, fwd, noise_cov, loose=0.2, depth=0.8
-    )
+    inv_op = mne.minimum_norm.make_inverse_operator(info, fwd, noise_cov, loose=loose, depth=depth)
 
     inv_path = sub_dir / f"sub-{subject}_inv.fif"
     mne.minimum_norm.write_inverse_operator(str(inv_path), inv_op, overwrite=True)
@@ -73,5 +98,15 @@ if __name__ == "__main__":
     ap.add_argument("--subject", required=True)
     ap.add_argument("--task", required=True)
     ap.add_argument("--method", default="dSPM", choices=["MNE", "dSPM", "sLORETA", "eLORETA"])
+    ap.add_argument("--loose", type=float, default=0.2)
+    ap.add_argument("--depth", type=float, default=0.8)
+    ap.add_argument("--lambda2", type=float, default=1.0 / 9.0)
     args = ap.parse_args()
-    finalize(args.subject, args.task, method=args.method)
+    finalize(
+        args.subject,
+        args.task,
+        method=args.method,
+        loose=args.loose,
+        depth=args.depth,
+        lambda2=args.lambda2,
+    )

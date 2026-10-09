@@ -25,6 +25,8 @@ from typing import Literal
 import mne
 import numpy as np
 
+# ===== Configurazione =====
+
 _DEFAULT_SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"
 SUBJECTS_DIR = Path(os.environ.get("TESI_SUBJECTS_DIR", str(_DEFAULT_SUBJECTS_DIR)))
 
@@ -39,6 +41,9 @@ ATLAS_TO_PARC: dict[str, str] = {
 AtlasName = Literal["aparc", "destrieux", "schaefer100", "schaefer200", "schaefer400"]
 
 _EXCLUDE_KEYWORDS = ("unknown", "medial_wall", "background+freesurfer")
+
+
+# ===== Label atlante =====
 
 
 def get_labels(atlas: AtlasName, *, subject: str = "fsaverage") -> list[mne.Label]:
@@ -60,10 +65,10 @@ def get_labels(atlas: AtlasName, *, subject: str = "fsaverage") -> list[mne.Labe
     labels = mne.read_labels_from_annot(
         subject=subject, parc=parc, subjects_dir=str(SUBJECTS_DIR), verbose=False
     )
-    return [
-        lbl for lbl in labels
-        if not any(kw in lbl.name.lower() for kw in _EXCLUDE_KEYWORDS)
-    ]
+    return [lbl for lbl in labels if not any(kw in lbl.name.lower() for kw in _EXCLUDE_KEYWORDS)]
+
+
+# ===== Estrazione time-course =====
 
 
 def extract_tc(
@@ -98,9 +103,7 @@ def extract_tc(
     if isinstance(src, (str, Path)):
         src = mne.read_source_spaces(str(src), verbose=False)
     labels = get_labels(atlas, subject=subject)
-    tc = mne.extract_label_time_course(
-        stc, labels, src, mode=mode, allow_empty=True, verbose=False
-    )
+    tc = mne.extract_label_time_course(stc, labels, src, mode=mode, allow_empty=True, verbose=False)
     names = [lbl.name for lbl in labels]
     return np.asarray(tc), names
 
@@ -196,6 +199,8 @@ def extract_tc_from_files(
 
     return extract_tc(stc, atlas, src, mode=mode, subject=subject)
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     import argparse

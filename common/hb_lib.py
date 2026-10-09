@@ -8,6 +8,8 @@ API pubblica:
     read_heartbeat(hb_path)                       — legge singolo HB
     read_all_heartbeats(hb_dir) -> list[dict]     — legge tutti gli HB in una dir
     is_stale(hb_dict, threshold_min=10) -> bool   — verifica se l'HB è scaduto
+
+Posizione nella pipeline: infrastruttura trasversale agli STEP 1-7 (non appartiene a un singolo step).
 """
 
 from __future__ import annotations
@@ -123,6 +125,7 @@ def is_stale(hb: dict, threshold_min: float = 10.0) -> bool:
     if "timestamp" in hb:
         try:
             from datetime import datetime
+
             ts_str: str = hb["timestamp"]
             # Gestisci sia +HH:MM che Z
             if ts_str.endswith("Z"):

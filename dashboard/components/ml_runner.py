@@ -8,6 +8,8 @@ Wrappa ml_training/ con garanzie:
 
 Nota scientifica: n_perm=0 salta il permutation test per velocità interattiva;
   risultati scientifici ufficiali usano n_perm≥200 (vedi EXPERIMENTS_N100.md).
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ from typing import Any
 
 import numpy as np
 
+# ===== Configurazione =====
+
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -28,7 +32,18 @@ _CLF_NAMES = ("logreg", "svm", "mlp", "rf", "gb")
 _REG_NAMES = ("ridge", "rf_reg", "svr", "mlp_reg")
 
 
+# ===== Modelli =====
+
+
 def _build_classifier(name: str):
+    """Istanzia un classificatore dal nome (default: regressione logistica).
+
+    Args:
+        name: "logreg", "svm", "mlp", "rf", "gb" oppure "lda".
+
+    Returns:
+        Classificatore scikit-learn (nome sconosciuto -> logreg).
+    """
     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
     from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
     from sklearn.linear_model import LogisticRegression
@@ -47,6 +62,14 @@ def _build_classifier(name: str):
 
 
 def _build_regressor(name: str):
+    """Istanzia un regressore dal nome (default: Ridge).
+
+    Args:
+        name: "ridge", "rf_reg", "svr" oppure "mlp_reg".
+
+    Returns:
+        Regressore scikit-learn (nome sconosciuto -> ridge).
+    """
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.linear_model import Ridge
     from sklearn.neural_network import MLPRegressor
@@ -59,6 +82,9 @@ def _build_regressor(name: str):
         "mlp_reg": MLPRegressor(hidden_layer_sizes=(64,), max_iter=500, random_state=42),
     }
     return _map.get(name, _map["ridge"])
+
+
+# ===== Esecuzione ML =====
 
 
 def run_classification(
@@ -228,6 +254,9 @@ def run_regression(
     }
 
 
+# ===== Controlli e bootstrap =====
+
+
 def _assert_no_leakage(groups: np.ndarray, train_idx: np.ndarray, test_idx: np.ndarray) -> None:
     """Verifica runtime che nessun soggetto appare sia in train che in test."""
     train_groups = set(groups[train_idx].tolist())
@@ -237,9 +266,7 @@ def _assert_no_leakage(groups: np.ndarray, train_idx: np.ndarray, test_idx: np.n
         raise RuntimeError(f"Subject leakage rilevato: {overlap}")
 
 
-def _bootstrap_ci(
-    arr: np.ndarray, n_boot: int = 200, alpha: float = 0.05
-) -> tuple[float, float]:
+def _bootstrap_ci(arr: np.ndarray, n_boot: int = 200, alpha: float = 0.05) -> tuple[float, float]:
     """Bootstrap percentile CI (semplificato; BCa in stats_utility per risultati ufficiali)."""
     rng = np.random.default_rng(42)
     boot_means = [float(rng.choice(arr, size=len(arr), replace=True).mean()) for _ in range(n_boot)]

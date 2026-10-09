@@ -1,10 +1,24 @@
-"""
-Pipeline ds004504 adapter — step 2.1 smoke test su sub-001.
+"""Pipeline ds004504 (EEG resting-state, solo eyes-closed) — step 2-3b e FC/feature.
 
-Adattamento di run_pipeline_n30.py per ds004504 (.set EEGLAB, no ses-*, no EyesOpen).
+Scopo:
+    Adatta run_pipeline_n30.py a ds004504: file EEGLAB .set, senza sessioni
+    e con la sola condizione EC. La main esegue step 2 (fwd+inv), 2b (STC
+    per-epoca) e 3b (parcellazione aparc) per sub-001..sub-050 e rimuove gli
+    stcs.npz. Gli step 4b (FC) e 5 (feature) sono in run_fc_features(), che
+    la main NON richiama (vedi flag --skip-to-fc, oggi non utilizzato).
 
-Usage:
+Input:
+    - data/raw/ds004504/<sub>/eeg/<sub>_task-eyesclosed_eeg.set
+    - template fsaverage in ~/mne_data/MNE-fsaverage-data
+
+Output:
+    - data/derivatives/mne-bids-pipeline-ds004504/ (fwd/inv; stcs temporanei)
+    - data/label_ts/ds004504/, data/connectivity/ds004504/, data/features/ds004504/
+    - heartbeat in .planning/heartbeats_tesi/haiku-tesi-lemon-2.json
+
+Esempio:
     python scripts/run_pipeline_ds004504.py
+
 """
 
 from __future__ import annotations
@@ -19,11 +33,11 @@ import mne
 import mne.minimum_norm
 import numpy as np
 
+# Rende importabili i pacchetti del repository dalla cartella scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 warnings.filterwarnings("ignore")
 
-# ── Costanti ──────────────────────────────────────────────────────────────────
-
+# ===== 1. Costanti =====
 BIDS_ROOT = Path("data/raw/ds004504")
 DERIV = Path("data/derivatives/mne-bids-pipeline-ds004504")
 LABEL_TS_DIR = Path("data/label_ts/ds004504")
@@ -58,13 +72,26 @@ ALL_BANDS: dict[str, tuple[float, float]] = {
 
 SUBJECTS_DS004504 = [f"sub-{i:03d}" for i in range(1, 51)]
 
+# Crea le cartelle di output già all'import del modulo
 for d in [LABEL_TS_DIR, CONN_DIR, FEAT_DIR, RESULTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
-# ── Heartbeat ─────────────────────────────────────────────────────────────────
-
+# ===== 2. Heartbeat =====
 def write_hb(step: str, progress: str, extra: dict | None = None) -> None:
+    """Scrive il file heartbeat JSON per il monitoraggio del worker.
+
+    Args:
+        step: step corrente.
+        progress: descrizione dell'avanzamento.
+        extra: campi aggiuntivi (opzionale).
+
+    Returns:
+        None.
+
+    Side effects:
+        Sovrascrive HEARTBEAT_PATH.
+    """
     data: dict = {
         "worker": "haiku-tesi-lemon-2",
         "ts": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -78,19 +105,46 @@ def write_hb(step: str, progress: str, extra: dict | None = None) -> None:
     HEARTBEAT_PATH.write_text(json.dumps(data, indent=2))
 
 
-# ── STEP 2 — Forward + inverse ────────────────────────────────────────────────
-
+# ===== 3. STEP 2 — Forward + inverse =====
 def _set_path(sub: str, cond_task: str) -> Path:
+    """Percorso del file .set BIDS di un soggetto.
+
+    Args:
+        sub: id soggetto.
+        cond_task: nome task (es. 'eyesclosed').
+
+    Returns:
+        Path del file.
+    """
     return BIDS_ROOT / sub / "eeg" / f"{sub}_task-{cond_task}_eeg.set"
 
 
 def _out_dir(sub: str) -> Path:
+    """Restituisce (creandola) la cartella derivati di un soggetto.
+
+    Args:
+        sub: id soggetto.
+
+    Returns:
+        Path della cartella.
+
+    Side effects:
+        Crea la cartella se assente.
+    """
     d = DERIV / sub / "eeg"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
 
 def _load_raw(set_path: Path) -> mne.io.Raw:
+    """Carica un .set EEGLAB e applica il preprocessing della pipeline.
+
+    Args:
+        set_path: percorso del file .set.
+
+    Returns:
+        mne.io.Raw EEG, montaggio 10-20, filtro FIR 1-40 Hz, 250 Hz, riferimento medio.
+    """
     raw = mne.io.read_raw_eeglab(str(set_path), preload=True, verbose=False)
     raw.pick("eeg", verbose=False)
     raw.set_montage("standard_1020", match_case=False, verbose=False)
@@ -101,6 +155,17 @@ def _load_raw(set_path: Path) -> mne.io.Raw:
 
 
 def step2_fwd_inv(sub: str) -> tuple[mne.Forward, mne.minimum_norm.InverseOperator]:
+    """Step 2: forward e inversa su fsaverage (con cache).
+
+    Args:
+        sub: id soggetto.
+
+    Returns:
+        tupla (forward, inverse operator).
+
+    Side effects:
+        Scrive <sub>_fwd.fif e <sub>_inv.fif se non esistono; FileNotFoundError se manca il .set.
+    """
     out = _out_dir(sub)
     fwd_p = out / f"{sub}_fwd.fif"
     inv_p = out / f"{sub}_inv.fif"
@@ -121,22 +186,27 @@ def step2_fwd_inv(sub: str) -> tuple[mne.Forward, mne.minimum_norm.InverseOperat
     if not fwd_p.exists():
         print(f"  [step2] {sub}: computing forward…")
         src = mne.read_source_spaces(
-            str(SUBJECTS_DIR / "fsaverage" / "bem" / "fsaverage-oct6-src.fif"), verbose=False)
+            str(SUBJECTS_DIR / "fsaverage" / "bem" / "fsaverage-oct6-src.fif"), verbose=False
+        )
         bem = mne.read_bem_solution(
-            str(SUBJECTS_DIR / "fsaverage" / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"), verbose=False)
+            str(SUBJECTS_DIR / "fsaverage" / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"),
+            verbose=False,
+        )
         trans = str(SUBJECTS_DIR / "fsaverage" / "bem" / "fsaverage-trans.fif")
         fwd = mne.make_forward_solution(
-            info, trans=trans, src=src, bem=bem,
-            eeg=True, meg=False, mindist=MINDIST, verbose=False)
+            info, trans=trans, src=src, bem=bem, eeg=True, meg=False, mindist=MINDIST, verbose=False
+        )
         mne.write_forward_solution(str(fwd_p), fwd, overwrite=True, verbose=False)
         print(f"    → {fwd_p.name}")
     else:
         fwd = mne.read_forward_solution(str(fwd_p), verbose=False)
 
     if not inv_p.exists():
+        # Covarianza di rumore ad-hoc (nessuna baseline disponibile)
         noise_cov = mne.make_ad_hoc_cov(info, verbose=False)
         inv = mne.minimum_norm.make_inverse_operator(
-            info, fwd, noise_cov, loose=LOOSE, depth=DEPTH, verbose=False)
+            info, fwd, noise_cov, loose=LOOSE, depth=DEPTH, verbose=False
+        )
         mne.minimum_norm.write_inverse_operator(str(inv_p), inv, overwrite=True, verbose=False)
         print(f"    → {inv_p.name}")
     else:
@@ -145,13 +215,33 @@ def step2_fwd_inv(sub: str) -> tuple[mne.Forward, mne.minimum_norm.InverseOperat
     return fwd, inv
 
 
-# ── STEP 2b — Per-epoch STCs ──────────────────────────────────────────────────
-
+# ===== 4. STEP 2b — Per-epoch STCs =====
 def _stcs_npz(sub: str, cond: str) -> Path:
+    """Percorso del file stcs.npz di un soggetto/condizione.
+
+    Args:
+        sub: id soggetto.
+        cond: condizione ('EC').
+
+    Returns:
+        Path del file.
+    """
     return DERIV / sub / "eeg" / f"{sub}_task-RestingState_cond-{cond}_inv-{METHOD}-stcs.npz"
 
 
 def step2b_stcs(sub: str, inv_op: mne.minimum_norm.InverseOperator) -> dict:
+    """Step 2b: STC per-epoca (dSPM) per la condizione EC.
+
+    Args:
+        sub: id soggetto.
+        inv_op: operatore inverso.
+
+    Returns:
+        dict {'EC': {n_epochs, file_mb, ...}}.
+
+    Side effects:
+        Scrive il file stcs.npz (se non in cache).
+    """
     out: dict = {}
     cond = "EC"
     task = CONDITIONS[cond]
@@ -169,21 +259,31 @@ def step2b_stcs(sub: str, inv_op: mne.minimum_norm.InverseOperator) -> dict:
         return out
 
     raw = _load_raw(set_p)
+    # Epoche a lunghezza fissa (2 s, overlap 0.5 s)
     events = mne.make_fixed_length_events(raw, duration=EPOCH_DURATION, overlap=EPOCH_OVERLAP)
-    epochs = mne.Epochs(raw, events, tmin=0.0, tmax=EPOCH_DURATION,
-                        baseline=None, preload=True, verbose=False)
+    epochs = mne.Epochs(
+        raw, events, tmin=0.0, tmax=EPOCH_DURATION, baseline=None, preload=True, verbose=False
+    )
     del raw
 
     stcs = mne.minimum_norm.apply_inverse_epochs(
-        epochs, inv_op, lambda2=LAMBDA2, method=METHOD,
-        return_generator=False, verbose=False)
+        epochs, inv_op, lambda2=LAMBDA2, method=METHOD, return_generator=False, verbose=False
+    )
     del epochs
 
+    # Stack (n_epoche, n_sorgenti, n_tempi) in float32
     data = np.stack([s.data for s in stcs]).astype(np.float32)
     vl, vr = stcs[0].vertices[0], stcs[0].vertices[1]
-    np.savez_compressed(npz, data=data, vertices_lh=vl, vertices_rh=vr,
-                        tmin=stcs[0].tmin, tstep=stcs[0].tstep,
-                        n_epochs=len(stcs), sfreq=SFREQ_TARGET)
+    np.savez_compressed(
+        npz,
+        data=data,
+        vertices_lh=vl,
+        vertices_rh=vr,
+        tmin=stcs[0].tmin,
+        tstep=stcs[0].tstep,
+        n_epochs=len(stcs),
+        sfreq=SFREQ_TARGET,
+    )
     del stcs, data
 
     mb = npz.stat().st_size / 1e6
@@ -192,14 +292,35 @@ def step2b_stcs(sub: str, inv_op: mne.minimum_norm.InverseOperator) -> dict:
     return out
 
 
-# ── STEP 3b — Parcellazione ───────────────────────────────────────────────────
-
+# ===== 5. STEP 3b — Parcellazione =====
 def _label_ts_npz(sub: str, cond: str) -> Path:
+    """Percorso del file label_ts aparc per soggetto/condizione.
+
+    Args:
+        sub: id soggetto.
+        cond: condizione.
+
+    Returns:
+        Path del file.
+    """
     return LABEL_TS_DIR / f"{sub}_cond-{cond}_aparc_label_ts.npz"
 
 
 def step3b_parc(sub: str, fwd: mne.Forward) -> dict:
+    """Step 3b: parcellazione aparc delle STC per-epoca (mean_flip).
+
+    Args:
+        sub: id soggetto.
+        fwd: forward solution.
+
+    Returns:
+        dict {'EC': {'status': ...}}.
+
+    Side effects:
+        Scrive data/label_ts/ds004504/<sub>_cond-EC_aparc_label_ts.npz.
+    """
     from parcellation.extract_label_tc import get_labels
+
     src = fwd["src"]
     out: dict = {}
 
@@ -226,23 +347,33 @@ def step3b_parc(sub: str, fwd: mne.Forward) -> dict:
         mne.SourceEstimate(
             data=data[i].astype(np.float64),
             vertices=[d["vertices_lh"], d["vertices_rh"]],
-            tmin=float(d["tmin"]), tstep=float(d["tstep"]),
-            subject="fsaverage")
-        for i in range(data.shape[0])]
+            tmin=float(d["tmin"]),
+            tstep=float(d["tstep"]),
+            subject="fsaverage",
+        )
+        for i in range(data.shape[0])
+    ]
     del data
 
+    # Serie per ROI con mean_flip (media con inversione di segno)
     tcs = mne.extract_label_time_course(
-        stcs_list, labels, src, mode="mean_flip",
-        allow_empty=True, verbose=False)
+        stcs_list, labels, src, mode="mean_flip", allow_empty=True, verbose=False
+    )
     del stcs_list
 
     label_tc = np.stack(tcs).astype(np.float32)
     del tcs
 
-    np.savez_compressed(out_p, label_tc=label_tc,
-                        label_names=np.array(label_names),
-                        subject=sub, condition=cond, atlas=atlas,
-                        mode="mean_flip", sfreq=SFREQ_TARGET)
+    np.savez_compressed(
+        out_p,
+        label_tc=label_tc,
+        label_names=np.array(label_names),
+        subject=sub,
+        condition=cond,
+        atlas=atlas,
+        mode="mean_flip",
+        sfreq=SFREQ_TARGET,
+    )
     del label_tc
 
     print(f"  [step3b] {sub}: OK")
@@ -250,14 +381,36 @@ def step3b_parc(sub: str, fwd: mne.Forward) -> dict:
     return out
 
 
-# ── STEP 4b — FC per-epoch ───────────────────────────────────────────────────
-
+# ===== 6. STEP 4b — FC per-epoch =====
 def _conn_npz(sub: str, cond: str, metric: str, band: str) -> Path:
+    """Percorso del file FC per soggetto/condizione/metrica/banda (aparc).
+
+    Args:
+        sub: id soggetto.
+        cond: condizione.
+        metric: metrica FC.
+        band: banda.
+
+    Returns:
+        Path del file.
+    """
     return CONN_DIR / f"{sub}_atlas-aparc_cond-{cond}_metric-{metric}_band-{band}_per-epoch.npz"
 
 
 def step4b_fc(subjects: list[str]) -> int:
+    """Step 4b: FC per-epoca per tutti i soggetti indicati, tutte metriche e bande.
+
+    Args:
+        subjects: lista soggetti con label_ts disponibili.
+
+    Returns:
+        numero di file FC prodotti o già presenti.
+
+    Side effects:
+        Scrive data/connectivity/ds004504/*_per-epoch.npz (idempotente).
+    """
     from connectivity.fc_dispatcher import compute_fc
+
     n_done = 0
     for sub in subjects:
         cond = "EC"
@@ -270,9 +423,9 @@ def step4b_fc(subjects: list[str]) -> int:
         label_tc = d_lt["label_tc"].astype(np.float64)
 
         for metric in ALL_METRICS:
+            # Calcola solo le bande il cui file non esiste ancora (idempotenza)
             need_bands = {
-                b: hz for b, hz in ALL_BANDS.items()
-                if not _conn_npz(sub, cond, metric, b).exists()
+                b: hz for b, hz in ALL_BANDS.items() if not _conn_npz(sub, cond, metric, b).exists()
             }
             for b in ALL_BANDS:
                 if b not in need_bands:
@@ -281,14 +434,22 @@ def step4b_fc(subjects: list[str]) -> int:
             if not need_bands:
                 continue
 
-            fc_dict = compute_fc(label_tc, SFREQ_TARGET, metric,
-                                 bands=need_bands, mode="multitaper")
+            fc_dict = compute_fc(
+                label_tc, SFREQ_TARGET, metric, bands=need_bands, mode="multitaper"
+            )
 
             for b, mat in fc_dict.items():
                 out_p = _conn_npz(sub, cond, metric, b)
-                np.savez_compressed(out_p, fc_matrix=mat,
-                                    subject=sub, condition=cond, atlas="aparc",
-                                    metric=metric, band=b, sfreq=SFREQ_TARGET)
+                np.savez_compressed(
+                    out_p,
+                    fc_matrix=mat,
+                    subject=sub,
+                    condition=cond,
+                    atlas="aparc",
+                    metric=metric,
+                    band=b,
+                    sfreq=SFREQ_TARGET,
+                )
                 n_done += 1
                 print(f"  [step4b] {sub} {metric} {b}: OK")
 
@@ -296,12 +457,24 @@ def step4b_fc(subjects: list[str]) -> int:
     return n_done
 
 
-# ── STEP 5 — Feature extraction ───────────────────────────────────────────────
-
+# ===== 7. STEP 5 — Feature extraction =====
 def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
+    """Step 5: vettorizza il triangolo superiore delle FC in matrici X.
+
+    Args:
+        subjects: lista soggetti.
+        force: se True ricalcola i file esistenti.
+
+    Returns:
+        lista di dict di esito per metrica/banda.
+
+    Side effects:
+        Scrive y.npy (tutti 0: una sola condizione), groups.npy, X_aparc_*.npz e metadata.json.
+    """
     cond = "EC"
     y, groups = [], []
     for i, sub in enumerate(subjects):
+        # Una sola condizione: etichetta fittizia 0 (nessuna classificazione EO/EC)
         y.append(0)  # EC only → single label
         groups.append(i)
     np.save(FEAT_DIR / "y.npy", np.array(y, dtype=np.int32))
@@ -315,8 +488,15 @@ def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
                 d = np.load(out_p, allow_pickle=True)
                 if d["X"].shape[0] == len(subjects):
                     print(f"  [step5] {metric} {band}: SKIP (N={len(subjects)} ok)")
-                    results.append({"atlas": "aparc", "metric": metric, "band": band,
-                                    "shape": list(d["X"].shape), "skipped": True})
+                    results.append(
+                        {
+                            "atlas": "aparc",
+                            "metric": metric,
+                            "band": band,
+                            "shape": list(d["X"].shape),
+                            "skipped": True,
+                        }
+                    )
                     continue
 
             rows = []
@@ -330,25 +510,32 @@ def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
                 d = np.load(fc_p, allow_pickle=True)
                 mat = d["fc_matrix"].astype(np.float64)
                 n = mat.shape[0]
+                # Feature = triangolo superiore senza diagonale
                 idx = np.triu_indices(n, k=1)
                 rows.append(mat[idx])
 
             if not ok:
-                results.append({"atlas": "aparc", "metric": metric, "band": band,
-                                "error": "missing_fc"})
+                results.append(
+                    {"atlas": "aparc", "metric": metric, "band": band, "error": "missing_fc"}
+                )
                 continue
 
             X = np.stack(rows)
             np.savez_compressed(out_p, X=X)
             print(f"  [step5] {metric} {band}: shape={X.shape}")
-            results.append({"atlas": "aparc", "metric": metric, "band": band,
-                            "shape": list(X.shape)})
+            results.append(
+                {"atlas": "aparc", "metric": metric, "band": band, "shape": list(X.shape)}
+            )
 
     meta = {
         "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
-        "subjects": subjects, "conditions": ["EC"],
-        "atlases": ["aparc"], "metrics": ALL_METRICS, "bands": list(ALL_BANDS.keys()),
-        "n_subjects": len(subjects), "n_samples": len(subjects),
+        "subjects": subjects,
+        "conditions": ["EC"],
+        "atlases": ["aparc"],
+        "metrics": ALL_METRICS,
+        "bands": list(ALL_BANDS.keys()),
+        "n_subjects": len(subjects),
+        "n_samples": len(subjects),
     }
     (FEAT_DIR / "metadata.json").write_text(json.dumps(meta, indent=2))
     return results
@@ -357,7 +544,8 @@ def step5_features(subjects: list[str], force: bool = False) -> list[dict]:
 def run_fc_features() -> None:
     """Step 4b + 5: FC + feature aggregation per ds004504."""
     subjects_done = [
-        sub for sub in SUBJECTS_DS004504
+        sub
+        for sub in SUBJECTS_DS004504
         if (LABEL_TS_DIR / f"{sub}_cond-EC_aparc_label_ts.npz").exists()
     ]
     print(f"[ds004504 step4b] {len(subjects_done)} sub con label_ts disponibili")
@@ -368,10 +556,15 @@ def run_fc_features() -> None:
     write_hb("step5_done", f"Features extracted for {len(subjects_done)} subs")
 
 
-# ── Main — Step 2.2 full pipeline (fwd+inv+stcs+parc) ───────────────────────
-
+# ===== 8. Main — Step 2.2 full pipeline (fwd+inv+stcs+parc) =====
 def main() -> None:
+    """Punto di ingresso CLI: step 2, 2b, 3b per sub-001..sub-050 con cleanup degli stcs.
+
+    Side effects:
+        Il flag --skip-to-fc viene solo validato, non cambia il comportamento.
+    """
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-to-fc", action="store_true")
     parser.parse_args()  # valida gli argomenti (il flag non è ancora consumato)
@@ -380,7 +573,7 @@ def main() -> None:
     print(f"[ds004504] Processing {len(subjects)} subjects — step2+2b+3b")
 
     for i, sub in enumerate(subjects):
-        print(f"\n[{i+1}/{len(subjects)}] {sub}")
+        print(f"\n[{i + 1}/{len(subjects)}] {sub}")
         set_p = _set_path(sub, "eyesclosed")
         if not set_p.exists():
             print(f"  SKIP: {set_p} not found")
@@ -392,6 +585,7 @@ def main() -> None:
         except Exception as e:
             print(f"  ERROR {sub}: {e}")
             continue
+        # Cleanup: gli stcs.npz sono molto grandi, si rimuovono dopo la parcellazione
         stcs_npz = _stcs_npz(sub, "EC")
         if stcs_npz.exists():
             stcs_npz.unlink()

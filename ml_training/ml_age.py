@@ -6,6 +6,8 @@ Metriche: MAE, R², bootstrap CI (n_boot=1000), brain-age gap.
 Confronto vs dummy (mean predictor).
 Permutation test (n_perm=200, shuffle y_age).
 Output: reports/ml_age_results.json
+
+Posizione nella pipeline: STEP 6 (classificazione/regressione ML), a valle di STEP 5.
 """
 
 from __future__ import annotations
@@ -22,6 +24,8 @@ from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
+# ===== Configurazione =====
+
 FEAT_DIR = Path(__file__).parent.parent / "data" / "features" / "ds005385"
 REPORT_DIR = Path(__file__).parent.parent / "reports"
 
@@ -30,6 +34,9 @@ INNER_K = 3
 N_PERM = 200
 N_BOOT = 1000
 FEAT_NAME = "X_aparc_plv_theta"
+
+
+# ===== Caricamento dati =====
 
 
 def load_data(feat_name: str = FEAT_NAME) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -48,7 +55,25 @@ def load_data(feat_name: str = FEAT_NAME) -> tuple[np.ndarray, np.ndarray, np.nd
     return X, y_age, groups
 
 
+# ===== Modelli =====
+
+
 def _make_regressor(name: str, inner_cv: GroupKFold):
+    """Costruisce il regressore per la predizione dell'eta'.
+
+    ElasticNet e SVR sono avvolti in GridSearchCV (nested CV, scoring MAE);
+    RF e dummy (baseline media) usano iperparametri fissi.
+
+    Args:
+        name: "elasticnet", "svr", "rf" oppure "dummy".
+        inner_cv: Splitter per il ciclo interno (GroupKFold per soggetto).
+
+    Returns:
+        Stimatore scikit-learn non ancora addestrato.
+
+    Raises:
+        ValueError: Se `name` non e' riconosciuto.
+    """
     if name == "elasticnet":
         return GridSearchCV(
             ElasticNet(max_iter=5000, random_state=42),
@@ -74,6 +99,9 @@ def _make_regressor(name: str, inner_cv: GroupKFold):
         return DummyRegressor(strategy="mean")
     else:
         raise ValueError(f"Unknown regressor: {name}")
+
+
+# ===== Cross-validation e bootstrap =====
 
 
 def _cluster_bootstrap_ci(
@@ -154,6 +182,9 @@ def run_cv(
     }
 
 
+# ===== Permutation test =====
+
+
 def _permute_subject_labels(y: np.ndarray, groups: np.ndarray, rng) -> np.ndarray:
     """Permuta le label a livello soggetto (non sample).
 
@@ -188,6 +219,9 @@ def permutation_test(
     return null_r2, r2_real, p_value
 
 
+# ===== Esecuzione e salvataggio =====
+
+
 def run_ml_age(
     feat_name: str = FEAT_NAME,
     reg_names: list[str] | None = None,
@@ -208,9 +242,7 @@ def run_ml_age(
     for reg_name in reg_names:
         cv_res = run_cv(X, y_age, groups, reg_name)
         if reg_name != "dummy":
-            null_r2, r2_real, p_value = permutation_test(
-                X, y_age, groups, reg_name, n_perm
-            )
+            null_r2, r2_real, p_value = permutation_test(X, y_age, groups, reg_name, n_perm)
         else:
             null_r2, p_value = [], float("nan")
         results["regressors"][reg_name] = {
@@ -223,12 +255,23 @@ def run_ml_age(
 
 
 def save_results(results: dict, path: Path | None = None) -> Path:
+    """Salva i risultati in JSON.
+
+    Args:
+        results: Dict serializzabile con i risultati.
+        path: File di output; se None usa `REPORT_DIR/ml_age_results.json`.
+
+    Returns:
+        Percorso del file scritto.
+    """
     if path is None:
         REPORT_DIR.mkdir(exist_ok=True)
         path = REPORT_DIR / "ml_age_results.json"
     path.write_text(json.dumps(results, indent=2))
     return path
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     res = run_ml_age()

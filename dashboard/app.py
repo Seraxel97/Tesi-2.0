@@ -10,6 +10,8 @@ Nota scientifica: EO vs EC (Eyes Open / Eyes Closed) è usato come **positive-co
 I target scientifici principali sono età e sesso (FASE 1+).
 
 Run: streamlit run dashboard/app.py --server.port 8501
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -213,7 +215,9 @@ with st.sidebar:
             for c in available
         )
         if not combo_exists:
-            st.warning(f"[WARNING] Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz")
+            st.warning(
+                f"[WARNING] Feature file mancante:\nX_{sel_atlas}_{sel_metric}_{sel_band}.npz"
+            )
 
         # Tooltip scientifici
         st.markdown("---")
@@ -289,14 +293,10 @@ if load_btn:
 if st.session_state.get("sel_target", "EO/EC (positive-control)") != "EO/EC (positive-control)":
     target_key = st.session_state["sel_target"]
     is_sex = target_key == "Sesso"
-    results_path = _ROOT / "reports" / (
-        "ml_sex_results.json" if is_sex else "ml_age_results.json"
-    )
+    results_path = _ROOT / "reports" / ("ml_sex_results.json" if is_sex else "ml_age_results.json")
 
     st.title(f"{' Classificazione Sesso' if is_sex else ' Predizione Età'}")
-    st.caption(
-        "Positive-control EO/EC: seleziona 'EO/EC (positive-control)' dalla sidebar."
-    )
+    st.caption("Positive-control EO/EC: seleziona 'EO/EC (positive-control)' dalla sidebar.")
 
     if not results_path.exists():
         st.warning(

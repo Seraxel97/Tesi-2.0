@@ -9,6 +9,8 @@ Uso:
 
     queue = Path(".planning/DISPATCH_QUEUE_tesi.jsonl")
     migrate_on_load(queue, target_version="002")
+
+Posizione nella pipeline: infrastruttura trasversale agli STEP 1-7 (non appartiene a un singolo step).
 """
 
 from __future__ import annotations
@@ -22,8 +24,13 @@ from pathlib import Path
 
 # ── Registry globale ──────────────────────────────────────────────────────────
 
+# ===== Registro migrazioni =====
+
+
 @dataclass
 class _MigrationEntry:
+    """Voce di registro: versione, descrizione e funzioni forward/backward di una migrazione."""
+
     version: str
     description: str
     forward_fn: Callable[[list[dict]], list[dict]]
@@ -43,7 +50,14 @@ def register_migration(version: str, description: str = "") -> Callable:
       - ``forward(records: list[dict]) -> list[dict]``
       - ``backward(records: list[dict]) -> list[dict]``
     """
+
     def decorator(cls):
+        """Registra la classe come migrazione.
+
+        Raises:
+            ValueError: Se la versione e' gia' registrata.
+            TypeError: Se la classe non definisce forward() e backward().
+        """
         if version in _REGISTRY:
             raise ValueError(f"Migration version already registered: {version!r}")
         if not (hasattr(cls, "forward") and hasattr(cls, "backward")):
@@ -55,10 +69,12 @@ def register_migration(version: str, description: str = "") -> Callable:
             backward_fn=cls.backward,
         )
         return cls
+
     return decorator
 
 
 # ── Caricamento dinamico migrazioni ───────────────────────────────────────────
+
 
 def _load_migration_modules() -> None:
     """Importa tutti i file [0-9]*.py in .planning/migrations/ per trigger decorator.
@@ -78,11 +94,16 @@ def _load_migration_modules() -> None:
 
 # ── State file per file target ────────────────────────────────────────────────
 
+# ===== Stato e I/O JSONL =====
+
+
 def _state_path(target: Path) -> Path:
+    """Percorso del file di stato (nascosto) delle migrazioni applicate a `target`."""
     return target.parent / f".{target.name}.migration_state.json"
 
 
 def _load_state(target: Path) -> dict:
+    """Legge lo stato delle migrazioni; se assente o corrotto restituisce {"applied": []}."""
     sp = _state_path(target)
     if not sp.exists():
         return {"applied": []}
@@ -93,6 +114,7 @@ def _load_state(target: Path) -> dict:
 
 
 def _save_state(target: Path, state: dict) -> None:
+    """Scrive lo stato delle migrazioni su disco (JSON indentato)."""
     _state_path(target).write_text(
         json.dumps(state, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -100,12 +122,15 @@ def _save_state(target: Path, state: dict) -> None:
 
 
 def _is_applied(target: Path, version: str) -> bool:
+    """True se la migrazione `version` risulta gia' applicata a `target`."""
     return any(e["version"] == version for e in _load_state(target).get("applied", []))
 
 
 # ── I/O JSONL ─────────────────────────────────────────────────────────────────
 
+
 def _read_records(target: Path) -> list[dict]:
+    """Legge un file JSONL come lista di dict, ignorando righe vuote o malformate."""
     if not target.exists():
         return []
     out = []
@@ -120,6 +145,7 @@ def _read_records(target: Path) -> list[dict]:
 
 
 def _write_records(target: Path, records: list[dict]) -> None:
+    """Riscrive per intero il file JSONL con i record forniti."""
     target.write_text(
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records),
         encoding="utf-8",
@@ -127,6 +153,9 @@ def _write_records(target: Path, records: list[dict]) -> None:
 
 
 # ── API pubblica ──────────────────────────────────────────────────────────────
+
+# ===== Applicazione e rollback =====
+
 
 def apply_migration(version: str, target: Path) -> dict:
     """Applica la migrazione ``version`` su ``target``. Idempotente.
@@ -146,13 +175,15 @@ def apply_migration(version: str, target: Path) -> dict:
     _write_records(target, transformed)
 
     state = _load_state(target)
-    state.setdefault("applied", []).append({
-        "version": version,
-        "direction": "forward",
-        "ts": datetime.now(UTC).isoformat(),
-        "records_before": len(records),
-        "records_after": len(transformed),
-    })
+    state.setdefault("applied", []).append(
+        {
+            "version": version,
+            "direction": "forward",
+            "ts": datetime.now(UTC).isoformat(),
+            "records_before": len(records),
+            "records_after": len(transformed),
+        }
+    )
     _save_state(target, state)
     return {"version": version, "status": "applied", "records_affected": len(transformed)}
 

@@ -39,6 +39,8 @@ from analysis.stats_utility import bootstrap_ci
 
 _logger = logging.getLogger(__name__)
 
+# ===== Configurazione =====
+
 _N_SUBJECTS_FULL = 15
 _EXPECTED_SAMPLES = _N_SUBJECTS_FULL * 2  # 30 = 15 sub × 2 cond (EO/EC)
 
@@ -49,6 +51,9 @@ _LOCAL_CLASSIFIERS: dict[str, object] = {
 }
 
 
+# ===== Modelli e risultati =====
+
+
 def _build_pipeline(clf_name: str) -> Pipeline:
     """Return a StandardScaler + classifier Pipeline for clf_name.
 
@@ -57,10 +62,12 @@ def _build_pipeline(clf_name: str) -> Pipeline:
     """
     if clf_name in _LOCAL_CLASSIFIERS:
         import copy
+
         clf = copy.deepcopy(_LOCAL_CLASSIFIERS[clf_name])
         return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
     # Delegate to ml_dispatcher for: svm, mlp, rf, gb
     from ml_training.ml_dispatcher import _make_pipeline  # noqa: PLC0415
+
     return _make_pipeline(clf_name)
 
 
@@ -79,6 +86,9 @@ class AggResult:
     p_perm: float
     n_subjects: int
     n_features: int
+
+
+# ===== Cross-validation e permutation test =====
 
 
 def _loso_cv(
@@ -124,6 +134,9 @@ def _permutation_p(
     return float(np.mean(null_bas >= observed_ba))
 
 
+# ===== Caricamento feature e hash =====
+
+
 def _load_features(
     features_dir: Path,
     atlas: str,
@@ -155,7 +168,10 @@ def _load_features(
         _logger.warning(
             "Shape guard: %s ha %d campioni, attesi %d (N=%d). "
             "Step 5 non ancora completato — skip.",
-            npz_path.name, X.shape[0], expected_samples, n_sub_expected,
+            npz_path.name,
+            X.shape[0],
+            expected_samples,
+            n_sub_expected,
         )
         return None
 
@@ -177,6 +193,20 @@ def _compute_hashes(
     *,
     bands: list[str] | None = None,
 ) -> dict:
+    """Calcola gli hash dei file feature `X_<atlas>_<metrica>_<banda>.npz`.
+
+    Servono a verificare che i dati di input non siano cambiati tra run.
+
+    Args:
+        features_dir: Cartella dei file feature.
+        atlases: Atlanti da considerare.
+        metrics: Metriche di connettivita'.
+        band: Banda singola (usata se `bands` e' None).
+        bands: Lista di bande alternativa a `band`.
+
+    Returns:
+        Dict "atlante_metrica_banda" -> hash del file.
+    """
     _bands = bands if bands is not None else [band]
     hashes: dict[str, str] = {}
     for _b in _bands:
@@ -185,6 +215,9 @@ def _compute_hashes(
                 key = f"{a}_{m}_{_b}"
                 hashes[key] = _file_hash(features_dir / f"X_{a}_{m}_{_b}.npz")
     return hashes
+
+
+# ===== Aggregazione N=15 =====
 
 
 def aggregate_classify_n15(
@@ -270,7 +303,9 @@ def aggregate_classify_n15(
     for _band in _bands:
         for atlas in atlases:
             for metric in metrics:
-                loaded = _load_features(features_dir, atlas, metric, _band, expected_samples=_expected_samples)
+                loaded = _load_features(
+                    features_dir, atlas, metric, _band, expected_samples=_expected_samples
+                )
                 if loaded is None:
                     continue
                 X, y, groups = loaded
@@ -279,27 +314,36 @@ def aggregate_classify_n15(
                 for clf_name in classifiers:
                     ba_mean, ba_std, ba_folds = _loso_cv(X, y, groups, clf_name, n_splits=n_splits)
                     ci_lo, ci_hi = bootstrap_ci(
-                        ba_folds, n_boot=1000, alpha=0.05, random_state=random_state,
+                        ba_folds,
+                        n_boot=1000,
+                        alpha=0.05,
+                        random_state=random_state,
                     )
                     p_perm = _permutation_p(
-                        X, y, groups, clf_name, ba_mean,
+                        X,
+                        y,
+                        groups,
+                        clf_name,
+                        ba_mean,
                         n_permutations=n_permutations,
                         n_splits=n_splits,
                         random_state=random_state,
                     )
-                    all_results.append(AggResult(
-                        atlas=atlas,
-                        metric=metric,
-                        band=_band,
-                        classifier=clf_name,
-                        ba_mean=round(ba_mean, 4),
-                        ba_std=round(ba_std, 4),
-                        ci_lo=round(ci_lo, 4),
-                        ci_hi=round(ci_hi, 4),
-                        p_perm=round(p_perm, 4),
-                        n_subjects=n_splits,
-                        n_features=X.shape[1],
-                    ))
+                    all_results.append(
+                        AggResult(
+                            atlas=atlas,
+                            metric=metric,
+                            band=_band,
+                            classifier=clf_name,
+                            ba_mean=round(ba_mean, 4),
+                            ba_std=round(ba_std, 4),
+                            ci_lo=round(ci_lo, 4),
+                            ci_hi=round(ci_hi, 4),
+                            p_perm=round(p_perm, 4),
+                            n_subjects=n_splits,
+                            n_features=X.shape[1],
+                        )
+                    )
 
     if not all_results:
         return {"results": [], "winner": None, "output_path": str(out_path)}

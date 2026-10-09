@@ -66,9 +66,7 @@ def compute_fc(
     """
     _VALID_METRICS = Metric.__args__  # type: ignore[attr-defined]
     if metric not in _VALID_METRICS:
-        raise ValueError(
-            f"Unknown metric={metric!r}. Valid: {sorted(_VALID_METRICS)}"
-        )
+        raise ValueError(f"Unknown metric={metric!r}. Valid: {sorted(_VALID_METRICS)}")
     if label_tc.ndim != 3:
         raise ValueError(
             f"label_tc must be (n_epochs, n_labels, n_times), got shape {label_tc.shape}"

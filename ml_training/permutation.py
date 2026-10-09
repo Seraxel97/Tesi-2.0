@@ -15,6 +15,8 @@ import numpy as np
 
 from ml_training.ml_dispatcher import Algorithm, run_cv
 
+# ===== Risultati =====
+
 
 @dataclass
 class PermutationResult:
@@ -37,6 +39,9 @@ class PermutationResult:
     null_distribution: np.ndarray
     p_value: float
     n_permutations: int
+
+
+# ===== Permutazione label =====
 
 
 def _permute_labels(
@@ -88,6 +93,9 @@ def _empirical_pvalue(null_bas: np.ndarray, observed_ba: float) -> float:
     return float((np.sum(null_bas >= observed_ba) + 1) / (n + 1))
 
 
+# ===== Test di permutazione =====
+
+
 def permutation_test(
     X: np.ndarray,
     y: np.ndarray,
@@ -131,9 +139,7 @@ def permutation_test(
     null_bas = np.zeros(n_permutations)
     for i in range(n_permutations):
         y_perm = _permute_labels(y, groups, rng)
-        perm_result = run_cv(
-            X, y_perm, groups=groups, algorithm=algorithm, n_splits=n_splits
-        )
+        perm_result = run_cv(X, y_perm, groups=groups, algorithm=algorithm, n_splits=n_splits)
         null_bas[i] = perm_result.ba_mean
 
     p_value = _empirical_pvalue(null_bas, observed_ba)
@@ -144,6 +150,9 @@ def permutation_test(
         p_value=p_value,
         n_permutations=n_permutations,
     )
+
+
+# ===== Correzione FDR =====
 
 
 def fdr_correction(

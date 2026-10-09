@@ -30,6 +30,8 @@ from mne_features import univariate as mf_uni
 
 # ── Funzioni univariate di default ───────────────────────────────────────────
 
+# ===== Configurazione =====
+
 _DEFAULT_FREQ_BANDS = np.array([1.0, 4.0, 8.0, 13.0, 30.0, 45.0])
 
 _DEFAULT_UNI_FUNCS: list[tuple[str, Callable]] = [
@@ -41,6 +43,9 @@ _DEFAULT_UNI_FUNCS: list[tuple[str, Callable]] = [
     ("hjorth_complexity", mf_uni.compute_hjorth_complexity),
     ("rms", mf_uni.compute_rms),
 ]
+
+
+# ===== Feature univariate =====
 
 
 def _apply_uni_epoch(
@@ -127,6 +132,14 @@ def extract_univariate(
         fb = freq_bands if freq_bands is not None else _DEFAULT_FREQ_BANDS
 
         def _pow(data: np.ndarray) -> np.ndarray:
+            """Potenza nelle bande di frequenza via mne_features.
+
+            Args:
+                data: Segnale, shape (n_channels, n_times).
+
+            Returns:
+                Potenze per banda (una per canale e banda).
+            """
             return mf_uni.compute_pow_freq_bands(sfreq, data, freq_bands=fb)
 
         funcs.append(("pow_freq_bands", _pow))
@@ -142,6 +155,9 @@ def extract_univariate(
             names = epoch_names
 
     return np.vstack(rows), names
+
+
+# ===== Feature da connettivita' =====
 
 
 def flatten_fc(

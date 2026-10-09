@@ -1,4 +1,7 @@
-"""Network visualization component — Plotly-based connectome and graph viz."""
+"""Network visualization component — Plotly-based connectome and graph viz.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
+"""
 
 from __future__ import annotations
 
@@ -7,6 +10,8 @@ from pathlib import Path
 
 import numpy as np
 import plotly.graph_objects as go
+
+# ===== Configurazione =====
 
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
@@ -18,6 +23,9 @@ try:
     _HAS_NX = True
 except ImportError:
     _HAS_NX = False
+
+
+# ===== Connettoma e metriche hub =====
 
 
 def plot_connectome_heatmap(
@@ -113,6 +121,9 @@ def compute_hub_metrics(
     }
 
 
+# ===== Grafo di rete =====
+
+
 def plot_network_plotly(
     W: np.ndarray,
     roi_names: list[str] | None = None,
@@ -125,7 +136,9 @@ def plot_network_plotly(
         fig = go.Figure()
         fig.update_layout(
             title=f"{title} — networkx non installato (pip install networkx)",
-            annotations=[{"text": "Installa networkx per la visualizzazione rete", "showarrow": False}],
+            annotations=[
+                {"text": "Installa networkx per la visualizzazione rete", "showarrow": False}
+            ],
         )
         return fig
 
@@ -173,10 +186,7 @@ def plot_network_plotly(
     node_y = [pos[n][1] for n in G.nodes()]
     node_color = [eig[n] for n in G.nodes()]
     node_size = [8 + 30 * eig[n] for n in G.nodes()]
-    node_text = [
-        f"{n}<br>Eig: {eig[n]:.3f}<br>Degree: {G.degree(n)}"
-        for n in G.nodes()
-    ]
+    node_text = [f"{n}<br>Eig: {eig[n]:.3f}<br>Degree: {G.degree(n)}" for n in G.nodes()]
 
     node_trace = go.Scatter(
         x=node_x,

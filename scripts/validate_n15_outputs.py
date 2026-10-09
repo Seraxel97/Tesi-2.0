@@ -3,6 +3,18 @@
 Validates label_tc per-epoch, FC matrices, and feature matrices produced by
 the S-FULL-N15 pipeline run. Read-only — no pipeline execution, no data modification.
 
+Scopo:
+    Controllo di integrita' dei dati prodotti dalla pipeline sui 15 soggetti
+    della whitelist: forma degli array, assenza di NaN/Inf, simmetria e range
+    fisiologico delle matrici di connettivita'.
+
+Input:
+    ``data/label_ts/ds005385`` (60 file), ``data/connectivity/ds005385``
+    (120 file) e ``data/features/ds005385`` (4 matrici X + y.npy + groups.npy).
+
+Output:
+    Report Markdown (default ``reports/VALIDATE_N15.md``) e riepilogo su stdout.
+
 Usage
 -----
     python scripts/validate_n15_outputs.py
@@ -21,38 +33,55 @@ from pathlib import Path
 
 import numpy as np
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
+# ===== 1. Configurazione =====
+# Soggetti attesi (whitelist N=15, seed 42)
 SUBJECTS = [
-    "sub-007", "sub-010", "sub-011", "sub-026", "sub-031",
-    "sub-033", "sub-041", "sub-066", "sub-071", "sub-080",
-    "sub-125", "sub-157", "sub-169", "sub-185", "sub-195",
+    "sub-007",
+    "sub-010",
+    "sub-011",
+    "sub-026",
+    "sub-031",
+    "sub-033",
+    "sub-041",
+    "sub-066",
+    "sub-071",
+    "sub-080",
+    "sub-125",
+    "sub-157",
+    "sub-169",
+    "sub-185",
+    "sub-195",
 ]
-ATLASES = ["aparc", "schaefer100"]
-CONDITIONS = ["EO", "EC"]
-METRICS = ["wpli", "coh"]
+ATLASES = ["aparc", "schaefer100"]  # parcellazioni corticali
+CONDITIONS = ["EO", "EC"]  # occhi aperti / occhi chiusi
+METRICS = ["wpli", "coh"]  # metriche di connettivita' spettrale
 
-_ATLAS_N_LABELS = {"aparc": 68, "schaefer100": 100}
-_N_TIMES_EXPECTED = 501
-_N_EPOCHS_MIN, _N_EPOCHS_MAX = 80, 200
+_ATLAS_N_LABELS = {"aparc": 68, "schaefer100": 100}  # ROI per atlante
+_N_TIMES_EXPECTED = 501  # campioni temporali per epoca nei label_tc
+_N_EPOCHS_MIN, _N_EPOCHS_MAX = 80, 200  # intervallo plausibile di epoche per file
 _N_SUBJECTS = 15
-_N_SAMPLES_EXPECTED = _N_SUBJECTS * 2  # 30
+_N_SAMPLES_EXPECTED = _N_SUBJECTS * 2  # 30 (un campione EO e uno EC per soggetto)
+# Numero di feature = archi del triangolo superiore, n*(n-1)/2 (68 -> 2278; 100 -> 4950)
 _FEAT_N_LABELS = {"aparc": 2278, "schaefer100": 4950}
 
-_WPLI_OFFDIAG_MED_MIN = 0.0   # wPLI can be 0 on diagonal; off-diag median > 0
+_WPLI_OFFDIAG_MED_MIN = 0.0  # wPLI can be 0 on diagonal; off-diag median > 0
 _WPLI_OFFDIAG_MAX_ABS = 1.0
 _COH_MIN, _COH_MAX = 0.0, 1.0
 _LABEL_TC_MAX_ABS = 1e6
 
 
-# ---------------------------------------------------------------------------
-# Data structures
-# ---------------------------------------------------------------------------
-
+# ===== 2. Strutture dati =====
 @dataclass
 class Anomaly:
+    """Singola anomalia rilevata.
+
+    Attributes:
+        category: tipo di dato (``label_tc``, ``FC``, ``features``).
+        file: nome del file coinvolto.
+        field: controllo fallito (es. ``shape``, ``finite``).
+        value: dettaglio del valore anomalo.
+    """
+
     category: str
     file: str
     field: str
@@ -61,6 +90,14 @@ class Anomaly:
 
 @dataclass
 class SubjectStats:
+    """Statistiche off-diagonal di wPLI e coerenza per un soggetto (EO/EC).
+
+    Attributes:
+        subject: ID soggetto.
+        wpli_*_median / wpli_*_max: mediana e massimo assoluto di wPLI.
+        coh_*_median: mediana della coerenza.
+    """
+
     subject: str
     wpli_eo_median: float = float("nan")
     wpli_ec_median: float = float("nan")
@@ -72,6 +109,13 @@ class SubjectStats:
 
 @dataclass
 class ValidationReport:
+    """Contatori e anomalie della validazione.
+
+    Per ciascuna categoria (label_tc ``lt``, FC ``fc``, feature ``feat``) tiene
+    il numero di file attesi, trovati, validi e le anomalie; ``anomalies`` e
+    ``subject_stats`` raccolgono il dettaglio per il report.
+    """
+
     timestamp: str
     lt_expected: int = 60
     lt_found: int = 0
@@ -90,6 +134,7 @@ class ValidationReport:
 
     @property
     def verdict(self) -> str:
+        """Verdetto complessivo: FAIL (file mancanti o feature anomale), WARN o PASS."""
         total_anom = self.lt_anomalies + self.fc_anomalies + self.feat_anomalies
         missing = (
             (self.lt_expected - self.lt_found)
@@ -103,12 +148,17 @@ class ValidationReport:
         return "PASS"
 
 
-# ---------------------------------------------------------------------------
-# Validators
-# ---------------------------------------------------------------------------
-
+# ===== 3. Validatori =====
 def _validate_label_tc(lt_dir: Path, report: ValidationReport) -> None:
-    """Validate all label_tc per-epoch files."""
+    """Valida i file label_tc per-epoch (15 soggetti x 2 atlanti x 2 condizioni).
+
+    Controlla forma (epoche, ROI, tempi), numero di epoche plausibile, assenza
+    di NaN/Inf e ampiezza massima.
+
+    Args:
+        lt_dir: cartella dei file ``*_per-epoch.npz``.
+        report: report aggiornato in-place (contatori e anomalie).
+    """
     for sub in SUBJECTS:
         for atlas in ATLASES:
             for cond in CONDITIONS:
@@ -131,38 +181,44 @@ def _validate_label_tc(lt_dir: Path, report: ValidationReport) -> None:
                 n_epochs, n_labels, n_times = lt.shape
 
                 if n_labels != _ATLAS_N_LABELS[atlas]:
-                    report.anomalies.append(Anomaly(
-                        "label_tc", fname, "n_labels",
-                        f"{n_labels} != {_ATLAS_N_LABELS[atlas]}"
-                    ))
+                    report.anomalies.append(
+                        Anomaly(
+                            "label_tc", fname, "n_labels", f"{n_labels} != {_ATLAS_N_LABELS[atlas]}"
+                        )
+                    )
                     ok = False
 
                 if n_times != _N_TIMES_EXPECTED:
-                    report.anomalies.append(Anomaly(
-                        "label_tc", fname, "n_times",
-                        f"{n_times} != {_N_TIMES_EXPECTED}"
-                    ))
+                    report.anomalies.append(
+                        Anomaly("label_tc", fname, "n_times", f"{n_times} != {_N_TIMES_EXPECTED}")
+                    )
                     ok = False
 
                 if not (_N_EPOCHS_MIN <= n_epochs <= _N_EPOCHS_MAX):
-                    report.anomalies.append(Anomaly(
-                        "label_tc", fname, "n_epochs",
-                        f"{n_epochs} out of [{_N_EPOCHS_MIN}, {_N_EPOCHS_MAX}]"
-                    ))
+                    report.anomalies.append(
+                        Anomaly(
+                            "label_tc",
+                            fname,
+                            "n_epochs",
+                            f"{n_epochs} out of [{_N_EPOCHS_MIN}, {_N_EPOCHS_MAX}]",
+                        )
+                    )
                     ok = False
 
                 if not np.isfinite(lt).all():
                     n_bad = int(np.sum(~np.isfinite(lt)))
-                    report.anomalies.append(Anomaly(
-                        "label_tc", fname, "finite", f"{n_bad} NaN/Inf"
-                    ))
+                    report.anomalies.append(
+                        Anomaly("label_tc", fname, "finite", f"{n_bad} NaN/Inf")
+                    )
                     ok = False
 
                 max_abs = float(np.abs(lt).max())
                 if max_abs > _LABEL_TC_MAX_ABS:
-                    report.anomalies.append(Anomaly(
-                        "label_tc", fname, "max_abs", f"{max_abs:.3e} > {_LABEL_TC_MAX_ABS:.0e}"
-                    ))
+                    report.anomalies.append(
+                        Anomaly(
+                            "label_tc", fname, "max_abs", f"{max_abs:.3e} > {_LABEL_TC_MAX_ABS:.0e}"
+                        )
+                    )
                     ok = False
 
                 if ok:
@@ -172,7 +228,17 @@ def _validate_label_tc(lt_dir: Path, report: ValidationReport) -> None:
 
 
 def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
-    """Validate FC per-epoch matrices (120 expected: 15×2×2×2)."""
+    """Valida le matrici FC per-epoch (120 attese: 15x2x2x2).
+
+    Controlla forma, finitezza, simmetria e range (wPLI in [0,1] in modulo,
+    coerenza in [0,1]) sugli elementi fuori diagonale; raccoglie le statistiche
+    per soggetto. Nota: le statistiche per soggetto vengono sovrascritte
+    dall'ultimo atlante visitato (schaefer100).
+
+    Args:
+        fc_dir: cartella dei file FC.
+        report: report aggiornato in-place.
+    """
     stats_map: dict[str, SubjectStats] = {s: SubjectStats(subject=s) for s in SUBJECTS}
 
     for sub in SUBJECTS:
@@ -180,8 +246,9 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
             n_labels = _ATLAS_N_LABELS[atlas]
             for cond in CONDITIONS:
                 for metric in METRICS:
-                    fname = (f"{sub}_atlas-{atlas}_cond-{cond}"
-                             f"_metric-{metric}_band-alpha_per-epoch.npz")
+                    fname = (
+                        f"{sub}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-alpha_per-epoch.npz"
+                    )
                     fpath = fc_dir / fname
                     if not fpath.exists():
                         report.fc_anomalies += 1
@@ -199,28 +266,28 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
                     ok = True
 
                     if mat.shape != (n_labels, n_labels):
-                        report.anomalies.append(Anomaly(
-                            "FC", fname, "shape",
-                            f"{mat.shape} != ({n_labels},{n_labels})"
-                        ))
+                        report.anomalies.append(
+                            Anomaly("FC", fname, "shape", f"{mat.shape} != ({n_labels},{n_labels})")
+                        )
                         ok = False
 
                     if not np.isfinite(mat).all():
-                        report.anomalies.append(Anomaly(
-                            "FC", fname, "finite",
-                            f"{int(np.sum(~np.isfinite(mat)))} NaN/Inf"
-                        ))
+                        report.anomalies.append(
+                            Anomaly(
+                                "FC", fname, "finite", f"{int(np.sum(~np.isfinite(mat)))} NaN/Inf"
+                            )
+                        )
                         ok = False
                     else:
                         # Symmetry check
                         sym_err = float(np.abs(mat - mat.T).max())
                         if sym_err > 1e-6:
-                            report.anomalies.append(Anomaly(
-                                "FC", fname, "symmetry", f"max_err={sym_err:.2e}"
-                            ))
+                            report.anomalies.append(
+                                Anomaly("FC", fname, "symmetry", f"max_err={sym_err:.2e}")
+                            )
                             ok = False
 
-                        # Range checks
+                        # Controlli di range sugli elementi fuori diagonale
                         mask_offdiag = ~np.eye(n_labels, dtype=bool)
                         off = mat[mask_offdiag]
                         med = float(np.median(off))
@@ -228,12 +295,13 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
 
                         if metric == "wpli":
                             if not (0.0 <= mx <= _WPLI_OFFDIAG_MAX_ABS):
-                                report.anomalies.append(Anomaly(
-                                    "FC", fname, "wpli_range",
-                                    f"max_abs={mx:.4f} out of [0,1]"
-                                ))
+                                report.anomalies.append(
+                                    Anomaly(
+                                        "FC", fname, "wpli_range", f"max_abs={mx:.4f} out of [0,1]"
+                                    )
+                                )
                                 ok = False
-                            # Store per-sub stats
+                            # Salva le statistiche per soggetto
                             st = stats_map[sub]
                             if cond == "EO":
                                 st.wpli_eo_median = med
@@ -244,10 +312,11 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
 
                         elif metric == "coh":
                             if not (_COH_MIN <= med <= _COH_MAX) or not (mx <= _COH_MAX + 1e-6):
-                                report.anomalies.append(Anomaly(
-                                    "FC", fname, "coh_range",
-                                    f"median={med:.4f}, max={mx:.4f}"
-                                ))
+                                report.anomalies.append(
+                                    Anomaly(
+                                        "FC", fname, "coh_range", f"median={med:.4f}, max={mx:.4f}"
+                                    )
+                                )
                                 ok = False
                             st = stats_map[sub]
                             if cond == "EO":
@@ -264,11 +333,19 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
 
 
 def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
-    """Validate feature matrices X_*.npz + y.npy + groups.npy."""
+    """Valida le matrici di feature ``X_*.npz`` e i file ``y.npy``/``groups.npy``.
+
+    Controlla forma (30 campioni, n_archi atteso), finitezza, bilanciamento
+    delle classi (15+15) e numero di gruppi (15 soggetti).
+
+    Args:
+        xs_dir: cartella delle feature.
+        report: report aggiornato in-place.
+    """
     y_path = xs_dir / "y.npy"
     groups_path = xs_dir / "groups.npy"
 
-    # Validate y and groups first
+    # Prima y e groups (etichette e gruppi di CV)
     y = groups = None
     if not y_path.exists():
         report.feat_anomalies += 1
@@ -277,21 +354,24 @@ def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
         y = np.load(y_path)
         if y.shape != (_N_SAMPLES_EXPECTED,):
             report.feat_anomalies += 1
-            report.anomalies.append(Anomaly(
-                "features", "y.npy", "shape", f"{y.shape} != ({_N_SAMPLES_EXPECTED},)"
-            ))
+            report.anomalies.append(
+                Anomaly("features", "y.npy", "shape", f"{y.shape} != ({_N_SAMPLES_EXPECTED},)")
+            )
         unique_y = np.unique(y)
         if not np.array_equal(unique_y, [0, 1]):
             report.feat_anomalies += 1
-            report.anomalies.append(Anomaly(
-                "features", "y.npy", "values", f"unique={unique_y}"
-            ))
+            report.anomalies.append(Anomaly("features", "y.npy", "values", f"unique={unique_y}"))
         n0, n1 = int(np.sum(y == 0)), int(np.sum(y == 1))
         if n0 != _N_SUBJECTS or n1 != _N_SUBJECTS:
             report.feat_anomalies += 1
-            report.anomalies.append(Anomaly(
-                "features", "y.npy", "balance", f"class0={n0}, class1={n1} (expect {_N_SUBJECTS} each)"
-            ))
+            report.anomalies.append(
+                Anomaly(
+                    "features",
+                    "y.npy",
+                    "balance",
+                    f"class0={n0}, class1={n1} (expect {_N_SUBJECTS} each)",
+                )
+            )
 
     if not groups_path.exists():
         report.feat_anomalies += 1
@@ -300,15 +380,21 @@ def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
         groups = np.load(groups_path)
         if groups.shape != (_N_SAMPLES_EXPECTED,):
             report.feat_anomalies += 1
-            report.anomalies.append(Anomaly(
-                "features", "groups.npy", "shape", f"{groups.shape} != ({_N_SAMPLES_EXPECTED},)"
-            ))
+            report.anomalies.append(
+                Anomaly(
+                    "features", "groups.npy", "shape", f"{groups.shape} != ({_N_SAMPLES_EXPECTED},)"
+                )
+            )
         if len(np.unique(groups)) != _N_SUBJECTS:
             report.feat_anomalies += 1
-            report.anomalies.append(Anomaly(
-                "features", "groups.npy", "unique_groups",
-                f"{len(np.unique(groups))} != {_N_SUBJECTS}"
-            ))
+            report.anomalies.append(
+                Anomaly(
+                    "features",
+                    "groups.npy",
+                    "unique_groups",
+                    f"{len(np.unique(groups))} != {_N_SUBJECTS}",
+                )
+            )
 
     for atlas in ATLASES:
         for metric in METRICS:
@@ -330,24 +416,22 @@ def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
             expected_nfeat = _FEAT_N_LABELS[atlas]
 
             if X.shape[0] != _N_SAMPLES_EXPECTED:
-                report.anomalies.append(Anomaly(
-                    "features", fname, "n_samples",
-                    f"{X.shape[0]} != {_N_SAMPLES_EXPECTED}"
-                ))
+                report.anomalies.append(
+                    Anomaly(
+                        "features", fname, "n_samples", f"{X.shape[0]} != {_N_SAMPLES_EXPECTED}"
+                    )
+                )
                 ok = False
 
             if X.shape[1] != expected_nfeat:
-                report.anomalies.append(Anomaly(
-                    "features", fname, "n_features",
-                    f"{X.shape[1]} != {expected_nfeat}"
-                ))
+                report.anomalies.append(
+                    Anomaly("features", fname, "n_features", f"{X.shape[1]} != {expected_nfeat}")
+                )
                 ok = False
 
             if not np.isfinite(X).all():
                 n_bad = int(np.sum(~np.isfinite(X)))
-                report.anomalies.append(Anomaly(
-                    "features", fname, "finite", f"{n_bad} NaN/Inf"
-                ))
+                report.anomalies.append(Anomaly("features", fname, "finite", f"{n_bad} NaN/Inf"))
                 ok = False
 
             if ok:
@@ -356,11 +440,16 @@ def _validate_features(xs_dir: Path, report: ValidationReport) -> None:
                 report.feat_anomalies += 1
 
 
-# ---------------------------------------------------------------------------
-# Report generation
-# ---------------------------------------------------------------------------
-
+# ===== 4. Generazione del report =====
 def _render_report(report: ValidationReport) -> str:
+    """Rende il report di validazione in Markdown.
+
+    Args:
+        report: esito della validazione.
+
+    Returns:
+        Testo Markdown (riepilogo, anomalie, tabelle wPLI/coerenza, note).
+    """
     ts = report.timestamp
     verdict = report.verdict
     verdict_icon = {"PASS": "[OK]", "WARN": "[WARNING]", "FAIL": "[FAIL]"}[verdict]
@@ -422,11 +511,7 @@ def _render_report(report: ValidationReport) -> str:
         "|-----|-----------|-----------|",
     ]
     for st in report.subject_stats:
-        lines.append(
-            f"| {st.subject} "
-            f"| {st.coh_eo_median:.4f} "
-            f"| {st.coh_ec_median:.4f} |"
-        )
+        lines.append(f"| {st.subject} | {st.coh_eo_median:.4f} | {st.coh_ec_median:.4f} |")
 
     lines += [
         "",
@@ -443,19 +528,25 @@ def _render_report(report: ValidationReport) -> str:
     return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
+# ===== 5. Entry point =====
 def validate(data_root: Path, output: Path) -> int:
-    """Run full validation. Returns exit code (0=PASS, 1=WARN, 2=FAIL)."""
+    """Esegue la validazione completa e scrive il report.
+
+    Args:
+        data_root: radice del repo (contiene ``data/``).
+        output: percorso del report Markdown da scrivere.
+
+    Returns:
+        Exit code: 0 = PASS, 1 = WARN, 2 = FAIL.
+
+    Side effects:
+        Scrive ``output`` (crea le cartelle mancanti) e stampa il riepilogo.
+    """
     lt_dir = data_root / "data/label_ts/ds005385"
     fc_dir = data_root / "data/connectivity/ds005385"
     xs_dir = data_root / "data/features/ds005385"
 
-    report = ValidationReport(
-        timestamp=datetime.datetime.now().astimezone().isoformat()
-    )
+    report = ValidationReport(timestamp=datetime.datetime.now().astimezone().isoformat())
 
     _validate_label_tc(lt_dir, report)
     _validate_fc(fc_dir, report)
@@ -467,20 +558,27 @@ def validate(data_root: Path, output: Path) -> int:
 
     verdict = report.verdict
     print(f"Validation complete — Verdict: {verdict}")
-    print(f"  label_tc : {report.lt_valid}/{report.lt_found} valid ({report.lt_anomalies} anomalies)")
-    print(f"  FC       : {report.fc_valid}/{report.fc_found} valid ({report.fc_anomalies} anomalies)")
-    print(f"  features : {report.feat_valid}/{report.feat_found} valid ({report.feat_anomalies} anomalies)")
+    print(
+        f"  label_tc : {report.lt_valid}/{report.lt_found} valid ({report.lt_anomalies} anomalies)"
+    )
+    print(
+        f"  FC       : {report.fc_valid}/{report.fc_found} valid ({report.fc_anomalies} anomalies)"
+    )
+    print(
+        f"  features : {report.feat_valid}/{report.feat_found} valid ({report.feat_anomalies} anomalies)"
+    )
     print(f"  Report   → {output}")
 
     return {"PASS": 0, "WARN": 1, "FAIL": 2}[verdict]
 
 
 def main() -> int:
+    """Interpreta gli argomenti CLI (``--data-root``, ``--output``) e lancia :func:`validate`."""
     ap = argparse.ArgumentParser(description="S-VALIDATE-N15 — data integrity check")
-    ap.add_argument("--data-root", default=".", type=Path,
-                    help="Tesi_2.0 root (default: cwd)")
-    ap.add_argument("--output", default="reports/VALIDATE_N15.md", type=Path,
-                    help="Output markdown report")
+    ap.add_argument("--data-root", default=".", type=Path, help="Tesi_2.0 root (default: cwd)")
+    ap.add_argument(
+        "--output", default="reports/VALIDATE_N15.md", type=Path, help="Output markdown report"
+    )
     args = ap.parse_args()
     return validate(args.data_root, args.output)
 

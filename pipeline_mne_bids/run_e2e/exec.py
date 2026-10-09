@@ -1,4 +1,7 @@
-"""Funzioni di execution E2E — ogni step della pipeline."""
+"""Funzioni di execution E2E — ogni step della pipeline.
+
+Posizione nella pipeline: orchestrazione degli STEP 1-7 (E2E e benchmark).
+"""
 
 from __future__ import annotations
 
@@ -16,6 +19,8 @@ from ml_training.ml_dispatcher import run_all_algorithms
 from parcellation.extract_label_tc import AtlasName, extract_tc
 from pipeline_mne_bids.run_e2e.report import write_report
 
+# ===== Configurazione =====
+
 _LABEL_MAP = {
     "raised-left/match-false": 0,
     "raised-left/match-true": 0,
@@ -32,6 +37,9 @@ def _build_y(epochs: mne.Epochs) -> np.ndarray:
         ev_name = event_ids_inv.get(ev_code, "unknown")
         y_list.append(_LABEL_MAP.get(ev_name, -1))
     return np.array(y_list, dtype=int)
+
+
+# ===== Pipeline E2E =====
 
 
 def run_e2e(
@@ -83,8 +91,14 @@ def run_e2e(
     t_start = time.time()
     run_id = f"e2e_{subject}_{atlas}_{metric}"
     logger = JsonLogger(run_id=run_id)
-    logger.log("pipeline_start", subject=subject, atlas=atlas, metric=metric,
-               sfreq_target=sfreq_target, n_epochs_max=n_epochs_max)
+    logger.log(
+        "pipeline_start",
+        subject=subject,
+        atlas=atlas,
+        metric=metric,
+        sfreq_target=sfreq_target,
+        n_epochs_max=n_epochs_max,
+    )
     deriv_root = Path(deriv_root)
     sub_eeg = deriv_root / subject / "eeg"
 

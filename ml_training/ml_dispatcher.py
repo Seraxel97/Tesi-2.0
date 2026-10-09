@@ -31,6 +31,8 @@ from sklearn.svm import SVC
 
 Algorithm = Literal["logreg", "logreg_nested", "svm", "mlp", "rf", "gb"]
 
+# ===== Classificatori disponibili =====
+
 _CLASSIFIERS: dict[str, object] = {
     "logreg": LogisticRegression(max_iter=2000, C=1.0, random_state=42),
     "logreg_nested": GridSearchCV(
@@ -46,6 +48,9 @@ _CLASSIFIERS: dict[str, object] = {
     "rf": RandomForestClassifier(n_estimators=200, random_state=42),
     "gb": GradientBoostingClassifier(n_estimators=200, random_state=42),
 }
+
+
+# ===== Risultati CV =====
 
 
 @dataclass
@@ -81,7 +86,23 @@ class CVResult:
     best_C_per_fold: list[float] = field(default_factory=list)
 
 
+# ===== Cross-validation =====
+
+
 def _make_pipeline(algorithm: Algorithm) -> Pipeline:
+    """Crea la pipeline StandardScaler + classificatore.
+
+    Lo scaler e' dentro la pipeline cosi' viene fittato solo sul train di ogni fold (no leakage).
+
+    Args:
+        algorithm: Nome dell'algoritmo, chiave di `_CLASSIFIERS`.
+
+    Returns:
+        Pipeline scikit-learn.
+
+    Raises:
+        ValueError: Se l'algoritmo non e' tra quelli validi.
+    """
     _VALID = Algorithm.__args__  # type: ignore[attr-defined]
     if algorithm not in _VALID:
         raise ValueError(f"Unknown algorithm={algorithm!r}. Valid: {sorted(_VALID)}")

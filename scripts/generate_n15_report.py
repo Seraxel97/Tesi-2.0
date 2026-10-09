@@ -1,6 +1,23 @@
-"""Genera EXPERIMENTS_N15.md e aggiorna SCIENTIFIC_PIPELINE_STATUS.md
-da comparison_matrix_N15.json prodotto da aggregate_classify_n15.
+"""Genera il report sperimentale N=15 (ds005385) a partire dai risultati ML.
+
+Scopo:
+    Trasforma la matrice di confronto prodotta da ``aggregate_classify_n15``
+    in due documenti Markdown leggibili: il report degli esperimenti e lo
+    stato finale della pipeline scientifica.
+
+Input:
+    ``data/results/ds005385/comparison_matrix_N15.json`` (chiavi ``results``,
+    ``winner``, ``n_permutations``); ``data/features/ds005385/metadata.json``
+    (opzionale, attualmente non usato); lista soggetti in
+    ``config.subjects_whitelist``.
+
+Output (sovrascritti ad ogni esecuzione):
+    ``reports/EXPERIMENTS_N15.md`` e ``reports/SCIENTIFIC_PIPELINE_STATUS.md``.
+
+Esempio:
+    python scripts/generate_n15_report.py
 """
+
 from __future__ import annotations
 
 import json
@@ -11,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.subjects_whitelist import SUBJECT_WHITELIST  # noqa: E402
 
+# ===== 1. Configurazione (percorsi, relativi alla radice repo) =====
 RESULTS_DIR = Path("data/results/ds005385")
 FEAT_DIR = Path("data/features/ds005385")
 REPORT_PATH = Path("reports/EXPERIMENTS_N15.md")
@@ -19,7 +37,21 @@ STATUS_PATH = Path("reports/SCIENTIFIC_PIPELINE_STATUS.md")
 JSON_PATH = RESULTS_DIR / "comparison_matrix_N15.json"
 
 
+# ===== 2. Generazione dei report =====
 def main() -> None:
+    """Legge la matrice di confronto N=15 e scrive i due report Markdown.
+
+    Args:
+        Nessuno: i percorsi sono costanti di modulo.
+
+    Returns:
+        None. Stampa su stdout i percorsi scritti e il riepilogo del vincitore.
+
+    Side effects:
+        Sovrascrive ``REPORT_PATH`` (EXPERIMENTS_N15.md) e ``STATUS_PATH``
+        (SCIENTIFIC_PIPELINE_STATUS.md). Solleva FileNotFoundError se manca
+        ``JSON_PATH``.
+    """
     d = json.loads(JSON_PATH.read_text())
     results = d.get("results", [])
     winner = d.get("winner", {})
@@ -37,13 +69,15 @@ def main() -> None:
         f"**Timestamp**: {ts}",
         "**Sprint**: S-FULL-N15 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
-        f"**Campioni**: {len(subjects)*2} (EO + EC)",
+        f"**Campioni**: {len(subjects) * 2} (EO + EC)",
         "**CV**: LOSO GroupKFold-15",
         "**Modulo**: ml_training.aggregate_n15.aggregate_classify_n15 (S-AGG-N15 commit 4995662)",
         f"**n_permutations**: {d.get('n_permutations', 100)}",
         "",
-        "---", "",
-        "## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test", "",
+        "---",
+        "",
+        "## STEP 6+7 — LOSO-15 + Bootstrap CI + Permutation Test",
+        "",
         "| Atlas | Metric | Classifier | Bal.Acc | CI 95% | p_perm | Sig |",
         "|-------|--------|------------|---------|--------|--------|-----|",
     ]
@@ -64,10 +98,14 @@ def main() -> None:
     w_ci_lo = winner.get("ci_lo", float("nan"))
     w_ci_hi = winner.get("ci_hi", float("nan"))
 
+    # Riferimento PILOT (valore 0.900 fissato a mano nel testo del report)
     # PILOT reference: schaefer100 × coh × logreg
     pilot_ba = next(
-        (r["ba_mean"] for r in results
-         if r["atlas"] == "schaefer100" and r["metric"] == "coh" and r["classifier"] == "logreg"),
+        (
+            r["ba_mean"]
+            for r in results
+            if r["atlas"] == "schaefer100" and r["metric"] == "coh" and r["classifier"] == "logreg"
+        ),
         None,
     )
     pilot_str = f"{pilot_ba:.3f}" if pilot_ba is not None else "N/A"
@@ -75,8 +113,11 @@ def main() -> None:
     n_sig = sum(1 for r in results if r.get("p_perm", 1.0) < 0.05)
 
     lines += [
-        "", "---", "",
-        "## Best configuration", "",
+        "",
+        "---",
+        "",
+        "## Best configuration",
+        "",
         f"**Winner**: `{w_atlas} × {w_metric} × {w_clf}`",
         f"**Balanced Accuracy**: {w_ba:.3f}  CI=[{w_ci_lo:.3f}, {w_ci_hi:.3f}]",
         f"**p_perm**: {w_p:.3f} ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'})",
@@ -87,12 +128,14 @@ def main() -> None:
         "|--------|--------------|--------------|",
         f"| schaefer100 × coh × logreg | 0.900 | {pilot_str} |",
         "",
-        "---", "",
-        "## Summary", "",
+        "---",
+        "",
+        "## Summary",
+        "",
         "| Metrica | Valore |",
         "|---------|--------|",
         f"| Soggetti | {len(subjects)} |",
-        f"| Campioni | {len(subjects)*2} |",
+        f"| Campioni | {len(subjects) * 2} |",
         f"| Combos testati | {len(results)} |",
         f"| Combos significativi (p<0.05) | {n_sig}/{len(results)} |",
         f"| Winner | {w_atlas} × {w_metric} × {w_clf} |",
@@ -127,13 +170,13 @@ def main() -> None:
 | Metrica | Valore |
 |---------|--------|
 | Soggetti totali | {len(subjects)} |
-| Campioni (sub×cond) | {len(subjects)*2} |
+| Campioni (sub×cond) | {len(subjects) * 2} |
 | FC matrices | 120/120 |
 | Combos ML testati | {len(results)} |
 | Combos significativi | {n_sig}/{len(results)} |
 | **Winner** | **{w_atlas} × {w_metric} × {w_clf}** |
 | **Best bal_acc** | **{w_ba:.3f}** CI=[{w_ci_lo:.3f},{w_ci_hi:.3f}] |
-| **p_perm** | **{w_p:.3f}** ({'p<0.05 [OK]' if w_p < 0.05 else 'p>=0.05 [WARNING]'}) |
+| **p_perm** | **{w_p:.3f}** ({"p<0.05 [OK]" if w_p < 0.05 else "p>=0.05 [WARNING]"}) |
 | Confronto PILOT | schaefer100×coh×logreg: 0.900→{pilot_str} |
 | Verdict pipeline | **PASS** [OK] |
 """

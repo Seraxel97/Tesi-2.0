@@ -1,4 +1,20 @@
-"""Verify deliverables present for all completed sprints."""
+"""Verifica la presenza dei deliverable di tutti gli sprint completati.
+
+Scopo:
+    Audit di completezza: per ogni sprint con ``status == "done"`` nella coda
+    di dispatch controlla che i file elencati in ``deliverables`` esistano.
+
+Input:
+    ``.planning/DISPATCH_QUEUE_tesi.jsonl`` (una riga JSON per sprint, chiavi
+    ``id``, ``sprint``, ``status``, ``deliverables``).
+
+Output:
+    Report Markdown su stdout e in ``reports/DELIVERABLES_AUDIT.md``.
+    Exit code 0 se nessun file manca, 1 altrimenti.
+
+Esempio:
+    python scripts/verify_deliverables.py
+"""
 
 from __future__ import annotations
 
@@ -7,17 +23,25 @@ from datetime import datetime
 from pathlib import Path
 
 
+# ===== 1. Scansione della coda =====
 def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.jsonl") -> dict:
-    """Scan completed sprints and verify deliverables are present.
+    """Scansiona gli sprint completati e verifica i deliverable.
 
     Parameters
     ----------
     queue_file:
-        Path to dispatch queue.
+        Percorso del file JSONL della coda di dispatch.
 
     Returns
     -------
-    dict with audit results.
+    dict
+        Chiavi ``timestamp``, ``total_done``, ``total_present``,
+        ``total_missing`` e ``sprints`` (lista di dict con ``id``, ``sprint``,
+        ``deliverables`` e ``verdict`` PASS/MISSING).
+
+    Side effects
+    ------------
+    Nessuno: legge solo il file della coda e controlla l'esistenza dei path.
     """
     queue_file = Path(queue_file)
     results = {
@@ -32,7 +56,7 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
         for line in f:
             task = json.loads(line)
 
-            # Only check completed sprints
+            # Controlliamo solo gli sprint completati
             if task["status"] != "done":
                 continue
 
@@ -48,7 +72,7 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
 
             all_present = True
             for deliverable in task["deliverables"]:
-                # Try to resolve path
+                # Il path può essere assoluto/relativo al CWD: proviamo entrambi
                 paths_to_check = [
                     Path(deliverable),
                     Path.cwd() / deliverable,
@@ -67,9 +91,7 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
                 if not found:
                     all_present = False
                     results["total_missing"] += 1
-                    sprint_result["deliverables"].append(
-                        {"path": deliverable, "status": "[FAIL]"}
-                    )
+                    sprint_result["deliverables"].append({"path": deliverable, "status": "[FAIL]"})
 
             sprint_result["verdict"] = "PASS" if all_present else "MISSING"
             results["sprints"].append(sprint_result)
@@ -77,8 +99,21 @@ def verify_deliverables(queue_file: str | Path = ".planning/DISPATCH_QUEUE_tesi.
     return results
 
 
+# ===== 2. Formattazione del report =====
 def format_report(audit_results: dict) -> str:
-    """Format audit results as markdown report."""
+    """Formatta i risultati dell'audit come report Markdown.
+
+    Parameters
+    ----------
+    audit_results:
+        Dizionario restituito da :func:`verify_deliverables`.
+
+    Returns
+    -------
+    str
+        Testo Markdown con riepilogo, tabella per sprint ed elenco dei
+        deliverable mancanti. Nessun side effect su file.
+    """
     lines = [
         "# Deliverables Audit Report",
         "",
@@ -95,33 +130,33 @@ def format_report(audit_results: dict) -> str:
     else:
         lines.append("**Verdict**: MISSING FILES [WARNING]")
 
-    lines.extend([
-        "",
-        "## Sprint Breakdown",
-        "",
-        "| Sprint ID | Status | Deliverables |",
-        "|-----------|--------|--------------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Sprint Breakdown",
+            "",
+            "| Sprint ID | Status | Deliverables |",
+            "|-----------|--------|--------------|",
+        ]
+    )
 
     for sprint in audit_results["sprints"]:
         verdict = sprint["verdict"]
         deliverable_str = ", ".join(
-            f"{d['status']} {Path(d['path']).name}"
-            for d in sprint["deliverables"]
+            f"{d['status']} {Path(d['path']).name}" for d in sprint["deliverables"]
         )
         sprint_id = sprint["id"]
         lines.append(f"| {sprint_id} | {verdict} | {deliverable_str} |")
 
-    lines.extend([
-        "",
-        "## Missing Deliverables",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Missing Deliverables",
+            "",
+        ]
+    )
 
-    missing = [
-        sprint for sprint in audit_results["sprints"]
-        if sprint["verdict"] == "MISSING"
-    ]
+    missing = [sprint for sprint in audit_results["sprints"] if sprint["verdict"] == "MISSING"]
 
     if not missing:
         lines.append("[OK] All deliverables present")
@@ -139,6 +174,7 @@ def format_report(audit_results: dict) -> str:
     return "\n".join(lines)
 
 
+# ===== 3. Entry point CLI =====
 if __name__ == "__main__":
     import sys
 

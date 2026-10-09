@@ -18,6 +18,7 @@ DS005385_TSV = (
     else Path(__file__).resolve().parents[1] / "data" / "raw" / "ds005385" / "participants.tsv"
 )
 
+# Codifica del sesso: F -> 0, M -> 1
 SEX_MAP = {"F": 0, "M": 1}
 
 

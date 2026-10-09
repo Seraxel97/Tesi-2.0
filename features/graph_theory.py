@@ -3,6 +3,8 @@
 Riduce la matrice FC (n×n) a ~8 scalari:
   mean_degree, mean_strength, clustering_coeff, path_length,
   global_efficiency, local_efficiency, modularity_q, small_worldness
+
+Posizione nella pipeline: STEP 5 (feature extraction), a valle della connettivita' (STEP 4).
 """
 
 from __future__ import annotations
@@ -66,7 +68,9 @@ def compute_graph_metrics(
     k = np.array([d for _, d in G.degree()])
     mean_degree = float(k.mean())
 
-    strengths = np.array([sum(d for _, d in G[v].items() for d in [d.get("weight", 1.0)]) for v in G.nodes()])
+    strengths = np.array(
+        [sum(d for _, d in G[v].items() for d in [d.get("weight", 1.0)]) for v in G.nodes()]
+    )
     mean_strength = float(strengths.mean())
 
     # Clustering NON pesato — coerente con path_length/efficiency (anche unweighted)

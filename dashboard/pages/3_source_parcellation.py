@@ -3,6 +3,8 @@
 Heatmap segnale per parcel × soggetto + confronto atlas.
 Nota: source estimate viewer 3D (dSPM fsaverage) richiede display interattivo MNE;
   in modalità server Streamlit si visualizzano le matrici FC per-parcel.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -55,7 +57,7 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 st.markdown("---")
 
-for atlas in (["aparc", "schaefer100"] if compare_atlas else ["aparc"]):
+for atlas in ["aparc", "schaefer100"] if compare_atlas else ["aparc"]:
     subjects = list_subjects_with_connectivity(atlas=atlas, metric=metric, band=band, cond=cond)
     n_sub = len(subjects)
 
@@ -81,7 +83,9 @@ for atlas in (["aparc", "schaefer100"] if compare_atlas else ["aparc"]):
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.subheader(f"FC media — {atlas} ({n_roi} ROI) · {metric}·{band}·{cond} · N={len(matrices)}")
+        st.subheader(
+            f"FC media — {atlas} ({n_roi} ROI) · {metric}·{band}·{cond} · N={len(matrices)}"
+        )
 
         # Applica threshold
         thr_val = float(np.percentile(np.abs(W_mean[np.triu_indices(n_roi, k=1)]), threshold_pct))

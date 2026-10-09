@@ -2,6 +2,8 @@
 
 Selettori N-soggetti, filtri età/sesso, preview tabellare.
 Dati: data/raw/ds005385/participants.tsv + data/features/ds005385/metadata.json
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -53,9 +55,7 @@ if n_sub < len(df):
 # Applica filtri
 if sex_filter:
     df = df[df["sex"].isin(sex_filter)]
-df = df[
-    (df["age"].isna()) | ((df["age"] >= age_min) & (df["age"] <= age_max))
-]
+df = df[(df["age"].isna()) | ((df["age"] >= age_min) & (df["age"] <= age_max))]
 
 # ---------------------------------------------------------------------------
 # Metriche top
@@ -135,7 +135,9 @@ if show_full:
 else:
     st.dataframe(df_display.head(20), use_container_width=True)
     if len(df_display) > 20:
-        st.caption(f"Mostrando 20 / {len(df_display)} soggetti. Abilita 'tabella completa' in sidebar.")
+        st.caption(
+            f"Mostrando 20 / {len(df_display)} soggetti. Abilita 'tabella completa' in sidebar."
+        )
 
 # ---------------------------------------------------------------------------
 # Info dataset
@@ -167,4 +169,6 @@ with st.expander("Info dataset ds005385", expanded=False):
             }
         )
 
-st.caption("ds004504 (LEMON) disponibile in **Tab 6 Cross-Dataset** · BA_sex=0.500 domain shift sano→clinico")
+st.caption(
+    "ds004504 (LEMON) disponibile in **Tab 6 Cross-Dataset** · BA_sex=0.500 domain shift sano→clinico"
+)

@@ -7,6 +7,14 @@ Output: data/features/ds005385/X_{atlas}_{metric}_alpha.npz  shape (10, n_featur
         data/features/ds005385/y.npy           shape (10,)  [0=EO, 1=EC]
         data/features/ds005385/groups.npy      shape (10,)  [subject index per LOSO]
         data/features/ds005385/metadata.json
+
+Scopo:
+    Per ogni combinazione atlante x metrica, impila il triangolo superiore
+    (k=1, diagonale esclusa) della matrice FC di ogni soggetto x condizione in
+    una matrice X (campioni x archi) pronta per la classificazione EO vs EC.
+
+Esempio:
+    python scripts/compute_features.py   # lancia dalla radice del repo
 """
 
 from __future__ import annotations
@@ -18,24 +26,54 @@ from pathlib import Path
 
 import numpy as np
 
+# ===== 1. Configurazione =====
+# Cartella con le matrici FC per-epoch in input
 IN_DIR = Path("data/connectivity/ds005385")
+# Cartella di output per X, y, groups, metadata
 OUT_DIR = Path("data/features/ds005385")
+# Report Markdown dello step
 REPORT_PATH = Path("reports/STEP5_DS005385_FEATURES.md")
 
+# Soggetti del pilota (ordine = ordine delle righe di X)
 SUBJECTS = ["sub-007", "sub-010", "sub-011", "sub-026", "sub-031"]
+# Parcellazioni corticali (68 ROI Desikan-Killiany; 100 ROI Schaefer)
 ATLASES = ["aparc", "schaefer100"]
 CONDITIONS = ["EO", "EC"]  # EO=0, EC=1
+# Metriche di connettivita' spettrale (weighted PLI, coerenza)
 METRICS = ["wpli", "coh"]
 
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+OUT_DIR.mkdir(parents=True, exist_ok=True)  # side effect all'import: crea la cartella
 
 
+# ===== 2. Costruzione di X, y, groups =====
 def fc_path(sub: str, atlas: str, cond: str, metric: str) -> Path:
+    """Costruisce il percorso del file FC per-epoch (banda alpha).
+
+    Args:
+        sub: ID soggetto (es. ``"sub-007"``).
+        atlas: nome atlante (``aparc`` o ``schaefer100``).
+        cond: condizione (``EO`` o ``EC``).
+        metric: metrica di connettivita' (``wpli`` o ``coh``).
+
+    Returns:
+        Path del file ``.npz`` dentro ``IN_DIR`` (non verifica l'esistenza).
+    """
     return IN_DIR / f"{sub}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-alpha_per-epoch.npz"
 
 
 def build_X(atlas: str, metric: str) -> tuple[np.ndarray, list[str]]:
-    """Costruisce X (10, n_features) caricando fc_matrix per ogni sub×cond."""
+    """Costruisce X caricando ``fc_matrix`` per ogni soggetto x condizione.
+
+    Args:
+        atlas: nome atlante.
+        metric: metrica di connettivita'.
+
+    Returns:
+        Tupla ``(X, row_labels)``: X di forma (n_soggetti*n_condizioni,
+        n_archi) con il triangolo superiore (k=1) di ogni matrice; row_labels
+        con etichette ``"<sub>_<cond>"`` nello stesso ordine delle righe.
+        Legge file da ``IN_DIR``.
+    """
     rows = []
     row_labels = []
     for sub in SUBJECTS:
@@ -50,7 +88,13 @@ def build_X(atlas: str, metric: str) -> tuple[np.ndarray, list[str]]:
 
 
 def build_y_groups() -> tuple[np.ndarray, np.ndarray]:
-    """y=[0,1,0,1,...] groups=[0,0,1,1,...] — ordine sub×cond."""
+    """Costruisce le etichette di classe e i gruppi per la cross-validation.
+
+    Returns:
+        ``(y, groups)`` int32: ``y`` = 0 per EO e 1 per EC (alternati),
+        ``groups`` = indice del soggetto (coppie EO/EC dello stesso soggetto
+        nello stesso gruppo, per LOSO). Ordine: soggetto x condizione.
+    """
     y, groups = [], []
     for i, _sub in enumerate(SUBJECTS):
         for cond in CONDITIONS:
@@ -59,7 +103,19 @@ def build_y_groups() -> tuple[np.ndarray, np.ndarray]:
     return np.array(y, dtype=np.int32), np.array(groups, dtype=np.int32)
 
 
+# ===== 3. Esecuzione e report =====
 def run_all() -> list[dict]:
+    """Estrae le feature per tutte le combinazioni atlante x metrica.
+
+    Returns:
+        Tupla ``(results, y, groups)``: ``results`` e' una lista di dict con
+        forma di X, intervallo, media, numero di NaN e tempo per combinazione.
+        (L'annotazione di ritorno ``list[dict]`` e' storica e non coincide.)
+
+    Side effects:
+        Scrive in ``OUT_DIR``: ``y.npy``, ``groups.npy``,
+        ``X_<atlas>_<metric>_alpha.npz`` e ``metadata.json``.
+    """
     results = []
     y, groups = build_y_groups()
 
@@ -87,15 +143,22 @@ def run_all() -> list[dict]:
                 f"range=[{x_min:.4f}, {x_max:.4f}]  mean={x_mean:.4f}  "
                 f"nan={nan_count}  {elapsed:.3f}s"
             )
-            results.append({
-                "atlas": atlas, "metric": metric,
-                "shape": list(X.shape), "n_features": n_feat,
-                "x_min": round(x_min, 4), "x_max": round(x_max, 4),
-                "x_mean": round(x_mean, 4), "nan_count": nan_count,
-                "elapsed_s": round(elapsed, 3),
-                "out_path": str(out_path),
-            })
+            results.append(
+                {
+                    "atlas": atlas,
+                    "metric": metric,
+                    "shape": list(X.shape),
+                    "n_features": n_feat,
+                    "x_min": round(x_min, 4),
+                    "x_max": round(x_max, 4),
+                    "x_mean": round(x_mean, 4),
+                    "nan_count": nan_count,
+                    "elapsed_s": round(elapsed, 3),
+                    "out_path": str(out_path),
+                }
+            )
 
+    # Metadati per tracciare provenienza e ordine delle righe
     metadata = {
         "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "subjects": SUBJECTS,
@@ -114,7 +177,20 @@ def run_all() -> list[dict]:
     return results, y, groups
 
 
-def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_elapsed: float) -> None:
+def write_report(
+    results: list[dict], y: np.ndarray, groups: np.ndarray, total_elapsed: float
+) -> None:
+    """Scrive il report Markdown dello step 5.
+
+    Args:
+        results: lista di dict restituita da :func:`run_all`.
+        y: etichette di classe (0=EO, 1=EC).
+        groups: indice soggetto per riga di X.
+        total_elapsed: tempo totale in secondi.
+
+    Side effects:
+        Sovrascrive ``REPORT_PATH``.
+    """
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     lines = [
         "# STEP 5 Feature Extraction — ds005385 PILOT",
@@ -129,8 +205,10 @@ def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_e
         f"- y = {y.tolist()}",
         f"- groups = {groups.tolist()}",
         "",
-        "---", "",
-        "## Output files", "",
+        "---",
+        "",
+        "## Output files",
+        "",
         "| Atlas | Metric | Shape X | n_features | Range | Mean | NaN | Time (s) |",
         "|-------|--------|---------|------------|-------|------|-----|----------|",
     ]
@@ -142,24 +220,33 @@ def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_e
         )
 
     lines += [
-        "", "---", "",
-        "## Sanity checks", "",
-        f"- y unique: {sorted(set(y.tolist()))} → {{0: {(y==0).sum()}, 1: {(y==1).sum()}}} (bilanciato [OK])",
-        f"- groups unique: {sorted(set(groups.tolist()))} → {len(set(groups.tolist()))} soggetti [OK]",
-        "- NaN count = 0 per tutte le combinazioni [OK]" if all(r['nan_count'] == 0 for r in results) else "- [WARNING] NaN presenti",
         "",
-        "## File prodotti", "",
+        "---",
+        "",
+        "## Sanity checks",
+        "",
+        f"- y unique: {sorted(set(y.tolist()))} → {{0: {(y == 0).sum()}, 1: {(y == 1).sum()}}} (bilanciato [OK])",
+        f"- groups unique: {sorted(set(groups.tolist()))} → {len(set(groups.tolist()))} soggetti [OK]",
+        "- NaN count = 0 per tutte le combinazioni [OK]"
+        if all(r["nan_count"] == 0 for r in results)
+        else "- [WARNING] NaN presenti",
+        "",
+        "## File prodotti",
+        "",
         "```",
-        f"data/features/ds005385/X_aparc_wpli_alpha.npz     shape={next(r['shape'] for r in results if r['atlas']=='aparc' and r['metric']=='wpli')}",
-        f"data/features/ds005385/X_aparc_coh_alpha.npz      shape={next(r['shape'] for r in results if r['atlas']=='aparc' and r['metric']=='coh')}",
-        f"data/features/ds005385/X_schaefer100_wpli_alpha.npz shape={next(r['shape'] for r in results if r['atlas']=='schaefer100' and r['metric']=='wpli')}",
-        f"data/features/ds005385/X_schaefer100_coh_alpha.npz  shape={next(r['shape'] for r in results if r['atlas']=='schaefer100' and r['metric']=='coh')}",
+        f"data/features/ds005385/X_aparc_wpli_alpha.npz     shape={next(r['shape'] for r in results if r['atlas'] == 'aparc' and r['metric'] == 'wpli')}",
+        f"data/features/ds005385/X_aparc_coh_alpha.npz      shape={next(r['shape'] for r in results if r['atlas'] == 'aparc' and r['metric'] == 'coh')}",
+        f"data/features/ds005385/X_schaefer100_wpli_alpha.npz shape={next(r['shape'] for r in results if r['atlas'] == 'schaefer100' and r['metric'] == 'wpli')}",
+        f"data/features/ds005385/X_schaefer100_coh_alpha.npz  shape={next(r['shape'] for r in results if r['atlas'] == 'schaefer100' and r['metric'] == 'coh')}",
         "data/features/ds005385/y.npy                       shape=(10,)",
         "data/features/ds005385/groups.npy                  shape=(10,)",
         "data/features/ds005385/metadata.json",
         "```",
-        "", "---", "",
-        "## Summary", "",
+        "",
+        "---",
+        "",
+        "## Summary",
+        "",
         "| Metrica | Valore |",
         "|---------|--------|",
         f"| File X prodotti | {len(results)} / 4 |",
@@ -171,6 +258,7 @@ def write_report(results: list[dict], y: np.ndarray, groups: np.ndarray, total_e
 
 
 def main() -> None:
+    """Esegue l'estrazione delle feature, scrive il report e stampa i tempi."""
     print("STEP 5 feature extraction | upper-triangle flatten | 4 atlas×metric combos")
     t0 = time.perf_counter()
     results, y, groups = run_all()

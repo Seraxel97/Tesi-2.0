@@ -13,10 +13,14 @@ from __future__ import annotations
 
 from config.subjects_whitelist import SUBJECT_WHITELIST as _N15
 
+# Etichetta della politica di campionamento (provenienza della lista)
 SUBSET_POLICY = "random_seed_42_N15_subset_N30"
+# Numero di soggetti nella whitelist
 N_SUBJECTS = 30
+# Seed del generatore casuale usato per estrarre i soggetti
 RANDOM_SEED = 42
 
+# Soggetti aggiunti rispetto alla lista N=15
 _NEW_15: list[str] = [
     "sub-012",
     "sub-014",
@@ -35,14 +39,21 @@ _NEW_15: list[str] = [
     "sub-200",
 ]
 
+# Lista finale N=30 = N15 unito ai nuovi, ordinata
 SUBJECT_WHITELIST_N30: list[str] = sorted(set(_N15) | set(_NEW_15))
 
 assert len(SUBJECT_WHITELIST_N30) == 30, f"expected 30, got {len(SUBJECT_WHITELIST_N30)}"
 assert set(_N15).issubset(set(SUBJECT_WHITELIST_N30)), "hard-rule violated: N15 ⊄ N30"
 
+# Sessione BIDS usata di default (prima sessione)
 DEFAULT_SESSION = "ses-1"
+# Acquisizione di default: registrazione pre-compito
 DEFAULT_ACQ = "acq-pre"
+# Soggetti validi nel pool (late_ses1 == 0)
 POOL_SIZE = 179
+# Soggetti esclusi (late_ses1 > 0)
 POOL_EXCLUDED = 21
+# Soggetti totali del dataset ds005385
 POOL_TOTAL = 200
+# Impronta di controllo della lista ordinata (rileva modifiche accidentali)
 N30_HASH = "1594bf5d4914a864"  # sha256(sorted N30 joined by comma)[:16]

@@ -5,6 +5,8 @@ Funzioni:
     cohen_d(a, b)                                 -> float
     statistical_power(effect_size, n, alpha)       -> float
     format_pvalue(p_value, n_perm)                -> str
+
+Posizione nella pipeline: post-STEP 6/7: analisi e confronto dei risultati (non e' uno step di elaborazione).
 """
 
 from __future__ import annotations
@@ -13,6 +15,8 @@ from collections.abc import Callable
 
 import numpy as np
 from statsmodels.stats.power import TTestIndPower
+
+# ===== Bootstrap CI =====
 
 
 def bootstrap_ci(
@@ -132,6 +136,16 @@ def bootstrap_ci_bca(
     z_hi = _norm.ppf(1 - alpha / 2)
 
     def _adj_pct(z_alpha: float) -> float:
+        """Percentile corretto BCa per un dato quantile z della normale.
+
+        Usa i parametri di bias-correction `z0` e accelerazione `a` della closure.
+
+        Args:
+            z_alpha: Quantile normale standard (es. -1.96 / +1.96).
+
+        Returns:
+            Percentile aggiustato in [0, 1].
+        """
         num_inner = z0 + z_alpha
         denom_inner = 1.0 - a * (z0 + z_alpha)
         if abs(denom_inner) < 1e-15:
@@ -148,6 +162,9 @@ def bootstrap_ci_bca(
     lo = float(np.percentile(boot_stats, pct_lo))
     hi = float(np.percentile(boot_stats, pct_hi))
     return lo, hi
+
+
+# ===== Effect size =====
 
 
 def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
@@ -224,6 +241,9 @@ def hedges_g(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     return d * correction
 
 
+# ===== Formattazione p-value =====
+
+
 def format_pvalue(p_value: float, n_perm: int) -> str:
     """Formatta un p-value empirico da permutation test in modo onesto.
 
@@ -262,6 +282,9 @@ def format_pvalue(p_value: float, n_perm: int) -> str:
         threshold = 1.0 / max(n_perm, 1)
         return f"p < {threshold:.3f}"
     return f"p = {p_value:.3f}"
+
+
+# ===== Analisi di potenza =====
 
 
 def statistical_power(

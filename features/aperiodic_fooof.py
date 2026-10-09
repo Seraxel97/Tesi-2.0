@@ -11,6 +11,8 @@ Features per segnale:
   spectral_entropy — Shannon entropy su PSD normalizzato
 
 NB: aperiodic_exp è inferenza proxy per E/I — dichiararlo in report.
+
+Posizione nella pipeline: STEP 5 (feature extraction), a valle della connettivita' (STEP 4).
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ import numpy as np
 import specparam
 from scipy.integrate import trapezoid
 from scipy.stats import entropy as shannon_entropy
+
+# ===== Configurazione =====
 
 _BANDS = {
     "delta": (1.0, 4.0),
@@ -42,7 +46,21 @@ FEATURE_NAMES = [
 ]
 
 
+# ===== Calcolo feature aperiodiche =====
+
+
 def _band_power(freqs: np.ndarray, psd: np.ndarray, fmin: float, fmax: float) -> float:
+    """Potenza in banda per integrazione trapezoidale della PSD.
+
+    Args:
+        freqs: Frequenze (Hz), shape (n_freqs,).
+        psd: Densita' spettrale di potenza, shape (n_freqs,).
+        fmin: Limite inferiore della banda (Hz, incluso).
+        fmax: Limite superiore della banda (Hz, incluso).
+
+    Returns:
+        Potenza integrata, oppure NaN se la banda contiene meno di 2 punti.
+    """
     mask = (freqs >= fmin) & (freqs <= fmax)
     if mask.sum() < 2:
         return np.nan
@@ -93,9 +111,7 @@ def compute_aperiodic_features(
         aperiodic_offset = np.nan
         aperiodic_exp = np.nan
 
-    band_powers = {
-        name: _band_power(freqs, psd, lo, hi) for name, (lo, hi) in _BANDS.items()
-    }
+    band_powers = {name: _band_power(freqs, psd, lo, hi) for name, (lo, hi) in _BANDS.items()}
 
     # Entropia spettrale: normalizzo la PSD a distribuzione di probabilità
     # (somma=1) e ne calcolo l'entropia di Shannon — un segnale con potenza

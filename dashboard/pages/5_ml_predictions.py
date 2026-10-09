@@ -6,6 +6,8 @@ Vincoli scientifici:
   - Permutation p-value mostrato sempre
   - Bootstrap CI mostrato sempre
   - EO/EC = positive-control, non biomarker
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -30,14 +32,10 @@ from dashboard.components.data_loader import (  # noqa: E402
 )
 from dashboard.components.ml_runner import run_classification, run_regression  # noqa: E402
 
-st.set_page_config(
-    page_title="ML & Predictions — Tesi 2.0", page_icon="", layout="wide"
-)
+st.set_page_config(page_title="ML & Predictions — Tesi 2.0", page_icon="", layout="wide")
 
 st.title(" ML & Predictions")
-st.caption(
-    "GroupKFold subject-level · permutation p-value · bootstrap CI · FDR-BH adjustment"
-)
+st.caption("GroupKFold subject-level · permutation p-value · bootstrap CI · FDR-BH adjustment")
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -57,8 +55,12 @@ with st.sidebar:
     metrics = sorted({c["metric"] for c in combos})
     bands = sorted({c["band"] for c in combos})
 
-    atlas = st.selectbox("Atlante", atlases, index=atlases.index("aparc") if "aparc" in atlases else 0)
-    metric = st.selectbox("Metrica FC", metrics, index=metrics.index("plv") if "plv" in metrics else 0)
+    atlas = st.selectbox(
+        "Atlante", atlases, index=atlases.index("aparc") if "aparc" in atlases else 0
+    )
+    metric = st.selectbox(
+        "Metrica FC", metrics, index=metrics.index("plv") if "plv" in metrics else 0
+    )
     band = st.selectbox("Banda", bands, index=bands.index("theta") if "theta" in bands else 0)
 
     st.divider()
@@ -117,19 +119,29 @@ with precomp_col:
             rows = []
             for cname, cv in clfs.items():
                 if _is_age:
-                    rows.append({
-                        "Modello": cname,
-                        "MAE": f"{cv.get('mae', cv.get('mae_mean', '?')):.2f}" if isinstance(cv.get('mae', cv.get('mae_mean')), float) else "?",
-                        "R²": f"{cv.get('r2', '?'):.3f}" if isinstance(cv.get('r2'), float) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0)),
-                    })
+                    rows.append(
+                        {
+                            "Modello": cname,
+                            "MAE": f"{cv.get('mae', cv.get('mae_mean', '?')):.2f}"
+                            if isinstance(cv.get("mae", cv.get("mae_mean")), float)
+                            else "?",
+                            "R²": f"{cv.get('r2', '?'):.3f}"
+                            if isinstance(cv.get("r2"), float)
+                            else "?",
+                            "p-val": format_pvalue(cv.get("p_value", 1.0)),
+                        }
+                    )
                 else:
-                    rows.append({
-                        "Modello": cname,
-                        "BA": f"{cv.get('ba_mean', 0):.3f}",
-                        "AUC": f"{cv.get('auc_mean', float('nan')):.3f}" if not (cv.get('auc_mean') != cv.get('auc_mean')) else "?",
-                        "p-val": format_pvalue(cv.get("p_value", 1.0)),
-                    })
+                    rows.append(
+                        {
+                            "Modello": cname,
+                            "BA": f"{cv.get('ba_mean', 0):.3f}",
+                            "AUC": f"{cv.get('auc_mean', float('nan')):.3f}"
+                            if not (cv.get("auc_mean") != cv.get("auc_mean"))
+                            else "?",
+                            "p-val": format_pvalue(cv.get("p_value", 1.0)),
+                        }
+                    )
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         else:
             st.info("Risultati non disponibili — esegui ML interattivo")
@@ -147,8 +159,7 @@ with precomp_col:
 with run_col:
     if run_btn:
         combo_check = any(
-            c["atlas"] == atlas and c["metric"] == metric and c["band"] == band
-            for c in combos
+            c["atlas"] == atlas and c["metric"] == metric and c["band"] == band for c in combos
         )
         if not combo_check:
             st.error(f"Feature file non trovato: X_{atlas}_{metric}_{band}.npz")
@@ -182,13 +193,15 @@ with run_col:
             else:
                 y_target = y_eceo
 
-            with st.spinner(
-                f"Running {clf_name} · {atlas}×{metric}×{band} · perm={n_perm}..."
-            ):
+            with st.spinner(f"Running {clf_name} · {atlas}×{metric}×{band} · perm={n_perm}..."):
                 if _is_age:
-                    result = run_regression(X, y_target, groups, reg_name=clf_name, n_perm=n_perm, n_boot=n_boot)
+                    result = run_regression(
+                        X, y_target, groups, reg_name=clf_name, n_perm=n_perm, n_boot=n_boot
+                    )
                 else:
-                    result = run_classification(X, y_target, groups, clf_name=clf_name, n_perm=n_perm, n_boot=n_boot)
+                    result = run_classification(
+                        X, y_target, groups, clf_name=clf_name, n_perm=n_perm, n_boot=n_boot
+                    )
 
             st.success(f"[OK] Done in {result['wall_clock_s']:.1f}s")
 
@@ -229,7 +242,9 @@ with run_col:
                     fig_sc.add_trace(go.Scatter(x=y_t, y=y_p, mode="markers", marker={"size": 5}))
                     rng_ = [min(y_t.min(), y_p.min()), max(y_t.max(), y_p.max())]
                     fig_sc.add_trace(
-                        go.Scatter(x=rng_, y=rng_, mode="lines", line={"dash": "dash", "color": "red"})
+                        go.Scatter(
+                            x=rng_, y=rng_, mode="lines", line={"dash": "dash", "color": "red"}
+                        )
                     )
                     fig_sc.update_layout(
                         xaxis_title="Età reale (anni)",
@@ -241,9 +256,13 @@ with run_col:
 
                 with tab_perm:
                     if result["p_perm"] is not None:
-                        st.info(f"Permutation test (n_perm={result['n_perm']}): p={result['p_perm']:.4f}")
+                        st.info(
+                            f"Permutation test (n_perm={result['n_perm']}): p={result['p_perm']:.4f}"
+                        )
                     else:
-                        st.info("Permutation test non eseguito (n_perm=0). Aumenta n_perm per stimare p-value.")
+                        st.info(
+                            "Permutation test non eseguito (n_perm=0). Aumenta n_perm per stimare p-value."
+                        )
             else:
                 tab_cm, tab_roc, tab_folds, tab_perm = st.tabs(
                     ["Confusion Matrix", "ROC Curve", "Per-Fold BA", "Permutation Null"]
