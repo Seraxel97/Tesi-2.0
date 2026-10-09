@@ -187,7 +187,6 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "# STEP 4 Functional Connectivity — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-104 (sonnet1-ts)",
         f"**Soggetti**: {SUBJECTS}",
         "**Metriche**: wpli, coh",
         "**Banda**: alpha (8-13 Hz)",

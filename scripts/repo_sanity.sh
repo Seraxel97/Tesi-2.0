@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set +e
-ROOT="/home/seraxel/Scrivania/Tesi_2.0"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/.." && pwd))"
 echo "=== Broken symlinks ==="
 find "$ROOT" -xtype l 2>/dev/null
 echo "=== Empty dirs (excluding __pycache__) ==="

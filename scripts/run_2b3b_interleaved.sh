@@ -3,6 +3,8 @@
 # Usato per gestire vincolo disco (~17 GB per soggetto)
 
 set -e
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/.." && pwd))"
+cd "$ROOT"
 SUBJECTS="${@:-sub-125 sub-157 sub-169 sub-185 sub-195}"
 DERIV="data/derivatives/mne-bids-pipeline"
 
@@ -18,7 +20,7 @@ for SUB in $SUBJECTS; do
   echo "  $SUB — cleanup stcs.npz"
   rm -f "$DERIV/$SUB/eeg/${SUB}_task-RestingState_cond-EO_inv-dSPM-stcs.npz"
   rm -f "$DERIV/$SUB/eeg/${SUB}_task-RestingState_cond-EC_inv-dSPM-stcs.npz"
-  echo "  $SUB cleanup done. Disk free: $(df -h /home/seraxel/Scrivania/ | tail -1 | awk '{print $4}')"
+  echo "  $SUB cleanup done. Disk free: $(df -h . | tail -1 | awk '{print $4}')"
 done
 
 echo "Tutti i soggetti processati."

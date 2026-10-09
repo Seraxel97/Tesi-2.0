@@ -42,8 +42,6 @@ CONDITIONS = ["EO", "EC"]  # EO=0, EC=1
 # Metriche di connettivita' spettrale (weighted PLI, coerenza)
 METRICS = ["wpli", "coh"]
 
-OUT_DIR.mkdir(parents=True, exist_ok=True)  # side effect all'import: crea la cartella
-
 
 # ===== 2. Costruzione di X, y, groups =====
 def fc_path(sub: str, atlas: str, cond: str, metric: str) -> Path:
@@ -104,18 +102,18 @@ def build_y_groups() -> tuple[np.ndarray, np.ndarray]:
 
 
 # ===== 3. Esecuzione e report =====
-def run_all() -> list[dict]:
+def run_all() -> tuple[list[dict], np.ndarray, np.ndarray]:
     """Estrae le feature per tutte le combinazioni atlante x metrica.
 
     Returns:
         Tupla ``(results, y, groups)``: ``results`` e' una lista di dict con
         forma di X, intervallo, media, numero di NaN e tempo per combinazione.
-        (L'annotazione di ritorno ``list[dict]`` e' storica e non coincide.)
 
     Side effects:
         Scrive in ``OUT_DIR``: ``y.npy``, ``groups.npy``,
         ``X_<atlas>_<metric>_alpha.npz`` e ``metadata.json``.
     """
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     results = []
     y, groups = build_y_groups()
 
@@ -196,7 +194,6 @@ def write_report(
         "# STEP 5 Feature Extraction — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-105 (sonnet1-ts)",
         "",
         "## Configurazione",
         "",

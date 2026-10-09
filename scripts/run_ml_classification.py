@@ -236,7 +236,6 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "# STEP 6 ML Classification — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-106 (sonnet1-ts)",
         "",
         "> [WARNING] **n=10 campioni, 5-fold LOSO = 1 test sample per fold.**",
         "> Risultati INDICATIVI per pipeline validation. Non statisticamente robusti.",

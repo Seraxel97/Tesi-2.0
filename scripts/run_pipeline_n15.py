@@ -255,7 +255,6 @@ def write_report(subjects: list[str], step5: list[dict], agg: dict, total_s: flo
         "# Esperimenti N=15 — ds005385 Full Run",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-FULL-N15 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
         f"**Campioni**: {len(subjects) * 2} (EO + EC)",
         "**CV**: LOSO GroupKFold-15 (ml_training.aggregate_n15)",
@@ -373,7 +372,6 @@ def update_status(subjects: list[str], agg: dict, total_s: float) -> None:
     content = f"""# Scientific Pipeline Status — ds005385 N=15 FULL RUN
 
 **Timestamp**: {ts}
-**Sprint**: S-FULL-N15 (sonnet-tesi-1) — FINALE
 **Dataset**: ds005385 — N={len(subjects)}, seed=42
 
 ## Stato step
@@ -416,7 +414,7 @@ def main() -> None:
     ap.add_argument(
         "--step5-only",
         action="store_true",
-        help="Run only Step 5 (feature extraction). Step 6+7 handled by sonnet-tesi-2.",
+        help="Run only Step 5 (feature extraction)..",
     )
     ap.add_argument("--force", action="store_true", help="Force recompute even if X exists")
     ap.add_argument(

@@ -6,13 +6,11 @@ on:
     paths-ignore:
       - "**.md"
       - "reports/**"
-      - ".planning/**"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**.md"
       - "reports/**"
-      - ".planning/**"
 
 # Cancel redundant runs on the same branch/PR (pattern da CLMForecast)
 concurrency:
@@ -40,14 +38,13 @@ jobs:
       - uses: actions/cache@13aadc3b3a44c4d4328bc8f713a588929b8b6949  # v4.0.1
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-py${{ matrix.python }}-pip-${{ hashFiles('pyproject.toml', 'requirements.txt') }}
+          key: ${{ runner.os }}-py${{ matrix.python }}-pip-${{ hashFiles('pyproject.toml', 'requirements.txt', 'requirements-dev.txt') }}
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python }}-pip-
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pytest-cov
+          pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run pytest with coverage
         run: |

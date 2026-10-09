@@ -6,7 +6,7 @@ la connettività funzionale (FC) e addestra classificatori con validazione per-s
 permutation test. Progetto di tesi magistrale.
 
 **Per il relatore**: [docs/GUIDA_PROFESSORE.md](docs/GUIDA_PROFESSORE.md) (avvio in 1 minuto) e
-[reports/CLAIMS_HONEST_CONSOLIDATED_FABLE.md](reports/CLAIMS_HONEST_CONSOLIDATED_FABLE.md)
+[reports/RISULTATI_E_LIMITI.md](reports/RISULTATI_E_LIMITI.md)
 (risultati e limiti, cosa regge e cosa no).
 
 ## Indice
@@ -43,6 +43,8 @@ Richiede Python 3.13.
 ```bash
 conda env create -f environment.yml   # crea l'ambiente `tesi_baseline`
 conda activate tesi_baseline
+make install                          # dipendenze + strumenti di sviluppo
+make data-demo                        # scarica dataset demo e fsaverage (necessari a demo e a parte dei test)
 python -c "import mne, mne_bids, mne_connectivity, mne_features, sklearn; print('ok')"
 ```
 
@@ -58,7 +60,7 @@ I comandi comuni sono raccolti nel `Makefile` (`make help` per l'elenco):
 make run-step1    # STEP 1 sul dataset demo (sub-05)
 make run-step2    # STEP 2: sorgente + inverso
 python -m pipeline_mne_bids.run_e2e_matchingpennies   # STEP 3-6 in sequenza sul demo
-make test         # suite di test
+make test         # suite di test (i test che richiedono data/ vengono saltati se mancano)
 make lint         # ruff check + format --check
 ```
 
@@ -79,6 +81,8 @@ mne_bids_pipeline --config config/config_step1_matchingpennies.py --steps prepro
 python -m cli.main step2
 python -m cli.main bench --output reports/BENCH_MATRIX_RESULTS.json   # matrice di benchmark
 ```
+
+**Attenzione**: molti script sovrascrivono i risultati in `data/features/` e `reports/`; fare una copia prima di rieseguirli (vedi CONTRIBUTING.md).
 
 Gli esperimenti sul dataset scientifico si lanciano con gli script in `scripts/`
 (es. `scripts/run_pipeline_ds004504.py`, `scripts/run_ml_age_sex_n179.py`); ogni script
@@ -107,9 +111,6 @@ Tesi_2.0/
 `-- .github/workflows/       CI: lint, test, smoke EEG
 ```
 
-La cartella `Efesto/` è un progetto indipendente non legato alla tesi; `.planning/`
-contiene appunti di lavorazione interni.
-
 ## 5. Dataset
 
 | Dataset | Ruolo | Note |
@@ -119,7 +120,7 @@ contiene appunti di lavorazione interni.
 | `ds004504` | fenotipo clinico (config etichette) | vedi `config/labels_phenotype_ds004504.py` |
 | `eeg_matchingpennies` | **demo tecnica** (7 soggetti, 61 canali) | usata da test e smoke E2E |
 
-I dati (circa 50 GB tra raw e derivati) non sono nel repository (`.gitignore`). Le
+I dati (circa 50 GB tra raw e derivati) **non sono nel repository** (`.gitignore`): il dataset demo si scarica con `make data-demo`; i dataset scientifici vanno scaricati da OpenNeuro (vedi `scripts/setup_scientific_dataset.py`). Le
 whitelist dei soggetti usati sono in `config/subjects_whitelist_*.py`. La struttura del
 dataset principale è descritta in `reports/DS005385_STRUCTURE.md`.
 
@@ -132,7 +133,7 @@ make lint                                 # ruff (regole E, F, W, I, UP; riga ma
 pre-commit install                        # hook ruff a ogni commit
 ```
 
-Alcuni test richiedono i derivati del soggetto demo e vengono saltati se mancano.
+I test che richiedono `data/` vengono saltati se mancano; per eseguirli tutti serve `make data-demo`.
 La CI (`.github/workflows/`) esegue lint, test e uno smoke EEG.
 
 ## 7. Dashboard interattiva
@@ -150,7 +151,6 @@ predizioni ML, cross-dataset). Dettagli in [dashboard/README.md](dashboard/READM
 - Guida per il relatore: [docs/GUIDA_PROFESSORE.md](docs/GUIDA_PROFESSORE.md)
 - Panoramica pipeline: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md)
 - Indice dei report: [reports/INDICE.md](reports/INDICE.md)
-- Stato e storia del lavoro: [PROGRESS.md](PROGRESS.md)
 - Contribuire: [CONTRIBUTING.md](CONTRIBUTING.md)
 - API (HTML generato con pdoc): `docs/api/index.html`
 

@@ -21,12 +21,12 @@ jobs:
       - uses: actions/cache@13aadc3b3a44c4d4328bc8f713a588929b8b6949  # v4.0.1
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-py3.13-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-py3.13-pip-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
           restore-keys: |
             ${{ runner.os }}-py3.13-pip-
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Smoke test e2e (sintetico, no real dataset)
         run: pytest tests/test_e2e_smoke_minimal.py -v --tb=short

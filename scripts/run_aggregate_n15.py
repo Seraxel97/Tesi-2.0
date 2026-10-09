@@ -1,4 +1,4 @@
-"""CLI per la classificazione aggregata N=15 (sprint S-AGG-N15).
+"""CLI per la classificazione aggregata N=15.
 
 Scopo:
     Wrapper da riga di comando di ml_training.aggregate_n15.aggregate_classify_n15:
@@ -41,7 +41,7 @@ def main() -> int:
         Scrive comparison_matrix_N15.json in --out (tramite aggregate_classify_n15).
     """
     ap = argparse.ArgumentParser(
-        description="Aggregate N=15 classification — sprint S-AGG-N15",
+        description="Aggregate N=15 classification",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument(
@@ -86,7 +86,7 @@ def main() -> int:
             "[WARN] Nessun dato N=15 caricato — Step 5 N=15 non ancora completato.",
             file=sys.stderr,
         )
-        print("       Attendi che sonnet-tesi-1 completi S-FULL-N15 e riprova.")
+        print("       Completa prima la pipeline N=15 e riprova.")
         return 0
 
     w = result["winner"]

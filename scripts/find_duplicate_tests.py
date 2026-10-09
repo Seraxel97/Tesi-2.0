@@ -182,7 +182,7 @@ def build_report(
     lines = [
         "# Tests Deduplication Report",
         "",
-        "**Data**: 2026-05-01  **Sprint**: S-61  **Worker**: sonnet2-ts",
+        "**Data**: 2026-05-01",
         f"**Suite**: `{tests_dir}/` — {total_files} file, {total_funcs} funzioni test",
         "",
         "---",

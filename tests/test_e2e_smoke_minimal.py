@@ -58,13 +58,12 @@ def synthetic_X(synthetic_label_tc, synthetic_fc):
 
 
 def test_imports_all_modules():
+    import common.paths  # noqa: F401
     import connectivity.fc_dispatcher  # noqa: F401
     import features.dispatcher  # noqa: F401
     import ml_training.ml_dispatcher  # noqa: F401
     import parcellation.extract_label_tc  # noqa: F401
     import source_reconstruction.finalize_inverse  # noqa: F401
-    from common.dispatcher_base import validate_dispatch_key  # noqa: F401
-    from common.paths import BIDS_ROOT, DERIV, SUBJECTS_DIR  # noqa: F401
 
 
 # ── STEP 2 proxy: fake SourceEstimate ────────────────────────────────────────

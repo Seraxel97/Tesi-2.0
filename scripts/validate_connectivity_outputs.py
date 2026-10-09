@@ -209,7 +209,7 @@ def build_md(results: list[dict], ts: str) -> str:
     lines = [
         "# Connectivity Outputs Pre-flight Check",
         "",
-        f"**Sprint**: S-111  **Data**: {ts}  **Worker**: sonnet2-ts",
+        f"**Data**: {ts}",
         f"**Verdict**: {overall}  CLEAN={n_clean}  FAIL={n_fail}  WAITING={n_wait}",
         "",
         "---",
@@ -251,8 +251,7 @@ def build_md(results: list[dict], ts: str) -> str:
     ]
     if overall == "WAITING":
         lines.append(
-            "\nS-104 in flight (sonnet1-ts). "
-            "Ri-eseguire dopo completamento per aggiornare il report."
+            "\nStep 4 ancora in corso. Ri-eseguire dopo completamento per aggiornare il report."
         )
     return "\n".join(lines) + "\n"
 

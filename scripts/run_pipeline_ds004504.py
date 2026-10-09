@@ -5,7 +5,12 @@ Scopo:
     e con la sola condizione EC. La main esegue step 2 (fwd+inv), 2b (STC
     per-epoca) e 3b (parcellazione aparc) per sub-001..sub-050 e rimuove gli
     stcs.npz. Gli step 4b (FC) e 5 (feature) sono in run_fc_features(), che
-    la main NON richiama (vedi flag --skip-to-fc, oggi non utilizzato).
+    la main esegue solo con il flag --skip-to-fc (sui label_ts già calcolati,
+    saltando gli step 2-3b). Default invariato: solo step 2, 2b, 3b.
+
+    ATTENZIONE: in step 5 y=0 per tutti i soggetti è un PLACEHOLDER (una sola
+    condizione, eyes-closed). Il dataset ha i gruppi A/F/C in participants.tsv,
+    ma qui non sono usati. NON vanno dichiarati risultati ds004504.
 
 Input:
     - data/raw/ds004504/<sub>/eeg/<sub>_task-eyesclosed_eeg.set
@@ -14,7 +19,6 @@ Input:
 Output:
     - data/derivatives/mne-bids-pipeline-ds004504/ (fwd/inv; stcs temporanei)
     - data/label_ts/ds004504/, data/connectivity/ds004504/, data/features/ds004504/
-    - heartbeat in .planning/heartbeats_tesi/haiku-tesi-lemon-2.json
 
 Esempio:
     python scripts/run_pipeline_ds004504.py
@@ -44,7 +48,6 @@ LABEL_TS_DIR = Path("data/label_ts/ds004504")
 CONN_DIR = Path("data/connectivity/ds004504")
 FEAT_DIR = Path("data/features/ds004504")
 RESULTS_DIR = Path("data/results/ds004504")
-HEARTBEAT_PATH = Path(".planning/heartbeats_tesi/haiku-tesi-lemon-2.json")
 SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 
 SESSION = None
@@ -77,32 +80,21 @@ for d in [LABEL_TS_DIR, CONN_DIR, FEAT_DIR, RESULTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
-# ===== 2. Heartbeat =====
+# ===== 2. Log di avanzamento =====
 def write_hb(step: str, progress: str, extra: dict | None = None) -> None:
-    """Scrive il file heartbeat JSON per il monitoraggio del worker.
+    """Stampa su stdout una riga di log dell'avanzamento.
 
     Args:
         step: step corrente.
         progress: descrizione dell'avanzamento.
-        extra: campi aggiuntivi (opzionale).
+        extra: campi aggiuntivi da riportare nel log (opzionale).
 
     Returns:
         None.
-
-    Side effects:
-        Sovrascrive HEARTBEAT_PATH.
     """
-    data: dict = {
-        "worker": "haiku-tesi-lemon-2",
-        "ts": datetime.now(UTC).isoformat(timespec="seconds"),
-        "status": "in_progress",
-        "current_sprint": "STEP_2.1_preprocessing_adapter",
-        "current_step": step,
-        "progress": progress,
-    }
-    if extra:
-        data.update(extra)
-    HEARTBEAT_PATH.write_text(json.dumps(data, indent=2))
+    ts = datetime.now(UTC).isoformat(timespec="seconds")
+    tail = f" {extra}" if extra else ""
+    print(f"[progress {ts}] {step}: {progress}{tail}", flush=True)
 
 
 # ===== 3. STEP 2 — Forward + inverse =====
@@ -561,13 +553,20 @@ def main() -> None:
     """Punto di ingresso CLI: step 2, 2b, 3b per sub-001..sub-050 con cleanup degli stcs.
 
     Side effects:
-        Il flag --skip-to-fc viene solo validato, non cambia il comportamento.
+        Con --skip-to-fc salta gli step 2-3b ed esegue solo run_fc_features().
     """
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-to-fc", action="store_true")
-    parser.parse_args()  # valida gli argomenti (il flag non è ancora consumato)
+    parser.add_argument(
+        "--skip-to-fc",
+        action="store_true",
+        help="salta gli step 2-3b ed esegue solo FC + feature (step 4b + 5)",
+    )
+    args = parser.parse_args()
+    if args.skip_to_fc:
+        run_fc_features()
+        return
 
     subjects = SUBJECTS_DS004504
     print(f"[ds004504] Processing {len(subjects)} subjects — step2+2b+3b")

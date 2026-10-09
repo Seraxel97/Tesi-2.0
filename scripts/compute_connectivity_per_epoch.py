@@ -259,7 +259,6 @@ def write_report(
         "# STEP 4b FC Extended — ds005385",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-FC-EXTEND (sonnet-tesi-1)",
         f"**Metriche**: {metrics}",
         f"**Bande**: {bands}",
         "",

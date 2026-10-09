@@ -217,7 +217,6 @@ def write_report(
         "# STEP 2b Per-Epoch STC — ds005385 PILOT (FIX wPLI)",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-101b (sonnet1-ts)",
         "**Fix**: apply_inverse_epochs → (n_epochs, n_sources, n_times) float32",
         f"**Soggetti**: {SUBJECTS}",
         f"**Metodo**: {METHOD} | lambda2={LAMBDA2:.3f}",

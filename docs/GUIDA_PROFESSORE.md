@@ -14,11 +14,14 @@ provano a prevedere età/sesso del soggetto — con verifica statistica rigorosa
 
 ## 2. Come si avvia (dimostrazione rapida, ~1 minuto)
 
-Il dataset di dimostrazione (`eeg_matchingpennies`, soggetto sub-05) è già incluso nel
-repository, non serve scaricare nulla. Da terminale, nella cartella del progetto:
+Il dataset di dimostrazione (`eeg_matchingpennies`, soggetto sub-05) non è incluso nel
+repository (i dati sono esclusi da git): si scarica con un comando. Da terminale, nella
+cartella del progetto:
 
 ```bash
 cd Tesi_2.0
+make install     # dipendenze Python
+make data-demo   # scarica il dataset demo (una tantum)
 make run-step1   # pulizia del segnale (STEP 1)
 make run-step2   # ricostruzione alla sorgente (STEP 2)
 python -m pipeline_mne_bids.run_e2e_matchingpennies   # STEP 3→6 in sequenza
@@ -43,7 +46,7 @@ Il dataset scientifico è `ds005385` (Dortmund Vital Study, N=179); la validazio
 onesti e con tutti i limiti dichiarati, sono riassunti in un unico file pensato
 apposta per la lettura da parte del relatore:
 
-**[`reports/CLAIMS_HONEST_CONSOLIDATED_FABLE.md`](../reports/CLAIMS_HONEST_CONSOLIDATED_FABLE.md)**
+**[`reports/RISULTATI_E_LIMITI.md`](../reports/RISULTATI_E_LIMITI.md)**
 
 Contiene: il risultato principale (classificazione del sesso dalla connettività
 EEG), i tre controlli di robustezza fatti (confound età, sensibilità alla metrica,
@@ -72,5 +75,5 @@ riga interessata.
 ## 6. A chi chiedere
 
 Per domande sul metodo statistico o sui limiti dei risultati, il punto di partenza
-è sempre `reports/CLAIMS_HONEST_CONSOLIDATED_FABLE.md` (sezione 4 qui sopra): è
+è sempre `reports/RISULTATI_E_LIMITI.md` (sezione 4 qui sopra): è
 scritto apposta per anticipare le domande che un relatore fa di solito.

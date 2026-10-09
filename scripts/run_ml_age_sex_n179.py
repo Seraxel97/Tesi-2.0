@@ -9,7 +9,8 @@ Scopo:
 
 Protocollo:
     Sesso: LogReg-L2, GroupKFold esterno K=5, interno K=3, balanced accuracy.
-    Età:   RandomForest, GroupKFold esterno K=5, MAE e R2.
+    Età:   RandomForest, GroupKFold esterno K=5, MAE e R2 (nessun tuning:
+           inner_k non è usato per l'età, solo per il sesso).
     GT:    8 scalari da matrice FC 68x68 ricostruita da X_aparc_plv_theta.
     Perm:  shuffle delle etichette per soggetto (broadcast via groups).
     Boot:  ricampionamento di soggetti interi (n_boot, seed=42).
@@ -405,9 +406,9 @@ def write_report(results: dict, path: Path) -> None:
         "# FASE 3 — Risultati ML Età + Sesso N=179",
         "",
         f"**Data**: {ts}",
-        f"**Coorte**: ds005385 N={ns} (whitelist determinististica seed=43)",
+        f"**Coorte**: ds005385 N={ns} (whitelist completa locale, late_ses1==0; nessun campionamento. Il seed 43 riguarda solo la N=100)",
         "**Feature winner**: X_aparc_plv_theta (2278-dim PLV theta aparc)",
-        f"**Protocollo**: GroupKFold K=5 outer / K=3 inner, perm subject-level n={sx['n_perm']}, "
+        f"**Protocollo**: GroupKFold K=5 outer / K=3 inner (solo sesso; età: RF senza tuning), perm subject-level n={sx['n_perm']}, "
         f"boot cluster-subject n={sx['n_boot']}",
         "",
         "## 1. Classificazione Sesso — baseline 2278-dim",
@@ -598,7 +599,8 @@ def main():
         "feat_name": args.feat_name,
         "protocol": {
             "outer_k": 5,
-            "inner_k": 3,
+            "inner_k": 3,  # usato solo per il sesso (scelta di C); non per l'età (RF senza tuning)
+            "inner_k_scope": "sex_only",
             "n_perm": args.n_perm,
             "n_boot": args.n_boot,
             "perm_type": "subject_level",

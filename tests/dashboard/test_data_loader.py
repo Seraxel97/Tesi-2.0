@@ -29,6 +29,8 @@ from dashboard.components.data_loader import (  # noqa: E402
     load_metadata,
 )
 
+pytestmark = pytest.mark.needs_data
+
 
 def test_load_metadata_returns_dict():
     meta = load_metadata()

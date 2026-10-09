@@ -346,7 +346,6 @@ def _write_report(results: list[dict], total_elapsed: float) -> None:
         "# STEP 2 Source Reconstruction — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-101 (sonnet1-ts)",
         f"**Subjects**: {[r['sub'] for r in results]}",
         f"**Method**: {METHOD} | lambda2={LAMBDA2:.3f} | loose={LOOSE} | depth={DEPTH}",
         "**Template MRI**: fsaverage oct6",

@@ -7,6 +7,8 @@ import pytest
 
 from ml_training.ml_age import load_data, run_cv
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture(scope="module")
 def data():

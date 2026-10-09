@@ -149,7 +149,7 @@ def bootstrap_ci_bca(
         num_inner = z0 + z_alpha
         denom_inner = 1.0 - a * (z0 + z_alpha)
         if abs(denom_inner) < 1e-15:
-            return z_alpha
+            return float(_norm.cdf(z_alpha))
         return float(_norm.cdf(z0 + num_inner / denom_inner))
 
     pct_lo = _adj_pct(z_lo) * 100

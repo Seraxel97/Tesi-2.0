@@ -67,7 +67,6 @@ def main() -> None:
         "# Esperimenti N=15 — ds005385 Full Run",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-FULL-N15 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
         f"**Campioni**: {len(subjects) * 2} (EO + EC)",
         "**CV**: LOSO GroupKFold-15",
@@ -151,7 +150,6 @@ def main() -> None:
     status = f"""# Scientific Pipeline Status — ds005385 N=15 FULL RUN
 
 **Timestamp**: {ts}
-**Sprint**: S-FULL-N15 (sonnet-tesi-1) — FINALE
 **Dataset**: ds005385 (Dortmund Vital Study) — N={len(subjects)}, seed=42
 
 ## Stato step — FINALE

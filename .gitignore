@@ -24,3 +24,6 @@ data/
 
 # Artefatti di coverage
 .coverage
+
+# Checkpoint locali di modelli
+model/

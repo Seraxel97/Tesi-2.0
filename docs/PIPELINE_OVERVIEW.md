@@ -125,7 +125,7 @@ STEP 7: verifica E2E + risultati
 - **Validazione**: `GroupKFold` con `group=subject_id` (LOSO)
 - **Statistica**: permutation test 1000x, FDR correction (scipy)
 - **Metrica primaria**: Balanced Accuracy (BA)
-- **Output**: JSON per config, `.planning/research/METHODS_v1.md` integra i risultati
+- **Output**: JSON per config
 
 ### STEP 7 — E2E
 

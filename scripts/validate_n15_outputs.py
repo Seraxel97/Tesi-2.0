@@ -1,4 +1,4 @@
-"""S-VALIDATE-N15 — Data integrity validation for N=15 ds005385 outputs.
+"""Validate N15 — Data integrity validation for N=15 ds005385 outputs.
 
 Validates label_tc per-epoch, FC matrices, and feature matrices produced by
 the S-FULL-N15 pipeline run. Read-only — no pipeline execution, no data modification.
@@ -94,11 +94,13 @@ class SubjectStats:
 
     Attributes:
         subject: ID soggetto.
+        atlas: atlante a cui si riferiscono le statistiche.
         wpli_*_median / wpli_*_max: mediana e massimo assoluto di wPLI.
         coh_*_median: mediana della coerenza.
     """
 
     subject: str
+    atlas: str = ""
     wpli_eo_median: float = float("nan")
     wpli_ec_median: float = float("nan")
     wpli_eo_max: float = float("nan")
@@ -232,14 +234,15 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
 
     Controlla forma, finitezza, simmetria e range (wPLI in [0,1] in modulo,
     coerenza in [0,1]) sugli elementi fuori diagonale; raccoglie le statistiche
-    per soggetto. Nota: le statistiche per soggetto vengono sovrascritte
-    dall'ultimo atlante visitato (schaefer100).
+    per (soggetto, atlante).
 
     Args:
         fc_dir: cartella dei file FC.
         report: report aggiornato in-place.
     """
-    stats_map: dict[str, SubjectStats] = {s: SubjectStats(subject=s) for s in SUBJECTS}
+    stats_map: dict[tuple[str, str], SubjectStats] = {
+        (s, a): SubjectStats(subject=s, atlas=a) for s in SUBJECTS for a in ATLASES
+    }
 
     for sub in SUBJECTS:
         for atlas in ATLASES:
@@ -302,7 +305,7 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
                                 )
                                 ok = False
                             # Salva le statistiche per soggetto
-                            st = stats_map[sub]
+                            st = stats_map[(sub, atlas)]
                             if cond == "EO":
                                 st.wpli_eo_median = med
                                 st.wpli_eo_max = mx
@@ -318,7 +321,7 @@ def _validate_fc(fc_dir: Path, report: ValidationReport) -> None:
                                     )
                                 )
                                 ok = False
-                            st = stats_map[sub]
+                            st = stats_map[(sub, atlas)]
                             if cond == "EO":
                                 st.coh_eo_median = med
                             else:
@@ -458,7 +461,6 @@ def _render_report(report: ValidationReport) -> str:
         "# N=15 Outputs — Validation Report",
         "",
         f"**Timestamp**: {ts}  ",
-        "**Sprint**: S-VALIDATE-N15  ",
         "**Data root**: `data/{label_ts,connectivity,features}/ds005385/`  ",
         f"**Subjects**: {len(SUBJECTS)} ({', '.join(SUBJECTS[:5])}, ...)",
         "",
@@ -489,14 +491,15 @@ def _render_report(report: ValidationReport) -> str:
 
     # wPLI table
     lines += [
-        "## Range fisiologico — wPLI off-diagonal (per sub, atlas=aparc)",
+        "## Range fisiologico — wPLI off-diagonal (per sub e atlante)",
         "",
-        "| Sub | EO median | EC median | EO max | EC max |",
-        "|-----|-----------|-----------|--------|--------|",
+        "| Sub | Atlas | EO median | EC median | EO max | EC max |",
+        "|-----|-------|-----------|-----------|--------|--------|",
     ]
     for st in report.subject_stats:
         lines.append(
             f"| {st.subject} "
+            f"| {st.atlas} "
             f"| {st.wpli_eo_median:.4f} "
             f"| {st.wpli_ec_median:.4f} "
             f"| {st.wpli_eo_max:.4f} "
@@ -505,13 +508,15 @@ def _render_report(report: ValidationReport) -> str:
 
     lines += [
         "",
-        "## Range — coh off-diagonal (per sub, atlas=aparc)",
+        "## Range — coh off-diagonal (per sub e atlante)",
         "",
-        "| Sub | EO median | EC median |",
-        "|-----|-----------|-----------|",
+        "| Sub | Atlas | EO median | EC median |",
+        "|-----|-------|-----------|-----------|",
     ]
     for st in report.subject_stats:
-        lines.append(f"| {st.subject} | {st.coh_eo_median:.4f} | {st.coh_ec_median:.4f} |")
+        lines.append(
+            f"| {st.subject} | {st.atlas} | {st.coh_eo_median:.4f} | {st.coh_ec_median:.4f} |"
+        )
 
     lines += [
         "",
@@ -574,7 +579,7 @@ def validate(data_root: Path, output: Path) -> int:
 
 def main() -> int:
     """Interpreta gli argomenti CLI (``--data-root``, ``--output``) e lancia :func:`validate`."""
-    ap = argparse.ArgumentParser(description="S-VALIDATE-N15 — data integrity check")
+    ap = argparse.ArgumentParser(description="Validate N15 — data integrity check")
     ap.add_argument("--data-root", default=".", type=Path, help="Tesi_2.0 root (default: cwd)")
     ap.add_argument(
         "--output", default="reports/VALIDATE_N15.md", type=Path, help="Output markdown report"

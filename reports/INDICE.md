@@ -1,14 +1,13 @@
 # Indice dei report
 
 La cartella `reports/` contiene sia i **risultati scientifici** sia i **log tecnici**
-prodotti durante lo sviluppo. I file non sono stati spostati perché script e test li
-referenziano con percorsi fissi. Questa pagina dice da dove iniziare.
+prodotti durante lo sviluppo. I file citati da script e test restano qui; i log di processo sono in `archivio_processo/`. Questa pagina dice da dove iniziare.
 
 ## 1. Da leggere per primi (risultati e limiti)
 
 | File | Contenuto |
 |---|---|
-| `CLAIMS_HONEST_CONSOLIDATED_FABLE.md` | Sintesi unica: cosa regge e cosa no (risultato primario, 3 controlli di robustezza, limiti) |
+| `RISULTATI_E_LIMITI.md` | Sintesi unica: cosa regge e cosa no (risultato primario, 3 controlli di robustezza, limiti) |
 | `DISCUSSION_v3.md` | Discussione dei risultati e framing finale |
 | `STATISTICAL_VALIDITY_NOTES.md` | Note di validità statistica (CV per-soggetto, permutation test) |
 | `PIPELINE_LEAKAGE_AUDIT.md` | Audit anti-leakage della pipeline ML |
@@ -45,15 +44,12 @@ referenziano con percorsi fissi. Questa pagina dice da dove iniziare.
 ## 5. Prestazioni e qualità del codice
 
 `PERF_BENCHMARK.md`, `PERF_PROFILE.md`, `HOT_PATH_OPT.md`, `BENCH_REPLICABILITY.md`,
-`COVERAGE.md`, `COVERAGE_THRESHOLDS.md`, `LINT_SWEEP.md`, `TESTS_DEDUPE.md`,
-`REPO_SANITY.md`, `CI_SECURITY_AUDIT.md`, `SBOM_REPORT.md`.
+`COVERAGE.md`, `COVERAGE_THRESHOLDS.md`, `TESTS_DEDUPE.md`.
 
-## 6. Log interni di lavorazione (non necessari alla lettura)
+## 6. Log di processo
 
-Audit, revisioni e import da note interne: `DEEP_REVIEW_*`, `VAULT_*`, `*_VAULT_IMPORT.md`,
-`CLEANUP_*`, `SYNC_ARCHIVE*`, `SKILL_PATTERN_EVAL.md`, `MIGRATION_POST_Q1_PLAN.md`,
-`CWD_AUDIT.md`, `MAKEFILE_AUDIT.md`, `DELIVERABLES_AUDIT.md`, `REQ_VERIFY.md`.
-Documentano il processo di sviluppo, non i risultati.
+Audit, revisioni, SBOM, import da note interne e simili sono in `archivio_processo/`.
+Documentano il processo di sviluppo, non i risultati: non servono alla lettura.
 
 ## 7. Figure
 

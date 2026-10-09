@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
+
+pytestmark = pytest.mark.needs_data
 
 
 def test_build_X_graphtheory_shape():

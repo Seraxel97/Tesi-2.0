@@ -228,7 +228,6 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "# STEP 3b Per-Epoch Parcellation — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-103b (sonnet1-ts)",
         f"**Soggetti**: {SUBJECTS}",
         f"**Atlases**: {ATLASES}  **Mode**: {MODE}",
         "",

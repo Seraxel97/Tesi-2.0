@@ -17,6 +17,8 @@ import pytest
 
 FEAT_DIR = Path(__file__).parent.parent / "data" / "features" / "ds005385"
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture
 def meta() -> dict:

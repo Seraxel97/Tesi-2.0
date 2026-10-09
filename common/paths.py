@@ -54,20 +54,20 @@ def _validate_env_path(env_var: str, default: Path, must_exist: bool = True) -> 
     return p
 
 
-BIDS_ROOT = _validate_env_path(
-    "TESI_BIDS_ROOT",
-    _REPO_ROOT / "data" / "eeg_matchingpennies",
-    must_exist=True,
-)
+_DEFAULTS = {
+    "BIDS_ROOT": ("TESI_BIDS_ROOT", _REPO_ROOT / "data" / "eeg_matchingpennies"),
+    "DERIV": ("TESI_DERIV", _REPO_ROOT / "data" / "derivatives" / "mne-bids-pipeline"),
+    "SUBJECTS_DIR": ("TESI_SUBJECTS_DIR", Path.home() / "mne_data" / "MNE-fsaverage-data"),
+}
 
-DERIV = _validate_env_path(
-    "TESI_DERIV",
-    _REPO_ROOT / "data" / "derivatives" / "mne-bids-pipeline",
-    must_exist=True,
-)
 
-SUBJECTS_DIR = _validate_env_path(
-    "TESI_SUBJECTS_DIR",
-    Path.home() / "mne_data" / "MNE-fsaverage-data",
-    must_exist=True,
-)
+def __getattr__(name: str) -> Path:
+    """Risolve BIDS_ROOT/DERIV/SUBJECTS_DIR al primo accesso (lazy).
+
+    Il controllo di esistenza avviene qui e non all'import, cosi' un clone
+    senza data/ resta importabile; FileNotFoundError solo se il path serve.
+    """
+    if name in _DEFAULTS:
+        env_var, default = _DEFAULTS[name]
+        return _validate_env_path(env_var, default, must_exist=True)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

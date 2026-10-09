@@ -98,3 +98,20 @@ def epochs_path() -> Path:
     if not p.exists():
         pytest.skip(f"Epochs non trovato: {p}")
     return p
+
+
+# ── Marker needs_data: skip se mancano i dati reali (data/ e' gitignored) ────
+_NEEDS_DATA_SENTINELS = (
+    _REPO / "data" / "features" / "ds005385" / "y.npy",
+    _REPO / "data" / "raw" / "ds005385" / "participants.tsv",
+)
+
+
+def pytest_collection_modifyitems(config, items):
+    missing = [str(p.relative_to(_REPO)) for p in _NEEDS_DATA_SENTINELS if not p.exists()]
+    if not missing:
+        return
+    skip = pytest.mark.skip(reason=f"richiede data/ (mancano: {', '.join(missing)})")
+    for item in items:
+        if "needs_data" in item.keywords:
+            item.add_marker(skip)

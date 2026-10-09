@@ -1,4 +1,4 @@
-.PHONY: test lint format clean run-step1 run-step2 bench docs help audit clean-cache
+.PHONY: install data-demo test lint format clean run-step1 run-step2 bench docs help audit clean-cache
 
 PYTHON ?= python
 CONFIG_STEP1 = config/config_step1_matchingpennies.py
@@ -6,7 +6,13 @@ CONFIG_STEP2 = config/config_step2_source_matchingpennies.py
 DERIV = data/derivatives/mne-bids-pipeline
 
 help:
-	@echo "Targets: test, lint, format, docs, run-step1, run-step2, bench, clean, audit, clean-cache"
+	@echo "Targets: install, data-demo, test, lint, format, docs, run-step1, run-step2, bench, clean, audit, clean-cache"
+
+install:
+	pip install -r requirements.txt -r requirements-dev.txt
+
+data-demo:
+	$(PYTHON) scripts/fetch_demo_data.py
 
 test:
 	pytest tests/ -v

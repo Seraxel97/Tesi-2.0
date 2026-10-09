@@ -1,0 +1,6 @@
+# Strumenti di sviluppo/test (usare insieme a requirements.txt)
+pytest==9.0.3
+pytest-cov
+ruff==0.15.15
+pdoc
+pre-commit

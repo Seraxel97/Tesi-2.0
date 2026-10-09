@@ -1,9 +1,9 @@
 # FASE 3 — Risultati ML Età + Sesso N=179
 
 **Data**: 2026-06-05T00:03:56+00:00
-**Coorte**: ds005385 N=179 (whitelist determinististica seed=43)
+**Coorte**: ds005385 N=179 (whitelist completa locale, late_ses1==0; nessun campionamento, il seed 43 riguarda solo la N=100)
 **Feature winner**: X_aparc_plv_theta (2278-dim PLV theta aparc)
-**Protocollo**: GroupKFold K=5 outer / K=3 inner, perm subject-level n=1000, boot cluster-subject n=1000
+**Protocollo**: GroupKFold K=5 outer / K=3 inner (solo sesso; età: RF senza tuning), perm subject-level n=1000, boot cluster-subject n=1000
 
 ## 1. Classificazione Sesso — baseline 2278-dim
 

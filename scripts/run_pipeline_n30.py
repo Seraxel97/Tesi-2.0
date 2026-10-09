@@ -22,7 +22,6 @@ Output:
     - data/connectivity/ds005385/*_per-epoch.npz (matrici FC)
     - data/features/ds005385/X_<atlas>_<metrica>_<banda>.npz, y.npy, groups.npy
     - data/results/ds005385/ (risultati ML) e reports/*.md
-    - heartbeat JSON in .planning/heartbeats_tesi/ (monitoraggio worker)
 
 Esempio:
     python scripts/run_pipeline_n30.py --n-subjects 30
@@ -78,7 +77,6 @@ LABEL_TS_DIR = Path("data/label_ts/ds005385")
 CONN_DIR = Path("data/connectivity/ds005385")
 FEAT_DIR = Path("data/features/ds005385")
 RESULTS_DIR = Path("data/results/ds005385")
-HEARTBEAT_PATH = Path(".planning/heartbeats_tesi/sonnet-tesi-1.json")
 SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 
 SESSION = "ses-1"
@@ -113,36 +111,22 @@ for d in [LABEL_TS_DIR, CONN_DIR, FEAT_DIR, RESULTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
-# ===== 2. Heartbeat =====
+# ===== 2. Log di avanzamento =====
 def write_hb(step: str, progress: str, disk_gb: float, extra: dict | None = None) -> None:
-    """Scrive il file heartbeat JSON usato per monitorare l'avanzamento del worker.
+    """Stampa su stdout una riga di log dell'avanzamento.
 
     Args:
         step: nome dello step corrente.
         progress: descrizione testuale dell'avanzamento.
         disk_gb: spazio disco libero in GB.
-        extra: campi aggiuntivi da fondere nel JSON (opzionale).
+        extra: campi aggiuntivi da riportare nel log (opzionale).
 
     Returns:
         None.
-
-    Side effects:
-        Sovrascrive HEARTBEAT_PATH.
     """
-    data: dict = {
-        "worker": "sonnet-tesi-1",
-        "model": "claude-sonnet-4-6",
-        "task": "H-SCALE-N30",
-        "status": "in_progress",
-        "phase": "FASE_3_SCALING",
-        "last_update": datetime.now(UTC).isoformat(timespec="seconds"),
-        "current_step": step,
-        "progress": progress,
-        "disk_free_gb": round(disk_gb, 1),
-    }
-    if extra:
-        data.update(extra)
-    HEARTBEAT_PATH.write_text(json.dumps(data, indent=2))
+    ts = datetime.now(UTC).isoformat(timespec="seconds")
+    tail = f" {extra}" if extra else ""
+    print(f"[progress {ts}] {step}: {progress} (disk_free={disk_gb:.1f} GB){tail}", flush=True)
 
 
 def disk_free() -> float:
@@ -706,7 +690,6 @@ def write_final_report(subjects: list[str], agg: dict, wall_s: float) -> None:
         "# Scientific Pipeline Status — ds005385 N=30 FULL RUN",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: H-SCALE-N30 (sonnet-tesi-1)",
         f"**Dataset**: ds005385 — N={len(subjects)}, seed=42",
         "",
         "## Stato step — N=30",

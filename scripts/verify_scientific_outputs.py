@@ -204,7 +204,7 @@ def build_md_report(rows: list[dict], subjects: list[str], ts: str) -> str:
     lines = [
         "# Scientific Outputs Pre-flight Check",
         "",
-        f"**Sprint**: S-108  **Data**: {ts}  **Worker**: sonnet2-ts",
+        f"**Data**: {ts}",
         f"**Subjects**: {', '.join(subjects)}",
         f"**Verdict**: {overall}",
         "",
@@ -240,7 +240,7 @@ def build_md_report(rows: list[dict], subjects: list[str], ts: str) -> str:
     ]
     if verdict_s103 in ("WAITING", "PARTIAL"):
         lines.append(
-            f"- S-103 in flight (sonnet1-ts): {s103_ok}/{s103_total} npz presenti. "
+            f"- Step 3 in corso: {s103_ok}/{s103_total} npz presenti. "
             "Ri-eseguire lo script dopo il completamento."
         )
     if verdict_s101 == "CLEAN":

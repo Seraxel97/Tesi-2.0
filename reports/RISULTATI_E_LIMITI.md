@@ -1,6 +1,5 @@
-# Claim onesti consolidati — batteria di robustezza (audit Fable 2026-07-06)
+# Risultati e limiti — claim consolidati e batteria di robustezza
 
-> Ramo `sl/tesi-fable-improvements` (la versione da consegnare resta intatta su `main`).
 > Scopo: una sola pagina che il relatore può leggere per capire **cosa regge e cosa no**,
 > con i numeri veri. Filosofia: il contributo è la **macchina di validazione**, non un
 > biomarcatore forte e generalizzabile.
