@@ -72,6 +72,7 @@ Note importanti:
   `<sub>_proc-adhoc_rank.json` richiesto dallo step `source` (bug upstream). Il comando
   `python -m cli.main step2` applica il workaround in automatico
   (`source_reconstruction/adhoc_rank.py`).
+- Su server o sessioni senza display (o se `make run-step2` si interrompe con `X Error ... BadWindow`) eseguire con `DISPLAY= PYVISTA_OFF_SCREEN=true make run-step2`: il rendering 3D dei report va fatto offscreen.
 - Il CLI unificato espone gli stessi step: `python -m cli.main --help`.
 
 Esecuzione dei singoli step sul dataset demo:
@@ -137,6 +138,11 @@ I test che richiedono `data/` vengono saltati se mancano; per eseguirli tutti se
 La CI (`.github/workflows/`) esegue lint, test e uno smoke EEG.
 
 ## 7. Dashboard interattiva
+
+La dashboard **legge risultati già calcolati** (non esegue gli step 1-4): servono le feature in
+`data/features/` e i risultati in `data/results/`, che non sono nel repository. Vengono
+consegnate a parte in `Tesi_2.0_dati_dashboard.zip` (174 MB): decomprimerlo nella radice del
+progetto (`unzip Tesi_2.0_dati_dashboard.zip`).
 
 ```bash
 pip install -r dashboard/requirements.txt

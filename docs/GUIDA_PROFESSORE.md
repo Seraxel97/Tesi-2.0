@@ -36,7 +36,7 @@ tabelle, matrici di connettività) sono in `reports/`.
 make test
 ```
 
-Esegue tutta la batteria di test automatici (circa 430 test; quelli che richiedono i derivati del dataset demo vengono saltati se mancano) che controllano che ogni
+Esegue tutta la batteria di test automatici (circa 390 test; quelli che richiedono `data/` vengono saltati se mancano) che controllano che ogni
 singolo componente (lettura dati, connettività, classificazione, statistica) dia il
 risultato atteso. Se tutti i test sono verdi (`passed`), il codice è affidabile.
 
