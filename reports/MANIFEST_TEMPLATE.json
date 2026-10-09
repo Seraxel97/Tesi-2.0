@@ -1,0 +1,28 @@
+{
+  "run_id": "<run_id>",
+  "timestamp": "<ISO8601 UTC>",
+  "python_version": "<major.minor.patch>",
+  "platform": "<os-kernel-arch>",
+  "mne_version": "<version or null>",
+  "numpy_version": "<version or null>",
+  "sklearn_version": "<version or null>",
+  "git_sha": "<40-char hex or null se non git repo>",
+  "config_path": "<path al file config o null>",
+  "config_hash": "<SHA256 hex del config o null>",
+  "seeds": {
+    "random_state": 42,
+    "numpy_seed": 42
+  },
+  "env_pkgs": {
+    "matplotlib": "<version or null>",
+    "mne": "<version or null>",
+    "mne-bids": "<version or null>",
+    "mne-connectivity": "<version or null>",
+    "mne-features": "<version or null>",
+    "neuromaps": "<version or null>",
+    "numpy": "<version or null>",
+    "pandas": "<version or null>",
+    "scikit-learn": "<version or null>",
+    "scipy": "<version or null>"
+  }
+}

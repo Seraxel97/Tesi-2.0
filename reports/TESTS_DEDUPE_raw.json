@@ -1,0 +1,27 @@
+{
+  "total_files": 31,
+  "total_functions": 196,
+  "cross_file_duplicates": {
+    "test_fc_dispatcher_rejects_invalid_metric": [
+      "tests/test_dispatcher_base.py",
+      "tests/test_e2e_smoke_minimal.py"
+    ],
+    "test_build_X_fc_only": [
+      "tests/test_e2e_smoke_minimal.py",
+      "tests/test_features.py"
+    ]
+  },
+  "intrafile_duplicates": {},
+  "near_duplicates": [],
+  "zero_assertion_tests": {
+    "tests/test_dispatcher_base.py": [
+      "test_validate_valid_keys"
+    ],
+    "tests/test_e2e_smoke_minimal.py": [
+      "test_imports_all_modules"
+    ],
+    "tests/test_smoke.py": [
+      "test_imports_smoke"
+    ]
+  }
+}
