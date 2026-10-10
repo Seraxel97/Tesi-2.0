@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@0c4b8a64e8531aecc2504de2c4af37da18253e60  # v5.1.0
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - uses: actions/cache@13aadc3b3a44c4d4328bc8f713a588929b8b6949  # v4.0.1
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-py3.13-pip-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
