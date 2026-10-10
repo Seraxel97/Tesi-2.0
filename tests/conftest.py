@@ -108,10 +108,14 @@ _NEEDS_DATA_SENTINELS = (
 
 
 def pytest_collection_modifyitems(config, items):
+    """Salta i test marcati `needs_data` / `needs_fsaverage` se le risorse mancano."""
     missing = [str(p.relative_to(_REPO)) for p in _NEEDS_DATA_SENTINELS if not p.exists()]
-    if not missing:
-        return
-    skip = pytest.mark.skip(reason=f"richiede data/ (mancano: {', '.join(missing)})")
+    skip_data = pytest.mark.skip(reason=f"richiede data/ (mancano: {', '.join(missing)})")
+    skip_fs = pytest.mark.skip(
+        reason=f"richiede fsaverage in {_SUBJECTS_DIR} (esegui `make data-demo`)"
+    )
     for item in items:
-        if "needs_data" in item.keywords:
-            item.add_marker(skip)
+        if missing and "needs_data" in item.keywords:
+            item.add_marker(skip_data)
+        if not _SUBJECTS_DIR.exists() and "needs_fsaverage" in item.keywords:
+            item.add_marker(skip_fs)

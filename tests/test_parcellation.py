@@ -20,6 +20,8 @@ _EXPECTED_NROI: dict[str, int] = {
     "schaefer200": 200,
 }
 
+pytestmark = pytest.mark.needs_fsaverage
+
 _FOUR_ATLASES = list(_EXPECTED_NROI.keys())
 
 

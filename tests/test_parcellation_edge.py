@@ -20,6 +20,8 @@ import pytest
 
 mne = pytest.importorskip("mne")
 
+pytestmark = pytest.mark.needs_fsaverage
+
 from parcellation.extract_label_tc import (  # noqa: E402
     extract_tc,
     extract_tc_from_files,
