@@ -23,6 +23,7 @@ def test_data_shape(data):
     n_subjects = len(np.unique(groups))
     assert X.shape[0] == 2 * n_subjects
     assert X.shape[0] % 2 == 0
+    assert X.shape[0] == 358  # 179 soggetti × 2 condizioni (N=179)
 
 
 def test_y_sex_binary(data):
@@ -38,6 +39,7 @@ def test_groups_aligned(data):
         assert len(np.unique(y_sex[mask])) == 1, f"Soggetto {g} ha sessi diversi!"
 
 
+@pytest.mark.slow
 def test_shuffle_leakage():
     """Shuffle y_sex → BA deve essere vicino a 0.5 (no leakage)."""
     X, y_sex, groups = load_data()

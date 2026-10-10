@@ -19,6 +19,7 @@ def test_data_shape(data):
     X, y_age, groups = data
     # invariante: 2 condizioni (EO/EC) per soggetto — robusto al variare di N
     assert X.shape[0] == len(y_age) == len(groups) == 2 * len(np.unique(groups))
+    assert X.shape[0] == len(y_age) == len(groups) == 358  # 179 soggetti × 2 condizioni (N=179)
 
 
 def test_y_age_range(data):
@@ -51,6 +52,7 @@ def test_dummy_r2_leq_zero():
     assert res["r2"] <= 0.1, f"Dummy R²={res['r2']:.3f} insolitamente alto"
 
 
+@pytest.mark.slow
 def test_shuffle_leakage():
     """Shuffle y_age → R² deve essere basso (no data leakage)."""
     X, y_age, groups = load_data()

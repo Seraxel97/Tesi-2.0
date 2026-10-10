@@ -181,6 +181,19 @@ def load_ml_age_results(n100: bool = True) -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def load_ml_n179() -> dict[str, Any]:
+    """Carica i risultati ML finali N=179 (FASE 3, coerenti col manoscritto).
+
+    Formato `ml_age_sex_n179.json`: sex_baseline/age_baseline/sex_gt/age_gt
+    (ognuno con ba_mean|mae, ci95, p_perm), blocco `fdr` (p_fdr per termine) e
+    `comparison_n100` per la progressione N=100→N=179. Ritorna {} se assente.
+    """
+    path = _ROOT / "data" / "results" / "ds005385" / "ml_age_sex_n179.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
 def load_bench_matrix() -> dict[str, Any]:
     """Carica BENCH_MATRIX_RESULTS.json (tutte le combo ML)."""
     path = _REPORTS_DIR / "BENCH_MATRIX_RESULTS.json"

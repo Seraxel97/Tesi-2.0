@@ -42,6 +42,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
+from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, mean_absolute_error, r2_score
@@ -52,6 +53,7 @@ from sklearn.preprocessing import StandardScaler
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from analysis.fdr_helper import apply_fdr
+from analysis.stats_utility import hedges_g as _hedges_g
 from config.labels_phenotype import load_phenotype
 from config.subjects_whitelist_n179 import SUBJECT_WHITELIST_N179 as SUBJECTS_N179
 from features.graph_theory import compute_graph_metrics
@@ -250,6 +252,7 @@ def run_ml_sex(X, y, groups, n_perm, n_boot):
     # p-value con correzione +1 (Phipson-Smyth): mai esattamente 0
     p_perm = (sum(1 for b in null_bas if b >= ba_real) + 1) / (n_perm + 1)
 
+    g_sex = float(_hedges_g(cv_res["ba_folds"], null_bas))
     boot_ba = _cluster_bootstrap_ba(cv_res["y_true"], cv_res["y_pred"], groups, n_boot)
     elapsed = time.perf_counter() - t0
     return {
@@ -258,6 +261,7 @@ def run_ml_sex(X, y, groups, n_perm, n_boot):
         "ba_ci95": [float(np.percentile(boot_ba, 2.5)), float(np.percentile(boot_ba, 97.5))],
         "p_perm": float(p_perm),
         "null_ba_mean": float(np.mean(null_bas)),
+        "hedges_g": g_sex,
         "n_perm": n_perm,
         "n_boot": n_boot,
         "elapsed_s": round(elapsed),
@@ -276,10 +280,11 @@ def run_cv_age(X, y, groups, outer_k=5, inner_k=3):
         inner_k: non utilizzato.
 
     Returns:
-        dict con mae, r2, y_pred, y_true, brain_age_gap (media pred - vero).
+        dict con mae, r2, dummy_mae, y_pred, y_true, brain_age_gap (media pred - vero).
     """
     outer_cv = GroupKFold(n_splits=outer_k)
     y_pred_all, y_true_all = np.empty(len(y)), np.empty(len(y))
+    y_dummy_all = np.empty(len(y))
     for train_idx, test_idx in outer_cv.split(X, y, groups=groups):
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
@@ -290,11 +295,14 @@ def run_cv_age(X, y, groups, outer_k=5, inner_k=3):
         reg.fit(X_tr_s, y_tr)
         y_pred_all[test_idx] = reg.predict(X_te_s)
         y_true_all[test_idx] = y_te
+        y_dummy_all[test_idx] = DummyRegressor(strategy="mean").fit(X_tr, y_tr).predict(X_te)
     mae = float(mean_absolute_error(y_true_all, y_pred_all))
     r2 = float(r2_score(y_true_all, y_pred_all))
+    dummy_mae = float(mean_absolute_error(y_true_all, y_dummy_all))
     return {
         "mae": mae,
         "r2": r2,
+        "dummy_mae": dummy_mae,
         "y_pred": y_pred_all,
         "y_true": y_true_all,
         "brain_age_gap": float(np.mean(y_pred_all - y_true_all)),
@@ -333,6 +341,7 @@ def run_ml_age(X, y, groups, n_perm, n_boot):
     return {
         "mae": cv_res["mae"],
         "r2": r2_real,
+        "dummy_mae_cv": cv_res["dummy_mae"],
         "brain_age_gap": cv_res["brain_age_gap"],
         "mae_ci95": [float(np.percentile(boot_mae, 2.5)), float(np.percentile(boot_mae, 97.5))],
         "r2_ci95": [float(np.percentile(boot_r2, 2.5)), float(np.percentile(boot_r2, 97.5))],

@@ -38,5 +38,8 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --strict-markers"
-markers = ["needs_data: richiede data/ (gitignored); skippato se assente"]
 pythonpath = ["."]
+markers = [
+    "needs_data: richiede data/ (gitignored); skippato se assente",
+    "slow: test lenti (>60s, ML multi-classificatore/permutazioni); esclusi dai run veloci con -m 'not slow'",
+]

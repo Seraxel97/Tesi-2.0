@@ -11,6 +11,7 @@ Test suite:
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from ml_training.aggregate_n15 import (
     _N_SUBJECTS_FULL,
@@ -44,6 +45,7 @@ def _make_features(tmp_path, *, band: str = "alpha", separable: bool = False):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_six_classifiers_smoke(tmp_path):
     """6 classifier on mock N=15 → exactly 6 entries, all ba_mean finite."""
     _make_features(tmp_path)
@@ -67,6 +69,7 @@ def test_six_classifiers_smoke(tmp_path):
         assert r["classifier"] in ["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"]
 
 
+@pytest.mark.slow
 def test_six_classifiers_all_pass(tmp_path):
     """All 6 classifiers produce p_perm ∈ [0, 1] and CI with ci_lo ≤ ci_hi."""
     _make_features(tmp_path)
@@ -133,6 +136,7 @@ def test_multi_band_support(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_no_regression_original_3(tmp_path):
     """logreg/svm_rbf/lda: ba_mean matches between 3-clf and 6-clf runs (same seed)."""
     _make_features(tmp_path)
