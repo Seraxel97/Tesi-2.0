@@ -13,8 +13,11 @@ services:
     profiles: ["ml"]
 
   tesi-tests:
-    build: .
-    image: tesi2-pipeline:latest
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: dev
+    image: tesi2-tests:latest
     volumes:
       - ./data:/app/data:ro
       - ${HOME}/mne_data:/mne_data:ro
@@ -24,8 +27,11 @@ services:
     profiles: ["test"]
 
   tesi-dashboard:
-    build: .
-    image: tesi2-pipeline:latest
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: dashboard
+    image: tesi2-dashboard:latest
     ports:
       - "8501:8501"
     volumes:

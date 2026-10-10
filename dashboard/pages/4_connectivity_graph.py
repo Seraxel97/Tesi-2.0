@@ -2,6 +2,8 @@
 
 Viz PyVis network + metriche graph theory + hub identification.
 Usa dati reali data/connectivity/ds005385/ e features/graph_theory.py
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -27,14 +29,10 @@ from dashboard.components.network_viz import (  # noqa: E402
     plot_network_plotly,
 )
 
-st.set_page_config(
-    page_title="Connectivity & Graph — Tesi 2.0", page_icon="🌐", layout="wide"
-)
+st.set_page_config(page_title="Connectivity & Graph — Tesi 2.0", page_icon="", layout="wide")
 
-st.title("🌐 Connectivity & Graph Theory")
-st.caption(
-    "Matrice connectome · rete interattiva · hub detection · metriche small-world"
-)
+st.title(" Connectivity & Graph Theory")
+st.caption("Matrice connectome · rete interattiva · hub detection · metriche small-world")
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -100,7 +98,9 @@ with st.spinner("Carico matrice FC..."):
         label = f"Media gruppo (N={len(matrices)}) · {atlas}×{metric}×{band}×{cond}"
     else:
         try:
-            W_fc = load_connectivity_matrix(subject, atlas=atlas, metric=metric, band=band, cond=cond)
+            W_fc = load_connectivity_matrix(
+                subject, atlas=atlas, metric=metric, band=band, cond=cond
+            )
         except FileNotFoundError:
             st.error(f"File non trovato per {subject}")
             st.stop()
@@ -217,9 +217,7 @@ with st.expander("Confronto EO vs EC — graph metrics", expanded=False):
             for key, name in metrics_labels:
                 v1 = gm.get(key, float("nan"))
                 v2 = gm_alt.get(key, float("nan"))
-                comp_rows.append(
-                    {"Metrica": name, cond: f"{v1:.4f}", alt_cond: f"{v2:.4f}"}
-                )
+                comp_rows.append({"Metrica": name, cond: f"{v1:.4f}", alt_cond: f"{v2:.4f}"})
 
             import pandas as pd
 

@@ -27,6 +27,7 @@ SFREQ = 250.0
 
 # ── Fixtures sintetiche ───────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def synthetic_label_tc() -> np.ndarray:
     """label_tc shape (n_epochs, n_labels, n_times) — sintetico."""
@@ -41,29 +42,32 @@ def synthetic_y() -> np.ndarray:
 @pytest.fixture(scope="module")
 def synthetic_fc(synthetic_label_tc):
     from connectivity.fc_dispatcher import compute_fc
+
     return compute_fc(synthetic_label_tc, SFREQ, "wpli", bands={"alpha": (8.0, 13.0)})
 
 
 @pytest.fixture(scope="module")
 def synthetic_X(synthetic_label_tc, synthetic_fc):
     from features.dispatcher import build_X
+
     X, _ = build_X(synthetic_label_tc, SFREQ, synthetic_fc, include_univariate=False)
     return X
 
 
 # ── Import smoke ─────────────────────────────────────────────────────────────
 
+
 def test_imports_all_modules():
+    import common.paths  # noqa: F401
     import connectivity.fc_dispatcher  # noqa: F401
     import features.dispatcher  # noqa: F401
     import ml_training.ml_dispatcher  # noqa: F401
     import parcellation.extract_label_tc  # noqa: F401
     import source_reconstruction.finalize_inverse  # noqa: F401
-    from common.dispatcher_base import validate_dispatch_key  # noqa: F401
-    from common.paths import BIDS_ROOT, DERIV, SUBJECTS_DIR  # noqa: F401
 
 
 # ── STEP 2 proxy: fake SourceEstimate ────────────────────────────────────────
+
 
 def test_fake_source_estimate_creation():
     n_src = N_LABELS * 2
@@ -78,11 +82,13 @@ def test_fake_source_estimate_creation():
 
 # ── STEP 3 proxy: extract_label_tc API ───────────────────────────────────────
 
+
 def test_extract_label_tc_module_api():
     from parcellation.extract_label_tc import (
         _EXCLUDE_KEYWORDS,
         ATLAS_TO_PARC,
     )
+
     assert "aparc" in ATLAS_TO_PARC
     assert "schaefer200" in ATLAS_TO_PARC
     assert len(_EXCLUDE_KEYWORDS) >= 2
@@ -90,6 +96,7 @@ def test_extract_label_tc_module_api():
 
 def test_extract_tc_from_files_validates_mutual_exclusion():
     from parcellation.extract_label_tc import extract_tc_from_files
+
     with pytest.raises(ValueError, match="mutuamente esclusivi"):
         extract_tc_from_files("fake.stc", "aparc", fwd_path="a.fif", src_path="b.fif")
     with pytest.raises(ValueError, match="Fornire esattamente"):
@@ -98,8 +105,10 @@ def test_extract_tc_from_files_validates_mutual_exclusion():
 
 # ── STEP 4: fc_dispatcher ────────────────────────────────────────────────────
 
+
 def test_fc_dispatcher_shapes(synthetic_label_tc):
     from connectivity.fc_dispatcher import compute_fc
+
     fc = compute_fc(synthetic_label_tc, SFREQ, "wpli", bands={"alpha": (8.0, 13.0)})
     assert "alpha" in fc
     mat = fc["alpha"]
@@ -109,6 +118,7 @@ def test_fc_dispatcher_shapes(synthetic_label_tc):
 
 def test_fc_dispatcher_multiple_bands(synthetic_label_tc):
     from connectivity.fc_dispatcher import DEFAULT_BANDS, compute_fc
+
     fc = compute_fc(synthetic_label_tc, SFREQ, "plv", bands=DEFAULT_BANDS)
     assert set(fc.keys()) == set(DEFAULT_BANDS.keys())
     for band, mat in fc.items():
@@ -117,14 +127,17 @@ def test_fc_dispatcher_multiple_bands(synthetic_label_tc):
 
 def test_fc_dispatcher_rejects_invalid_metric(synthetic_label_tc):
     from connectivity.fc_dispatcher import compute_fc
+
     with pytest.raises(ValueError, match="Unknown metric"):
         compute_fc(synthetic_label_tc, SFREQ, "bad")  # type: ignore[arg-type]
 
 
 # ── STEP 5: features dispatcher ──────────────────────────────────────────────
 
+
 def test_build_X_fc_only(synthetic_label_tc, synthetic_fc):
     from features.dispatcher import build_X
+
     X, names = build_X(synthetic_label_tc, SFREQ, synthetic_fc, include_univariate=False)
     n_edges = N_LABELS * (N_LABELS - 1) // 2
     assert X.shape == (N_EPOCHS, n_edges), f"expected ({N_EPOCHS}, {n_edges}), got {X.shape}"
@@ -134,7 +147,10 @@ def test_build_X_fc_only(synthetic_label_tc, synthetic_fc):
 
 def test_build_X_univariate_only(synthetic_label_tc):
     from features.dispatcher import build_X
-    X, names = build_X(synthetic_label_tc, SFREQ, fc=None, include_univariate=True, include_fc=False)
+
+    X, names = build_X(
+        synthetic_label_tc, SFREQ, fc=None, include_univariate=True, include_fc=False
+    )
     assert X.shape[0] == N_EPOCHS
     assert X.shape[1] > 0
     assert not np.isnan(X).any()
@@ -142,8 +158,10 @@ def test_build_X_univariate_only(synthetic_label_tc):
 
 # ── STEP 6: ml dispatcher ────────────────────────────────────────────────────
 
+
 def test_run_cv_logreg(synthetic_X, synthetic_y):
     from ml_training.ml_dispatcher import run_cv
+
     res = run_cv(synthetic_X, synthetic_y, algorithm="logreg", n_splits=5)
     assert 0.0 <= res.ba_mean <= 1.0
     assert res.n_features == synthetic_X.shape[1]
@@ -153,11 +171,13 @@ def test_run_cv_logreg(synthetic_X, synthetic_y):
 
 def test_run_cv_rejects_invalid_algorithm(synthetic_X, synthetic_y):
     from ml_training.ml_dispatcher import run_cv
+
     with pytest.raises(ValueError, match="Unknown algorithm"):
         run_cv(synthetic_X, synthetic_y, algorithm="xgboost")  # type: ignore[arg-type]
 
 
 # ── Full chain timing guard ───────────────────────────────────────────────────
+
 
 def test_full_chain_under_60s(synthetic_label_tc, synthetic_y):
     """Catena completa STEP 4→5→6 su dati sintetici deve finire in <60s."""

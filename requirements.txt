@@ -1,0 +1,34 @@
+# Dipendenze della pipeline (versioni fissate per riproducibilita'). Python 3.13
+cyclopts==4.11.0
+defusedxml==0.7.1
+edfio==0.4.13
+h5io==0.2.5
+joblib==1.5.3
+matplotlib==3.10.8
+meegkit==0.1.9
+mne==1.11.0
+mne-bids==0.18.0
+mne-bids-pipeline==1.10.1
+mne-connectivity==0.8
+mne-features==0.3.2
+mne-icalabel==0.8.1
+neuromaps==0.0.5
+nibabel==5.4.2
+nilearn==0.13.1
+numpy==2.4.4
+pandas==3.0.2
+pybv==0.7.6
+python-picard==0.8.2
+pyvista==0.47.3
+scikit-learn==1.8.0
+scipy==1.17.1
+networkx==3.6.1
+specparam==2.0.0rc7
+statsmodels==0.14.6
+typer==0.20.0
+
+# Opzionali: dashboard interattiva (vedi dashboard/requirements.txt) e sviluppo
+# streamlit==1.58.0
+# plotly==6.8.0
+# pytest==9.0.3
+# ruff==0.15.15

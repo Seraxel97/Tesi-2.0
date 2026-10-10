@@ -38,7 +38,9 @@ def test_format_pvalue_callsites_pass_two_args():
         for call in _format_pvalue_calls(tree):
             n_args = len(call.args) + len(call.keywords)
             if n_args < 2:
-                offenders.append(f"{py.relative_to(_DASHBOARD.parent)}:{call.lineno} ({n_args} arg)")
+                offenders.append(
+                    f"{py.relative_to(_DASHBOARD.parent)}:{call.lineno} ({n_args} arg)"
+                )
     assert not offenders, (
         "format_pvalue() richiede (p_value, n_perm); call-site con <2 arg:\n  "
         + "\n  ".join(offenders)

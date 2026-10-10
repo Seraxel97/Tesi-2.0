@@ -1,0 +1,14 @@
+{
+  "n_F": 112,
+  "n_M": 67,
+  "age_F_median": 42.5,
+  "age_M_median": 50.0,
+  "age_F_mean": 41.973214285714285,
+  "age_M_mean": 48.134328358208954,
+  "mannwhitney_U": 2832.0,
+  "p_value": 0.006110160499740677,
+  "age_differs_by_sex": true,
+  "timestamp": "2026-06-30T16:58:10+00:00",
+  "n_total": 179,
+  "class_balance": "112F / 67M"
+}

@@ -4,7 +4,7 @@
 
 set -o pipefail
 
-ROOT="/home/seraxel/Scrivania/Tesi_2.0"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/.." && pwd))"
 
 {
     echo "# Data Directory Audit Report"

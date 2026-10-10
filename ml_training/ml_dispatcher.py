@@ -31,6 +31,8 @@ from sklearn.svm import SVC
 
 Algorithm = Literal["logreg", "logreg_nested", "svm", "mlp", "rf", "gb"]
 
+# ===== Classificatori disponibili =====
+
 _CLASSIFIERS: dict[str, object] = {
     "logreg": LogisticRegression(max_iter=2000, C=1.0, random_state=42),
     "logreg_nested": GridSearchCV(
@@ -46,6 +48,9 @@ _CLASSIFIERS: dict[str, object] = {
     "rf": RandomForestClassifier(n_estimators=200, random_state=42),
     "gb": GradientBoostingClassifier(n_estimators=200, random_state=42),
 }
+
+
+# ===== Risultati CV =====
 
 
 @dataclass
@@ -81,7 +86,23 @@ class CVResult:
     best_C_per_fold: list[float] = field(default_factory=list)
 
 
+# ===== Cross-validation =====
+
+
 def _make_pipeline(algorithm: Algorithm) -> Pipeline:
+    """Crea la pipeline StandardScaler + classificatore.
+
+    Lo scaler e' dentro la pipeline cosi' viene fittato solo sul train di ogni fold (no leakage).
+
+    Args:
+        algorithm: Nome dell'algoritmo, chiave di `_CLASSIFIERS`.
+
+    Returns:
+        Pipeline scikit-learn.
+
+    Raises:
+        ValueError: Se l'algoritmo non e' tra quelli validi.
+    """
     _VALID = Algorithm.__args__  # type: ignore[attr-defined]
     if algorithm not in _VALID:
         raise ValueError(f"Unknown algorithm={algorithm!r}. Valid: {sorted(_VALID)}")
@@ -120,9 +141,14 @@ def run_cv(
     CVResult con balanced_accuracy per fold + media/std.
     """
     if groups is not None:
+        # GroupKFold: tutte le epoch dello stesso soggetto finiscono nello
+        # stesso fold (train O test, mai in entrambi) — impedisce al modello
+        # di "imparare" un soggetto specifico invece del pattern generale.
         cv = GroupKFold(n_splits=n_splits)
         splits = cv.split(X, y, groups=groups)
     else:
+        # Nessuna informazione sui soggetti: fallback a split stratificato
+        # per etichetta (mantiene le proporzioni tra classi in ogni fold).
         cv_strat = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         splits = cv_strat.split(X, y)
 
@@ -141,10 +167,12 @@ def run_cv(
     best_c_per_fold: list[float] = []
 
     for train_idx, test_idx in splits:
+        # train_idx/test_idx sono indici di riga: X_te e y_te restano
+        # completamente invisibili al modello durante il fit (niente leakage).
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
 
-        pipe = _make_pipeline(algorithm)
+        pipe = _make_pipeline(algorithm)  # nuova pipeline ad ogni fold, mai riusata
         if algorithm == "logreg_nested":
             # Aggiorna il cv del GridSearchCV al tipo appropriato per questo run
             pipe.named_steps["clf"].cv = inner_cv
@@ -153,6 +181,9 @@ def run_cv(
             else:
                 pipe.fit(X_tr, y_tr)
         else:
+            # StandardScaler dentro la pipeline: la media/varianza per la
+            # normalizzazione si stima SOLO sul train fold, mai sul test
+            # (altrimenti l'informazione del test "trapelerebbe" nel train).
             pipe.fit(X_tr, y_tr)
         if algorithm == "logreg_nested":
             best_c = pipe.named_steps["clf"].best_params_.get("C", float("nan"))

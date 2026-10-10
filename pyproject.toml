@@ -1,11 +1,31 @@
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "tesi"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
+description = "Pipeline EEG source-space: connettivita funzionale + classificazione ML (tesi magistrale)"
+license = { text = "MIT" }
+authors = [{ name = "Samuele Losio" }]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "scikit-learn",
+    "mne",
+    "mne-bids",
+    "mne-bids-pipeline",
+    "mne-connectivity",
+    "typer",
+]
+
+[project.scripts]
+tesi = "cli.main:app"
+
+[tool.setuptools.packages.find]
+include = ["cli*", "common*", "parcellation*", "connectivity*", "features*", "ml_training*", "source_reconstruction*", "analysis*", "pipeline_mne_bids*"]
 
 [tool.ruff]
 target-version = "py313"
@@ -20,5 +40,7 @@ testpaths = ["tests"]
 addopts = "-v --strict-markers"
 pythonpath = ["."]
 markers = [
+    "needs_data: richiede data/ (gitignored); skippato se assente",
+    "needs_fsaverage: richiede fsaverage (FreeSurfer, ~/mne_data); skippato se assente",
     "slow: test lenti (>60s, ML multi-classificatore/permutazioni); esclusi dai run veloci con -m 'not slow'",
 ]

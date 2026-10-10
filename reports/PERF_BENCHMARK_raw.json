@@ -1,0 +1,21 @@
+{
+  "subject": "sub-05",
+  "atlas": "aparc",
+  "metric": "wpli",
+  "n_epochs": 20,
+  "timings": {
+    "load_epochs": 0.062,
+    "build_y": 0.001,
+    "inverse_parcellation": 5.49,
+    "functional_connectivity": 0.316,
+    "feature_extraction": 0.191,
+    "ml_training": 3.797
+  },
+  "ml_algos": [
+    "logreg",
+    "svm",
+    "mlp",
+    "rf",
+    "gb"
+  ]
+}

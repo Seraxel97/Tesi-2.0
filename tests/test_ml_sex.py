@@ -7,6 +7,8 @@ import pytest
 
 from ml_training.ml_sex import load_data, run_cv
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture(scope="module")
 def data():
@@ -16,6 +18,11 @@ def data():
 def test_data_shape(data):
     X, y_sex, groups = data
     assert X.shape[0] == len(y_sex) == len(groups)
+    # Invariante robusto (non un magic-number): ogni soggetto ha 2 condizioni (EO/EC).
+    # Vale per qualsiasi N (era hardcoded 200=100×2 → si rompeva a N=179/358).
+    n_subjects = len(np.unique(groups))
+    assert X.shape[0] == 2 * n_subjects
+    assert X.shape[0] % 2 == 0
     assert X.shape[0] == 358  # 179 soggetti × 2 condizioni (N=179)
 
 
@@ -29,9 +36,7 @@ def test_groups_aligned(data):
     # Stesso soggetto deve avere stesso sesso nelle due righe
     for g in np.unique(groups):
         mask = groups == g
-        assert (
-            len(np.unique(y_sex[mask])) == 1
-        ), f"Soggetto {g} ha sessi diversi!"
+        assert len(np.unique(y_sex[mask])) == 1, f"Soggetto {g} ha sessi diversi!"
 
 
 @pytest.mark.slow

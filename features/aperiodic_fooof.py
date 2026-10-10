@@ -11,6 +11,8 @@ Features per segnale:
   spectral_entropy — Shannon entropy su PSD normalizzato
 
 NB: aperiodic_exp è inferenza proxy per E/I — dichiararlo in report.
+
+Posizione nella pipeline: STEP 5 (feature extraction), a valle della connettivita' (STEP 4).
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ import numpy as np
 import specparam
 from scipy.integrate import trapezoid
 from scipy.stats import entropy as shannon_entropy
+
+# ===== Configurazione =====
 
 _BANDS = {
     "delta": (1.0, 4.0),
@@ -42,7 +46,21 @@ FEATURE_NAMES = [
 ]
 
 
+# ===== Calcolo feature aperiodiche =====
+
+
 def _band_power(freqs: np.ndarray, psd: np.ndarray, fmin: float, fmax: float) -> float:
+    """Potenza in banda per integrazione trapezoidale della PSD.
+
+    Args:
+        freqs: Frequenze (Hz), shape (n_freqs,).
+        psd: Densita' spettrale di potenza, shape (n_freqs,).
+        fmin: Limite inferiore della banda (Hz, incluso).
+        fmax: Limite superiore della banda (Hz, incluso).
+
+    Returns:
+        Potenza integrata, oppure NaN se la banda contiene meno di 2 punti.
+    """
     mask = (freqs >= fmin) & (freqs <= fmax)
     if mask.sum() < 2:
         return np.nan
@@ -75,22 +93,30 @@ def compute_aperiodic_features(
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            # Adatta il modello FOOOF: separa lo spettro in una componente
+            # aperiodica (andamento 1/f di fondo) e picchi oscillatori sopra
+            # di essa. ap[0]/ap[1] sono i due parametri della componente 1/f.
             sm.fit(freqs, psd, freq_range=list(freq_range))
         if sm.results.has_model:
             ap = sm.results.get_params("aperiodic")
             aperiodic_offset = float(ap[0])
             aperiodic_exp = float(ap[1])
         else:
+            # Il fit non converge su segnali troppo rumorosi: NaN esplicito
+            # invece di un valore inventato (coerente col resto del progetto,
+            # che dichiara sempre "non riuscito" piuttosto che confabulare).
             aperiodic_offset = np.nan
             aperiodic_exp = np.nan
     except Exception:
         aperiodic_offset = np.nan
         aperiodic_exp = np.nan
 
-    band_powers = {
-        name: _band_power(freqs, psd, lo, hi) for name, (lo, hi) in _BANDS.items()
-    }
+    band_powers = {name: _band_power(freqs, psd, lo, hi) for name, (lo, hi) in _BANDS.items()}
 
+    # Entropia spettrale: normalizzo la PSD a distribuzione di probabilità
+    # (somma=1) e ne calcolo l'entropia di Shannon — un segnale con potenza
+    # concentrata in poche frequenze ha entropia bassa, uno piatto/rumoroso
+    # ha entropia alta. +1e-12 evita log(0) nei bin a potenza nulla.
     psd_norm = psd / (psd.sum() + 1e-12)
     sp_entropy = float(shannon_entropy(psd_norm + 1e-12))
 

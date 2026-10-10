@@ -29,6 +29,8 @@ import numpy as np
 from connectivity.fc_dispatcher import Metric, compute_fc, save_fc
 from parcellation.extract_label_tc import AtlasName, extract_tc
 
+# ===== Time-course per label =====
+
 
 def epochs_to_label_tc(
     epochs: mne.Epochs,
@@ -78,6 +80,9 @@ def epochs_to_label_tc(
         tc_list.append(tc_i)  # (n_labels, n_times)
 
     return np.stack(tc_list, axis=0), names  # (n_epochs, n_labels, n_times)
+
+
+# ===== Driver STEP 4 =====
 
 
 def run(
@@ -159,13 +164,23 @@ def run(
     print(f"Salvato: {out_path}")
 
 
+# ===== Entry point =====
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Epochs + inv → FC .npz")
     ap.add_argument("--epochs", required=True)
     ap.add_argument("--inv", required=True)
     ap.add_argument("--fwd", required=True)
-    ap.add_argument("--atlas", required=True, choices=["aparc", "destrieux", "schaefer100", "schaefer200", "schaefer400"])
-    ap.add_argument("--metric", required=True, choices=["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"])
+    ap.add_argument(
+        "--atlas",
+        required=True,
+        choices=["aparc", "destrieux", "schaefer100", "schaefer200", "schaefer400"],
+    )
+    ap.add_argument(
+        "--metric",
+        required=True,
+        choices=["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"],
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument("--lambda2", type=float, default=1.0 / 9.0)
     ap.add_argument("--inv-method", default="dSPM")

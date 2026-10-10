@@ -4,6 +4,7 @@ Puntano ai dati reali sub-05 matchingpennies (read-only).
 I test che richiedono file reali vengono skippati se il file non esiste.
 """
 
+import os
 from pathlib import Path
 
 import pytest
@@ -11,10 +12,19 @@ import pytest
 pytest_plugins = ["tests.fixtures.synthetic"]
 
 
-_BIDS_ROOT = Path("/home/seraxel/Scrivania/Tesi_2.0/data/eeg_matchingpennies")
-_DERIV = Path("/home/seraxel/Scrivania/Tesi_2.0/data/derivatives/mne-bids-pipeline")
+# Path repo-relativi + env-override (riproducibilità F0): i test girano su qualsiasi macchina.
+_REPO = Path(__file__).resolve().parents[1]
+_BIDS_ROOT = Path(
+    os.environ.get("TESI_BIDS_ROOT", "").strip() or _REPO / "data" / "eeg_matchingpennies"
+)
+_DERIV = Path(
+    os.environ.get("TESI_DERIV", "").strip() or _REPO / "data" / "derivatives" / "mne-bids-pipeline"
+)
 _SUB05 = _DERIV / "sub-05" / "eeg"
-_SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+_SUBJECTS_DIR = Path(
+    os.environ.get("TESI_SUBJECTS_DIR", "").strip()
+    or Path.home() / "mne_data" / "MNE-fsaverage-data"
+)
 
 
 @pytest.fixture(scope="session")
@@ -88,3 +98,24 @@ def epochs_path() -> Path:
     if not p.exists():
         pytest.skip(f"Epochs non trovato: {p}")
     return p
+
+
+# ── Marker needs_data: skip se mancano i dati reali (data/ e' gitignored) ────
+_NEEDS_DATA_SENTINELS = (
+    _REPO / "data" / "features" / "ds005385" / "y.npy",
+    _REPO / "data" / "raw" / "ds005385" / "participants.tsv",
+)
+
+
+def pytest_collection_modifyitems(config, items):
+    """Salta i test marcati `needs_data` / `needs_fsaverage` se le risorse mancano."""
+    missing = [str(p.relative_to(_REPO)) for p in _NEEDS_DATA_SENTINELS if not p.exists()]
+    skip_data = pytest.mark.skip(reason=f"richiede data/ (mancano: {', '.join(missing)})")
+    skip_fs = pytest.mark.skip(
+        reason=f"richiede fsaverage in {_SUBJECTS_DIR} (esegui `make data-demo`)"
+    )
+    for item in items:
+        if missing and "needs_data" in item.keywords:
+            item.add_marker(skip_data)
+        if not _SUBJECTS_DIR.exists() and "needs_fsaverage" in item.keywords:
+            item.add_marker(skip_fs)

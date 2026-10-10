@@ -1,4 +1,7 @@
-"""Benchmark tempi per step della pipeline matchingpennies."""
+"""Benchmark tempi per step della pipeline matchingpennies.
+
+Posizione nella pipeline: post-STEP 6/7: analisi e confronto dei risultati (non e' uno step di elaborazione).
+"""
 
 from __future__ import annotations
 
@@ -51,7 +54,7 @@ def benchmark_pipeline(
     sfreq_orig = epochs.info["sfreq"]
     epochs = epochs.decimate(int(sfreq_orig / 500.0))
     sfreq = epochs.info["sfreq"]
-    epochs = epochs[:min(20, len(epochs))]
+    epochs = epochs[: min(20, len(epochs))]
     timings["load_epochs"] = round(time.time() - t0, 3)
 
     # Step 2: Build y
@@ -74,8 +77,13 @@ def benchmark_pipeline(
         warnings.simplefilter("ignore")
         stcs = list(
             mne.minimum_norm.apply_inverse_epochs(
-                epochs, inv_op, lambda2=1.0 / 9.0, method="dSPM",
-                pick_ori=None, return_generator=False, verbose=False,
+                epochs,
+                inv_op,
+                lambda2=1.0 / 9.0,
+                method="dSPM",
+                pick_ori=None,
+                return_generator=False,
+                verbose=False,
             )
         )
 

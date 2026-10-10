@@ -4,7 +4,7 @@
 # Output: exit 0 = PASS, exit 1 = FAIL
 set -euo pipefail
 
-REPO="/home/seraxel/Scrivania/Tesi_2.0"
+REPO="$(git rev-parse --show-toplevel 2>/dev/null || cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
 
 REPORT="${REPO}/reports/FINAL_VALIDATION.md"

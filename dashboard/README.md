@@ -1,12 +1,12 @@
 # ML Scientific Dashboard — Tesi 2.0
 
 Dashboard interattiva per esplorare i risultati di classificazione EEG source-level
-(ds005385, N=50, EC vs EO, LOSO GroupKFold).
+(ds005385, EC vs EO e sesso/età, GroupKFold per-soggetto).
 
 ## Avvio rapido
 
 ```bash
-cd /home/seraxel/Scrivania/Tesi_2.0
+cd Tesi_2.0
 streamlit run dashboard/app.py --server.port 8501
 ```
 
@@ -17,7 +17,7 @@ Apri: http://localhost:8501
 - **Selettori**: parcellation × connectivity metric × band × classifier
 - **Run combo**: LOSO CV + bootstrap CI + ROC in <2s per logreg
 - **Load reports/**: carica risultati ml_results.json esistenti
-- **Load N=50 winner**: aparc×plv×theta×logreg, BA=0.920, p<0.001
+- **Load winner**: carica la combinazione vincente salvata nei report (atlante × metrica × banda × classificatore)
 - **Plot**: confusion matrix, ROC+AUC, learning curve per fold, permutation null, feature importance (logreg coef)
 - **Export**: PNG/SVG/PDF pub-quality via matplotlib (300 DPI)
 

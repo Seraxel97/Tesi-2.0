@@ -12,8 +12,7 @@ _LABEL_TC = _RNG.standard_normal((_N_EP, _N_LAB, _N_T))
 
 _BANDS = ["alpha", "beta"]
 _FC: dict[str, np.ndarray] = {
-    b: (lambda m: m + m.T)(_RNG.uniform(0, 1, (_N_LAB, _N_LAB))) / 2.0
-    for b in _BANDS
+    b: (lambda m: m + m.T)(_RNG.uniform(0, 1, (_N_LAB, _N_LAB))) / 2.0 for b in _BANDS
 }
 # Assicura simmetria e diagonale zero
 for b in _BANDS:

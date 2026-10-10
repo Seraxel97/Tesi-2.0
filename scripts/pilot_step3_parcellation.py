@@ -1,11 +1,21 @@
-"""
-STEP 3 pilot — parcellation ds005385 (5 sub × 2 atlas × 2 cond = 20 .npz).
+"""STEP 3 pilota — parcellazione di ds005385 (5 soggetti x 2 atlanti x 2 condizioni = 20 .npz).
 
-Usa extract_tc_from_files su STC prodotti da S-101.
-Output: data/label_ts/ds005385/sub-XXX_atlas-XXX_cond-XXX.npz
+Scopo:
+    Estrae le serie temporali per ROI (mean_flip) dalle STC prodotte dallo
+    step 2 (evoked medio, quindi senza dimensione epoche) con
+    parcellation.extract_label_tc.extract_tc_from_files, per gli atlanti
+    aparc e schaefer100.
 
-Usage:
+Input:
+    STC .stc e forward in data/derivatives/mne-bids-pipeline/<sub>/eeg/
+
+Output:
+    - data/label_ts/ds005385/<sub>_atlas-<atlante>_cond-<cond>.npz (label_tc, label_names, ...)
+    - reports/STEP3_DS005385_PILOT.md
+
+Esempio:
     python scripts/pilot_step3_parcellation.py
+
 """
 
 from __future__ import annotations
@@ -16,11 +26,14 @@ import warnings
 from datetime import UTC, datetime
 from pathlib import Path
 
+# Rende importabili i pacchetti del repository dalla cartella scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 
 warnings.filterwarnings("ignore")
+
+# ===== 1. Configurazione =====
 
 DERIV = Path("data/derivatives/mne-bids-pipeline")
 OUT_DIR = Path("data/label_ts/ds005385")
@@ -36,19 +49,60 @@ MODE = "mean_flip"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# ===== 2. Percorsi =====
+
+
 def stc_stem(sub: str, cond: str) -> Path:
+    """Prefisso (senza -lh/-rh) dei file STC di un soggetto/condizione.
+
+    Args:
+        sub: id soggetto.
+        cond: 'EO' o 'EC'.
+
+    Returns:
+        Path prefisso.
+    """
     return DERIV / sub / "eeg" / f"{sub}_task-{TASK}_cond-{cond}_inv-{METHOD}"
 
 
 def fwd_path(sub: str) -> Path:
+    """Percorso della forward solution di un soggetto.
+
+    Args:
+        sub: id soggetto.
+
+    Returns:
+        Path del file .fif.
+    """
     return DERIV / sub / "eeg" / f"{sub}_fwd.fif"
 
 
 def npz_path(sub: str, atlas: str, cond: str) -> Path:
+    """Percorso del .npz di output per soggetto/atlante/condizione.
+
+    Args:
+        sub: id soggetto.
+        atlas: atlante.
+        cond: 'EO' o 'EC'.
+
+    Returns:
+        Path del file.
+    """
     return OUT_DIR / f"{sub}_atlas-{atlas}_cond-{cond}.npz"
 
 
+# ===== 3. Estrazione serie temporali =====
+
+
 def run_extraction() -> list[dict]:
+    """Estrae le serie per ROI per tutte le combinazioni soggetto x atlante x condizione.
+
+    Returns:
+        lista di dict con n_labels, n_times, tempi e file prodotto.
+
+    Side effects:
+        Scrive 20 file .npz in OUT_DIR.
+    """
     from parcellation.extract_label_tc import extract_tc_from_files
 
     results = []
@@ -63,9 +117,8 @@ def run_extraction() -> list[dict]:
                 out = npz_path(sub, atlas, cond)
                 t0 = time.perf_counter()
 
-                tc, names = extract_tc_from_files(
-                    stem, atlas, fwd_path=fwd, mode=MODE
-                )
+                # tc ha forma (n_ROI, n_tempi): serie da evoked medio, senza epoche
+                tc, names = extract_tc_from_files(stem, atlas, fwd_path=fwd, mode=MODE)
                 np.savez_compressed(
                     out,
                     label_tc=tc,
@@ -82,23 +135,43 @@ def run_extraction() -> list[dict]:
                     f"[{done:02d}/{total}] {sub} {atlas:12s} {cond}  "
                     f"shape=({tc.shape[0]},{tc.shape[1]})  {elapsed:.2f}s"
                 )
-                results.append({
-                    "sub": sub, "atlas": atlas, "cond": cond,
-                    "n_labels": tc.shape[0], "n_times": tc.shape[1],
-                    "label_names_5": names[:5], "elapsed_s": round(elapsed, 3),
-                    "out": str(out),
-                })
+                results.append(
+                    {
+                        "sub": sub,
+                        "atlas": atlas,
+                        "cond": cond,
+                        "n_labels": tc.shape[0],
+                        "n_times": tc.shape[1],
+                        "label_names_5": names[:5],
+                        "elapsed_s": round(elapsed, 3),
+                        "out": str(out),
+                    }
+                )
 
     return results
 
 
+# ===== 4. Report =====
+
+
 def write_report(results: list[dict], total_elapsed: float) -> None:
+    """Scrive il report Markdown dello step 3.
+
+    Args:
+        results: output di run_extraction.
+        total_elapsed: durata in secondi.
+
+    Returns:
+        None.
+
+    Side effects:
+        Scrive reports/STEP3_DS005385_PILOT.md.
+    """
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     lines = [
         "# STEP 3 Parcellation — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-103 (sonnet1-ts)",
         f"**Soggetti**: {PILOT_SUBJECTS}",
         f"**Atlases**: {ATLASES}",
         f"**Condizioni**: {CONDITIONS}",
@@ -147,14 +220,24 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"| File .npz prodotti | {len(results)} / 20 |",
         f"| Atlases | {', '.join(ATLASES)} |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        f"| Verdict | {'**PASS** ✅' if all_ok else '**WARN** ⚠️'} |",
+        f"| Verdict | {'**PASS** [OK]' if all_ok else '**WARN** [WARNING]'} |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
 
 
+# ===== 5. Main =====
+
+
 def main() -> None:
-    print(f"STEP 3 Parcellation pilot — {len(PILOT_SUBJECTS)} sub × {len(ATLASES)} atlases × {len(CONDITIONS)} cond")
+    """Punto di ingresso: esegue l'estrazione e scrive il report.
+
+    Side effects:
+        Scrive i file .npz e il report.
+    """
+    print(
+        f"STEP 3 Parcellation pilot — {len(PILOT_SUBJECTS)} sub × {len(ATLASES)} atlases × {len(CONDITIONS)} cond"
+    )
     print(f"Mode: {MODE}")
     t0 = time.perf_counter()
     results = run_extraction()

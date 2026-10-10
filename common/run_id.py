@@ -1,4 +1,7 @@
-"""Standard run-id generator: timestamp + git_sha + config_hash."""
+"""Standard run-id generator: timestamp + git_sha + config_hash.
+
+Posizione nella pipeline: infrastruttura trasversale agli STEP 1-7 (non appartiene a un singolo step).
+"""
 
 from __future__ import annotations
 
@@ -11,6 +14,14 @@ _REPO_ROOT = Path(__file__).parent.parent
 
 
 def _git_sha_short(length: int = 8) -> str:
+    """SHA git corto del commit corrente.
+
+    Args:
+        length: Numero massimo di caratteri.
+
+    Returns:
+        SHA troncato, oppure "nogit" se git non e' disponibile o va in timeout.
+    """
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -27,6 +38,15 @@ def _git_sha_short(length: int = 8) -> str:
 
 
 def _config_hash_short(config_path: Path, length: int = 8) -> str:
+    """Hash SHA-256 troncato del contenuto di un file di configurazione.
+
+    Args:
+        config_path: File di config.
+        length: Numero di caratteri esadecimali restituiti.
+
+    Raises:
+        FileNotFoundError: Se il file non esiste.
+    """
     sha = hashlib.sha256(config_path.read_bytes()).hexdigest()
     return sha[:length]
 

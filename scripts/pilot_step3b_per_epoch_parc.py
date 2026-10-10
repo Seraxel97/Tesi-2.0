@@ -1,10 +1,21 @@
-"""
-STEP 3b — per-epoch parcellation ds005385 (5 sub × 2 atlas × 2 cond = 20 npz).
+"""STEP 3b pilota — parcellazione per-epoca di ds005385 (5 soggetti x 2 atlanti x 2 condizioni = 20 npz).
 
-Usa per-epoch STC da S-101b per produrre label_tc (n_epochs, n_labels, n_times).
-Risolve il wPLI collapse: input corretto per FC dispatcher.
+Scopo:
+    Usa le STC per-epoca dello step 2b per produrre label_tc di forma
+    (n_epochs, n_labels, n_times) con mode mean_flip. Risolve il collasso del
+    wPLI fornendo al dispatcher FC l'input corretto (più epoche).
 
-Output: data/label_ts/ds005385/sub-XXX_atlas-XXX_cond-XXX_per-epoch.npz
+Input:
+    stcs.npz per-epoca e forward in data/derivatives/mne-bids-pipeline/<sub>/eeg/
+
+Output:
+    - data/label_ts/ds005385/<sub>_atlas-<atlante>_cond-<cond>_per-epoch.npz
+      (label_tc, label_names, subject, condition, atlas, mode, n_epochs, sfreq)
+    - reports/STEP3b_DS005385_PER_EPOCH.md
+
+Esempio:
+    python scripts/pilot_step3b_per_epoch_parc.py
+
 """
 
 from __future__ import annotations
@@ -18,15 +29,18 @@ from pathlib import Path
 import mne
 import numpy as np
 
+# Rende importabili i pacchetti del repository dalla cartella scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 warnings.filterwarnings("ignore")
 
 from parcellation.extract_label_tc import get_labels  # noqa: E402
 
+# ===== 1. Configurazione =====
+
 DERIV = Path("data/derivatives/mne-bids-pipeline")
 OUT_DIR = Path("data/label_ts/ds005385")
 REPORT_PATH = Path("reports/STEP3b_DS005385_PER_EPOCH.md")
-SUBJECTS_DIR = Path("/home/seraxel/mne_data/MNE-fsaverage-data")
+SUBJECTS_DIR = Path.home() / "mne_data" / "MNE-fsaverage-data"  # posizione standard fsaverage (F0)
 
 SUBJECTS = ["sub-007", "sub-010", "sub-011", "sub-026", "sub-031"]
 ATLASES = ["aparc", "schaefer100"]
@@ -37,21 +51,63 @@ SFREQ = 250.0
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# ===== 2. Percorsi =====
+
+
 def stcs_npz(sub: str, cond: str) -> Path:
+    """Percorso del file stcs.npz di un soggetto/condizione.
+
+    Args:
+        sub: id soggetto.
+        cond: 'EO' o 'EC'.
+
+    Returns:
+        Path del file.
+    """
     return DERIV / sub / "eeg" / f"{sub}_task-RestingState_cond-{cond}_inv-dSPM-stcs.npz"
 
 
 def fwd_path(sub: str) -> Path:
+    """Percorso della forward solution di un soggetto.
+
+    Args:
+        sub: id soggetto.
+
+    Returns:
+        Path del file .fif.
+    """
     return DERIV / sub / "eeg" / f"{sub}_fwd.fif"
 
 
 def out_npz(sub: str, atlas: str, cond: str) -> Path:
+    """Percorso del .npz di output per soggetto/atlante/condizione.
+
+    Args:
+        sub: id soggetto.
+        atlas: atlante.
+        cond: 'EO' o 'EC'.
+
+    Returns:
+        Path del file.
+    """
     return OUT_DIR / f"{sub}_atlas-{atlas}_cond-{cond}_per-epoch.npz"
 
 
+# ===== 3. Caricamento e parcellazione =====
+
+
 def load_stc_list(sub: str, cond: str) -> tuple[list[mne.SourceEstimate], int]:
+    """Ricostruisce la lista di SourceEstimate (una per epoca) dal file stcs.npz.
+
+    Args:
+        sub: id soggetto.
+        cond: condizione.
+
+    Returns:
+        tupla (lista di mne.SourceEstimate su fsaverage, numero di epoche).
+    """
     d = np.load(stcs_npz(sub, cond), allow_pickle=True)
-    data = d["data"]                          # (n_epochs, n_sources, n_times)
+    data = d["data"]  # (n_epochs, n_sources, n_times)
     vl = d["vertices_lh"]
     vr = d["vertices_rh"]
     tmin = float(d["tmin"])
@@ -70,6 +126,15 @@ def load_stc_list(sub: str, cond: str) -> tuple[list[mne.SourceEstimate], int]:
 
 
 def run_all() -> list[dict]:
+    """Parcellizza tutte le combinazioni soggetto x atlante x condizione.
+
+    Returns:
+        lista di dict con forma, medie delle prime epoche e tempi.
+
+    Side effects:
+        Scrive 20 file *_per-epoch.npz in OUT_DIR.
+    """
+    # Cache delle label per atlante: la lettura dell'atlante è costosa
     label_cache: dict[str, list[mne.Label]] = {}
 
     results = []
@@ -92,9 +157,11 @@ def run_all() -> list[dict]:
                 t0 = time.perf_counter()
                 stcs, n_epochs = load_stc_list(sub, cond)
 
+                # Serie per ROI con mean_flip (media con inversione di segno)
                 tcs = mne.extract_label_time_course(
                     stcs, labels, src, mode=MODE, allow_empty=True, verbose=False
                 )
+                # Forma (n_epoche, n_ROI, n_tempi)
                 label_tc = np.stack(tcs).astype(np.float32)  # (n_epochs, n_labels, n_times)
 
                 np.savez_compressed(
@@ -111,6 +178,7 @@ def run_all() -> list[dict]:
                 elapsed = time.perf_counter() - t0
                 done += 1
 
+                # Medie delle prime epoche: controllo che le epoche non siano identiche
                 ep0_mean = float(label_tc[0].mean())
                 ep1_mean = float(label_tc[1].mean()) if n_epochs > 1 else float("nan")
                 ep2_mean = float(label_tc[2].mean()) if n_epochs > 2 else float("nan")
@@ -120,32 +188,53 @@ def run_all() -> list[dict]:
                     f"shape=({n_epochs},{n_labels},{label_tc.shape[2]})  "
                     f"ep0={ep0_mean:.4f}  {elapsed:.1f}s"
                 )
-                results.append({
-                    "sub": sub, "atlas": atlas, "cond": cond,
-                    "n_epochs": n_epochs, "n_labels": n_labels,
-                    "n_times": label_tc.shape[2],
-                    "ep0_mean": round(ep0_mean, 4),
-                    "ep1_mean": round(ep1_mean, 4),
-                    "ep2_mean": round(ep2_mean, 4),
-                    "elapsed_s": round(elapsed, 1),
-                })
+                results.append(
+                    {
+                        "sub": sub,
+                        "atlas": atlas,
+                        "cond": cond,
+                        "n_epochs": n_epochs,
+                        "n_labels": n_labels,
+                        "n_times": label_tc.shape[2],
+                        "ep0_mean": round(ep0_mean, 4),
+                        "ep1_mean": round(ep1_mean, 4),
+                        "ep2_mean": round(ep2_mean, 4),
+                        "elapsed_s": round(elapsed, 1),
+                    }
+                )
                 del stcs, tcs, label_tc
 
     return results
 
 
+# ===== 4. Report =====
+
+
 def write_report(results: list[dict], total_elapsed: float) -> None:
+    """Scrive il report Markdown dello step 3b.
+
+    Args:
+        results: output di run_all.
+        total_elapsed: durata in secondi.
+
+    Returns:
+        None.
+
+    Side effects:
+        Scrive reports/STEP3b_DS005385_PER_EPOCH.md.
+    """
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     lines = [
         "# STEP 3b Per-Epoch Parcellation — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-103b (sonnet1-ts)",
         f"**Soggetti**: {SUBJECTS}",
         f"**Atlases**: {ATLASES}  **Mode**: {MODE}",
         "",
-        "---", "",
-        "## Risultati (20 estrazioni)", "",
+        "---",
+        "",
+        "## Risultati (20 estrazioni)",
+        "",
         "| Sub | Atlas | Cond | Shape (ep,lbl,t) | ep0 mean | Time (s) |",
         "|-----|-------|------|-----------------|----------|----------|",
     ]
@@ -159,8 +248,11 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
     ex = results[0]
     ex_path = out_npz(ex["sub"], ex["atlas"], ex["cond"])
     lines += [
-        "", "---", "",
-        f"## Esempio — {ex['sub']} × {ex['atlas']} × {ex['cond']}", "",
+        "",
+        "---",
+        "",
+        f"## Esempio — {ex['sub']} × {ex['atlas']} × {ex['cond']}",
+        "",
         f"**File**: `{ex_path}`",
         f"**Shape**: `label_tc = ({ex['n_epochs']}, {ex['n_labels']}, {ex['n_times']})`",
         f"**Epoch means**: ep0={ex['ep0_mean']}, ep1={ex['ep1_mean']}, ep2={ex['ep2_mean']}",
@@ -171,20 +263,33 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "# Keys: label_tc, label_names, subject, condition, atlas, mode, n_epochs, sfreq",
         f"# label_tc.shape = ({ex['n_epochs']}, {ex['n_labels']}, {ex['n_times']})",
         "```",
-        "", "---", "",
-        "## Summary", "",
+        "",
+        "---",
+        "",
+        "## Summary",
+        "",
         "| Metrica | Valore |",
         "|---------|--------|",
         f"| File .npz prodotti | {len(results)} / 20 |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        "| Verdict | **PASS** ✅ |",
+        "| Verdict | **PASS** [OK] |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
 
 
+# ===== 5. Main =====
+
+
 def main() -> None:
-    print(f"STEP 3b per-epoch parcellation | {len(SUBJECTS)} sub × {len(ATLASES)} atlas × {len(CONDITIONS)} cond")
+    """Punto di ingresso: esegue la parcellazione e scrive il report.
+
+    Side effects:
+        Scrive i file .npz e il report.
+    """
+    print(
+        f"STEP 3b per-epoch parcellation | {len(SUBJECTS)} sub × {len(ATLASES)} atlas × {len(CONDITIONS)} cond"
+    )
     t0 = time.perf_counter()
     results = run_all()
     total = time.perf_counter() - t0

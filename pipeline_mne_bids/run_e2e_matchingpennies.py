@@ -39,6 +39,8 @@ from features.dispatcher import build_X
 from ml_training.ml_dispatcher import run_all_algorithms
 from parcellation.extract_label_tc import AtlasName, extract_tc
 
+# ===== Configurazione =====
+
 _LABEL_MAP = {
     "raised-left/match-false": 0,
     "raised-left/match-true": 0,
@@ -55,6 +57,9 @@ def _build_y(epochs: mne.Epochs) -> np.ndarray:
         ev_name = event_ids_inv.get(ev_code, "unknown")
         y_list.append(_LABEL_MAP.get(ev_name, -1))
     return np.array(y_list, dtype=int)
+
+
+# ===== Pipeline E2E =====
 
 
 def run_e2e(
@@ -199,7 +204,16 @@ def run_e2e(
     return summary
 
 
+# ===== Report =====
+
+
 def _write_report(summary: dict, path: Path) -> None:
+    """Scrive il report Markdown dello smoke test end-to-end.
+
+    Args:
+        summary: Dict di riepilogo (soggetto, atlante, metrica, risultati ML per algoritmo).
+        path: File Markdown di output.
+    """
     lines = [
         "# E2E Smoke Test — matchingpennies",
         "",
@@ -232,12 +246,20 @@ def _write_report(summary: dict, path: Path) -> None:
     path.write_text("\n".join(lines))
 
 
+# ===== Entry point =====
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="E2E pipeline matchingpennies")
     ap.add_argument("--subject", default="sub-05")
     ap.add_argument("--deriv", default="data/derivatives/mne-bids-pipeline")
-    ap.add_argument("--atlas", default="aparc", choices=["aparc", "destrieux", "schaefer100", "schaefer200"])
-    ap.add_argument("--metric", default="wpli", choices=["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"])
+    ap.add_argument(
+        "--atlas", default="aparc", choices=["aparc", "destrieux", "schaefer100", "schaefer200"]
+    )
+    ap.add_argument(
+        "--metric",
+        default="wpli",
+        choices=["coh", "imcoh", "plv", "ciplv", "pli", "wpli", "wpli2_debiased"],
+    )
     ap.add_argument("--n-epochs-max", type=int, default=0, help="0=tutte")
     ap.add_argument("--sfreq-target", type=float, default=500.0)
     ap.add_argument("--n-cv-splits", type=int, default=5)

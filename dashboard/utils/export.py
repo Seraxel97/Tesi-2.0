@@ -1,4 +1,8 @@
-"""Publication-quality figure export via matplotlib."""
+"""Publication-quality figure export via matplotlib.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
+"""
+
 from __future__ import annotations
 
 import io
@@ -11,20 +15,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+# ===== Configurazione =====
+
 _DPI = 300
 _FONT_SIZE = 10
 _FMT = Literal["png", "svg", "pdf"]
 
 
 def _apply_pub_style() -> None:
-    plt.rcParams.update({
-        "font.family": "sans-serif",
-        "font.size": _FONT_SIZE,
-        "axes.linewidth": 0.8,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "figure.dpi": _DPI,
-    })
+    """Imposta lo stile matplotlib per figure da pubblicazione (font, spine, DPI)."""
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "font.size": _FONT_SIZE,
+            "axes.linewidth": 0.8,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "figure.dpi": _DPI,
+        }
+    )
+
+
+# ===== Esportazione figure =====
 
 
 def export_confusion_matrix(
@@ -33,6 +45,17 @@ def export_confusion_matrix(
     fmt: _FMT = "png",
     labels: list[str] | None = None,
 ) -> Path:
+    """Esporta la matrice di confusione 2x2 (LOSO aggregata) come figura.
+
+    Args:
+        cm: Matrice di confusione 2x2 [[TN, FP], [FN, TP]] (righe = vero).
+        path: File di output.
+        fmt: Formato di salvataggio (png, pdf, svg...).
+        labels: Nomi delle classi (default ["EO", "EC"]).
+
+    Returns:
+        Percorso del file scritto.
+    """
     _apply_pub_style()
     labels = labels or ["EO", "EC"]
     cm_arr = np.array(cm)
@@ -51,9 +74,15 @@ def export_confusion_matrix(
     total = cm_arr.sum()
     for i in range(2):
         for j in range(2):
-            ax.text(j, i, f"{cm_arr[i,j]}\n({cm_arr[i,j]/total*100:.1f}%)",
-                    ha="center", va="center", fontsize=9,
-                    color="white" if cm_arr[i, j] > total * 0.4 else "black")
+            ax.text(
+                j,
+                i,
+                f"{cm_arr[i, j]}\n({cm_arr[i, j] / total * 100:.1f}%)",
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="white" if cm_arr[i, j] > total * 0.4 else "black",
+            )
     fig.tight_layout()
     out = Path(str(path) if not str(path).endswith(f".{fmt}") else path)
     fig.savefig(out, dpi=_DPI, bbox_inches="tight", format=fmt)
@@ -68,6 +97,18 @@ def export_roc_curve(
     path: Path | str,
     fmt: _FMT = "png",
 ) -> Path:
+    """Esporta la curva ROC (LOSO aggregata) come figura.
+
+    Args:
+        fpr: False positive rate.
+        tpr: True positive rate.
+        auc_val: Area sotto la curva da mostrare in legenda.
+        path: File di output.
+        fmt: Formato di salvataggio.
+
+    Returns:
+        Percorso del file scritto.
+    """
     _apply_pub_style()
     fig, ax = plt.subplots(figsize=(4.0, 3.5))
     ax.plot(fpr, tpr, color="#2166ac", lw=2, label=f"AUC = {auc_val:.3f}")
@@ -93,17 +134,42 @@ def export_permutation_null(
     fmt: _FMT = "png",
     p_perm: float | None = None,
 ) -> Path:
+    """Esporta l'istogramma della distribuzione nulla del test di permutazione.
+
+    Args:
+        null_distribution: BA ottenute con label permutate.
+        observed_ba: Balanced accuracy osservata (linea verticale).
+        path: File di output.
+        fmt: Formato di salvataggio.
+        p_perm: p-value di permutazione (opzionale, mostrato in legenda).
+
+    Returns:
+        Percorso del file scritto.
+    """
     from analysis.stats_utility import format_pvalue
 
     _apply_pub_style()
     null = np.array(null_distribution)
     fig, ax = plt.subplots(figsize=(5.0, 3.0))
-    ax.hist(null, bins=40, color="#4575b4", alpha=0.75, edgecolor="white", lw=0.3,
-            label=f"Null (n={len(null)})")
+    ax.hist(
+        null,
+        bins=40,
+        color="#4575b4",
+        alpha=0.75,
+        edgecolor="white",
+        lw=0.3,
+        label=f"Null (n={len(null)})",
+    )
     _p_label = format_pvalue(p_perm, len(null)) if p_perm is not None else ""
-    ax.axvline(observed_ba, color="#d73027", lw=2.0,
-               label=f"Observed BA={observed_ba:.3f}" + (f"\n{_p_label}" if _p_label else ""))
-    ax.axvline(null.mean(), color="gray", lw=1.2, linestyle="--", label=f"Null mean={null.mean():.3f}")
+    ax.axvline(
+        observed_ba,
+        color="#d73027",
+        lw=2.0,
+        label=f"Observed BA={observed_ba:.3f}" + (f"\n{_p_label}" if _p_label else ""),
+    )
+    ax.axvline(
+        null.mean(), color="gray", lw=1.2, linestyle="--", label=f"Null mean={null.mean():.3f}"
+    )
     ax.set_xlabel("Balanced Accuracy (permuted labels)")
     ax.set_ylabel("Count")
     ax.set_title("Permutation Null Distribution", fontsize=_FONT_SIZE)
@@ -120,6 +186,16 @@ def export_learning_curve(
     path: Path | str,
     fmt: _FMT = "png",
 ) -> Path:
+    """Esporta la balanced accuracy per fold LOSO con media e livello di caso (0.5).
+
+    Args:
+        ba_per_fold: BA per ciascun fold.
+        path: File di output.
+        fmt: Formato di salvataggio.
+
+    Returns:
+        Percorso del file scritto.
+    """
     _apply_pub_style()
     x = list(range(1, len(ba_per_fold) + 1))
     mean_ba = float(np.mean(ba_per_fold))
@@ -140,6 +216,15 @@ def export_learning_curve(
 
 
 def fig_to_bytes(fig: plt.Figure, fmt: _FMT = "png") -> bytes:
+    """Serializza una figura matplotlib in bytes (per download Streamlit).
+
+    Args:
+        fig: Figura da serializzare.
+        fmt: Formato (png, pdf, svg...).
+
+    Returns:
+        Contenuto binario dell'immagine.
+    """
     buf = io.BytesIO()
     fig.savefig(buf, format=fmt, dpi=_DPI, bbox_inches="tight")
     buf.seek(0)
@@ -153,19 +238,28 @@ def export_all(
 ) -> list[Path]:
     """Export all available figures for a result dict."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"{result.get('atlas','?')}_{result.get('metric','?')}_{result.get('band','?')}_{result.get('clf','?')}"
+    stem = f"{result.get('atlas', '?')}_{result.get('metric', '?')}_{result.get('band', '?')}_{result.get('clf', '?')}"
     exported = []
     if result.get("confusion"):
         p = export_confusion_matrix(result["confusion"], out_dir / f"{stem}_cm.{fmt}", fmt=fmt)
         exported.append(p)
     if result.get("roc_fpr") and result.get("roc_auc") is not None:
-        p = export_roc_curve(result["roc_fpr"], result["roc_tpr"], result["roc_auc"],
-                              out_dir / f"{stem}_roc.{fmt}", fmt=fmt)
+        p = export_roc_curve(
+            result["roc_fpr"],
+            result["roc_tpr"],
+            result["roc_auc"],
+            out_dir / f"{stem}_roc.{fmt}",
+            fmt=fmt,
+        )
         exported.append(p)
     if result.get("null_distribution"):
-        p = export_permutation_null(result["null_distribution"], result["ba"],
-                                     out_dir / f"{stem}_perm.{fmt}", fmt=fmt,
-                                     p_perm=result.get("p_perm"))
+        p = export_permutation_null(
+            result["null_distribution"],
+            result["ba"],
+            out_dir / f"{stem}_perm.{fmt}",
+            fmt=fmt,
+            p_perm=result.get("p_perm"),
+        )
         exported.append(p)
     if result.get("ba_per_fold"):
         p = export_learning_curve(result["ba_per_fold"], out_dir / f"{stem}_lc.{fmt}", fmt=fmt)

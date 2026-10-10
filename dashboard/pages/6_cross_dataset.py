@@ -7,6 +7,8 @@ Vincoli scientifici:
   - Scaler fit SOLO su train (ds005385), NO leakage
   - BA_sex=0.500 (chance) e MAE_age=22.25 interpretati come domain shift, non fallimento pipeline
   - ds004504 è dataset eterogeno (patologici vs sani)
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -32,18 +34,16 @@ from dashboard.components.data_loader import (  # noqa: E402
     run_cross_dataset_transfer,
 )
 
-st.set_page_config(
-    page_title="Cross-Dataset — Tesi 2.0", page_icon="🔀", layout="wide"
-)
+st.set_page_config(page_title="Cross-Dataset — Tesi 2.0", page_icon="", layout="wide")
 
-st.title("🔍 Cross-Cohort Generalization — Negative Finding")
+st.title(" Cross-Cohort Generalization — Negative Finding")
 st.caption(
     "Train: ds005385 N=100 (adulti sani) · Test: ds004504 N=49 (Alzheimer + controlli) · "
     "aparc × plv × θ"
 )
 
 st.error(
-    "**⚠ Domain shift catastrofico — risultato scientificamente legittimo, non bug pipeline.**  \n"
+    "**[WARNING] Domain shift catastrofico — risultato scientificamente legittimo, non bug pipeline.**  \n"
     "Le feature EEG-FC (PLV theta) generalizzano all'interno di una popolazione omogenea "
     "(sex BA=0.713 su sani ds005385) ma **non cross-cohort** quando il target dataset "
     "differisce per patologia, range età e laboratorio.  \n"
@@ -102,18 +102,24 @@ with col_a:
     df_005_valid = df_005[df_005["age"].notna()]
     c_a1, c_a2, c_a3 = st.columns(3)
     c_a1.metric("N soggetti", len(df_005))
-    c_a2.metric("Età media", f"{df_005_valid['age'].mean():.1f} anni" if len(df_005_valid) > 0 else "?")
+    c_a2.metric(
+        "Età media", f"{df_005_valid['age'].mean():.1f} anni" if len(df_005_valid) > 0 else "?"
+    )
     n_f5 = (df_005["sex"] == "F").sum()
     n_m5 = (df_005["sex"] == "M").sum()
     c_a3.metric("F / M", f"{n_f5} / {n_m5}")
 
     if len(df_005_valid) > 0:
         fig_age5 = px.histogram(
-            x=df_005_valid["age"], nbins=15,
+            x=df_005_valid["age"],
+            nbins=15,
             labels={"x": "Età (anni)", "y": "N"},
-            color_discrete_sequence=["steelblue"], title="ds005385 — distribuzione età",
+            color_discrete_sequence=["steelblue"],
+            title="ds005385 — distribuzione età",
         )
-        fig_age5.update_layout(height=250, margin={"l": 40, "r": 10, "t": 40, "b": 30}, showlegend=False)
+        fig_age5.update_layout(
+            height=250, margin={"l": 40, "r": 10, "t": 40, "b": 30}, showlegend=False
+        )
         st.plotly_chart(fig_age5, use_container_width=True)
 
 with col_b:
@@ -123,30 +129,40 @@ with col_b:
         df_lemon_valid = df_lemon[df_lemon["age"].notna()]
         c_b1, c_b2, c_b3 = st.columns(3)
         c_b1.metric("N soggetti", len(df_lemon))
-        c_b2.metric("Età media", f"{df_lemon_valid['age'].mean():.1f} anni" if len(df_lemon_valid) > 0 else "?")
+        c_b2.metric(
+            "Età media",
+            f"{df_lemon_valid['age'].mean():.1f} anni" if len(df_lemon_valid) > 0 else "?",
+        )
         n_fl = (df_lemon["sex"] == "F").sum()
         n_ml = (df_lemon["sex"] == "M").sum()
         c_b3.metric("F / M", f"{n_fl} / {n_ml}")
 
         if len(df_lemon_valid) > 0:
             fig_age_l = px.histogram(
-                x=df_lemon_valid["age"], nbins=12,
+                x=df_lemon_valid["age"],
+                nbins=12,
                 labels={"x": "Età (anni)", "y": "N"},
-                color_discrete_sequence=["tomato"], title="ds004504 — distribuzione età",
+                color_discrete_sequence=["tomato"],
+                title="ds004504 — distribuzione età",
             )
-            fig_age_l.update_layout(height=250, margin={"l": 40, "r": 10, "t": 40, "b": 30}, showlegend=False)
+            fig_age_l.update_layout(
+                height=250, margin={"l": 40, "r": 10, "t": 40, "b": 30}, showlegend=False
+            )
             st.plotly_chart(fig_age_l, use_container_width=True)
 
         # Gruppi ds004504
         st.markdown("**Distribuzione gruppi** (A=Alzheimer, C=Controllo, F=FTD)")
         groups_count = df_lemon["group"].value_counts()
         fig_grp = px.bar(
-            x=groups_count.index.tolist(), y=groups_count.values.tolist(),
+            x=groups_count.index.tolist(),
+            y=groups_count.values.tolist(),
             color=groups_count.index.tolist(),
             color_discrete_map={"A": "tomato", "C": "steelblue", "F": "orange"},
             labels={"x": "Gruppo", "y": "N soggetti"},
         )
-        fig_grp.update_layout(height=200, showlegend=False, margin={"l": 40, "r": 10, "t": 10, "b": 30})
+        fig_grp.update_layout(
+            height=200, showlegend=False, margin={"l": 40, "r": 10, "t": 10, "b": 30}
+        )
         st.plotly_chart(fig_grp, use_container_width=True)
     else:
         st.info("Dati cohort ds004504 non disponibili")
@@ -169,9 +185,18 @@ with st.sidebar:
     bands_s = sorted({c["band"] for c in combos_shared}) if combos_shared else ["theta"]
 
     atlas_t = st.selectbox("Atlante", atlases_s, index=0)
-    metric_t = st.selectbox("Metrica FC", metrics_s, index=metrics_s.index("plv") if "plv" in metrics_s else 0)
-    band_t = st.selectbox("Banda", bands_s, index=bands_s.index("theta") if "theta" in bands_s else 0)
-    target_t = st.selectbox("Target", ["sex", "age"], index=0, format_func=lambda x: "Sesso (BA)" if x == "sex" else "Età (MAE)")
+    metric_t = st.selectbox(
+        "Metrica FC", metrics_s, index=metrics_s.index("plv") if "plv" in metrics_s else 0
+    )
+    band_t = st.selectbox(
+        "Banda", bands_s, index=bands_s.index("theta") if "theta" in bands_s else 0
+    )
+    target_t = st.selectbox(
+        "Target",
+        ["sex", "age"],
+        index=0,
+        format_func=lambda x: "Sesso (BA)" if x == "sex" else "Età (MAE)",
+    )
     clf_t = st.selectbox("Algoritmo", ["logreg", "svm", "rf", "mlp"], index=0)
     run_transfer_btn = st.button("▶ Esegui Transfer", type="primary", use_container_width=True)
 
@@ -182,29 +207,36 @@ with col_run:
         with st.spinner("Transfer learning in corso..."):
             try:
                 result_t = run_cross_dataset_transfer(
-                    atlas=atlas_t, metric=metric_t, band=band_t,
-                    clf_name=clf_t, target=target_t,
+                    atlas=atlas_t,
+                    metric=metric_t,
+                    band=band_t,
+                    clf_name=clf_t,
+                    target=target_t,
                 )
-                st.success(f"✅ Done in {result_t['wall_clock_s']:.1f}s")
+                st.success(f"[OK] Done in {result_t['wall_clock_s']:.1f}s")
                 st.metric(
                     f"{result_t['metric_name']} (transfer)",
                     f"{result_t['score']:.3f}" + (" anni" if target_t == "age" else ""),
                 )
-                st.json({
-                    "feature": result_t["feature"],
-                    "train": f"{result_t['train_dataset']} N={result_t['train_n']}",
-                    "test": f"{result_t['test_dataset']} N={result_t['test_n']}",
-                    "clf": result_t["clf_name"],
-                    "target": result_t["target"],
-                })
+                st.json(
+                    {
+                        "feature": result_t["feature"],
+                        "train": f"{result_t['train_dataset']} N={result_t['train_n']}",
+                        "test": f"{result_t['test_dataset']} N={result_t['test_n']}",
+                        "clf": result_t["clf_name"],
+                        "target": result_t["target"],
+                    }
+                )
                 if target_t == "sex" and result_t["score"] < 0.55:
                     st.warning("BA≈0.5: chance level — domain shift confonde la generalizzazione")
                 elif target_t == "age" and result_t["score"] > 15:
-                    st.warning("MAE alto: il modello addestrato su sani non generalizza su pazienti")
+                    st.warning(
+                        "MAE alto: il modello addestrato su sani non generalizza su pazienti"
+                    )
             except Exception as exc:
                 st.error(f"Errore transfer: {exc}")
     else:
-        st.info("👈 Configura e premi **Esegui Transfer** per il run interattivo")
+        st.info(" Configura e premi **Esegui Transfer** per il run interattivo")
 
 with col_interp:
     st.markdown(
@@ -258,18 +290,27 @@ with st.expander("Distribuzione feature FC: ds005385 vs ds004504", expanded=Fals
             std_004 = float(np.std(X_004))
 
             col_stat1, col_stat2 = st.columns(2)
-            col_stat1.metric("FC media |ds005385|", f"{mean_005:.4f}", help="Mean |FC| su tutte le feature")
+            col_stat1.metric(
+                "FC media |ds005385|", f"{mean_005:.4f}", help="Mean |FC| su tutte le feature"
+            )
             col_stat2.metric("FC media |ds004504|", f"{mean_004:.4f}")
 
             # Distribuzione histogram overlay
             sample_005 = X_005[:, :100].flatten()
             sample_004 = X_004[:, :100].flatten()
-            df_fc = pd.DataFrame({
-                "FC": list(sample_005) + list(sample_004),
-                "Dataset": ["ds005385"] * len(sample_005) + ["ds004504"] * len(sample_004),
-            })
+            df_fc = pd.DataFrame(
+                {
+                    "FC": list(sample_005) + list(sample_004),
+                    "Dataset": ["ds005385"] * len(sample_005) + ["ds004504"] * len(sample_004),
+                }
+            )
             fig_fc = px.histogram(
-                df_fc, x="FC", color="Dataset", nbins=60, barmode="overlay", opacity=0.6,
+                df_fc,
+                x="FC",
+                color="Dataset",
+                nbins=60,
+                barmode="overlay",
+                opacity=0.6,
                 color_discrete_map={"ds005385": "steelblue", "ds004504": "tomato"},
                 title=f"Distribuzione FC ({c0['atlas']}×{c0['metric']}×{c0['band']}, prime 100 feature)",
             )

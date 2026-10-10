@@ -1,4 +1,7 @@
-"""Data loading utilities for the ML dashboard."""
+"""Data loading utilities for the ML dashboard.
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
+"""
 
 from __future__ import annotations
 
@@ -11,6 +14,9 @@ from typing import Any
 import numpy as np
 
 # Ensure project root on path
+
+# ===== Configurazione =====
+
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -28,6 +34,9 @@ RESULTS_DIR_TEMPLATE = _ROOT / "data" / "results"
 # I risultati finali del paper (EXPERIMENTS_N50.md) usano sempre n_boot=10000.
 N_BOOT_DEFAULT: int = 10000
 N_BOOT_DASHBOARD: int = 2000  # dashboard interattiva: ~5s latency target
+
+
+# ===== Dataset e feature =====
 
 
 def list_available_datasets() -> list[str]:
@@ -169,6 +178,9 @@ def load_existing_results() -> list[dict[str, Any]]:
         return []
     d = json.loads(path.read_text())
     return d.get("results", [])
+
+
+# ===== Esecuzione ML =====
 
 
 def run_combo(

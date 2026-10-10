@@ -5,6 +5,8 @@ Funzioni:
     cohen_d(a, b)                                 -> float
     statistical_power(effect_size, n, alpha)       -> float
     format_pvalue(p_value, n_perm)                -> str
+
+Posizione nella pipeline: post-STEP 6/7: analisi e confronto dei risultati (non e' uno step di elaborazione).
 """
 
 from __future__ import annotations
@@ -13,6 +15,8 @@ from collections.abc import Callable
 
 import numpy as np
 from statsmodels.stats.power import TTestIndPower
+
+# ===== Bootstrap CI =====
 
 
 def bootstrap_ci(
@@ -100,41 +104,67 @@ def bootstrap_ci_bca(
     n = len(arr)
     rng = np.random.default_rng(random_state)
 
-    # Bootstrap distribution
+    # Distribuzione bootstrap: ricampiono i dati con reinserimento n_boot volte
+    # e calcolo la statistica su ciascun campione — questa è la base sia del
+    # metodo percentile semplice, sia della correzione BCa che segue.
     boot_stats = np.array([statistic(rng.choice(arr, size=n, replace=True)) for _ in range(n_boot)])
-    theta_hat = statistic(arr)
+    theta_hat = statistic(arr)  # statistica osservata sui dati veri (non ricampionati)
 
-    # Bias correction z0
+    # Correzione di bias z0: se la distribuzione bootstrap è sbilanciata rispetto
+    # al valore osservato (es. il 70% dei campioni bootstrap è sotto theta_hat
+    # invece del 50% atteso), z0 misura quel bias in termini di deviazioni
+    # standard normali. z0=0 significa nessun bias.
     prop_less = np.mean(boot_stats < theta_hat)
-    prop_less = np.clip(prop_less, 1e-10, 1 - 1e-10)
+    prop_less = np.clip(prop_less, 1e-10, 1 - 1e-10)  # evita log(0)/inf ai bordi
     z0 = float(_norm.ppf(prop_less))
 
-    # Acceleration via jackknife
+    # Accelerazione a: quanto velocemente cambia la deviazione standard della
+    # statistica al variare del campione (asimmetria). Stimata col metodo
+    # jackknife: ricalcolo la statistica togliendo un'osservazione alla volta
+    # e guardo quanto "leva" ogni soggetto sul risultato finale.
     jack_stats = np.array([statistic(np.delete(arr, i)) for i in range(n)])
     jack_mean = np.mean(jack_stats)
     num = np.sum((jack_mean - jack_stats) ** 3)
     den = 6.0 * (np.sum((jack_mean - jack_stats) ** 2) ** 1.5)
     a = float(num / den) if abs(den) > 1e-15 else 0.0
 
-    # Adjusted percentiles
+    # Percentili corretti: invece di prendere direttamente il 2.5° e 97.5°
+    # percentile della distribuzione bootstrap (metodo percentile semplice),
+    # li sposto secondo bias (z0) e accelerazione (a) — questo è ciò che rende
+    # l'intervallo BCa più affidabile quando la distribuzione è asimmetrica.
     z_lo = _norm.ppf(alpha / 2)
     z_hi = _norm.ppf(1 - alpha / 2)
 
     def _adj_pct(z_alpha: float) -> float:
+        """Percentile corretto BCa per un dato quantile z della normale.
+
+        Usa i parametri di bias-correction `z0` e accelerazione `a` della closure.
+
+        Args:
+            z_alpha: Quantile normale standard (es. -1.96 / +1.96).
+
+        Returns:
+            Percentile aggiustato in [0, 1].
+        """
         num_inner = z0 + z_alpha
         denom_inner = 1.0 - a * (z0 + z_alpha)
         if abs(denom_inner) < 1e-15:
-            return z_alpha
+            return float(_norm.cdf(z_alpha))
         return float(_norm.cdf(z0 + num_inner / denom_inner))
 
     pct_lo = _adj_pct(z_lo) * 100
     pct_hi = _adj_pct(z_hi) * 100
-    pct_lo = np.clip(pct_lo, 0.01, 99.99)
+    pct_lo = np.clip(pct_lo, 0.01, 99.99)  # margine di sicurezza ai bordi 0/100
     pct_hi = np.clip(pct_hi, 0.01, 99.99)
 
+    # Estraggo dalla distribuzione bootstrap i valori ai percentili corretti:
+    # questo è l'intervallo di confidenza finale.
     lo = float(np.percentile(boot_stats, pct_lo))
     hi = float(np.percentile(boot_stats, pct_hi))
     return lo, hi
+
+
+# ===== Effect size =====
 
 
 def cohen_d(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
@@ -211,6 +241,9 @@ def hedges_g(a: np.ndarray | list[float], b: np.ndarray | list[float]) -> float:
     return d * correction
 
 
+# ===== Formattazione p-value =====
+
+
 def format_pvalue(p_value: float, n_perm: int) -> str:
     """Formatta un p-value empirico da permutation test in modo onesto.
 
@@ -249,6 +282,9 @@ def format_pvalue(p_value: float, n_perm: int) -> str:
         threshold = 1.0 / max(n_perm, 1)
         return f"p < {threshold:.3f}"
     return f"p = {p_value:.3f}"
+
+
+# ===== Analisi di potenza =====
 
 
 def statistical_power(

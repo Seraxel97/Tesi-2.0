@@ -106,8 +106,7 @@ def test_logger_thread_safe_100_emits(tmp_path: Path) -> None:
 
     events = logger.read_events()
     assert len(events) == n_threads, (
-        f"Attesi {n_threads} eventi, trovati {len(events)} "
-        f"— possibile corruzione JSONL"
+        f"Attesi {n_threads} eventi, trovati {len(events)} — possibile corruzione JSONL"
     )
 
     thread_ids = {e["thread_id"] for e in events}

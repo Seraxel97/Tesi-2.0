@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
+
+pytestmark = pytest.mark.needs_data
 
 
 def test_build_X_graphtheory_shape():
+    from pathlib import Path
+
     from ml_training.feature_comparison import build_X_graphtheory
 
     X_gt = build_X_graphtheory()
-    assert X_gt.ndim == 2
-    assert X_gt.shape[1] == 8
-    assert X_gt.shape[0] > 0
+    # 8 metriche graph-theory (invariante); righe == campioni della matrice FC sorgente
+    n_samples = np.load(
+        Path(__file__).parent.parent / "data" / "features" / "ds005385" / "X_aparc_plv_theta.npz"
+    )["X"].shape[0]
+    assert X_gt.shape == (n_samples, 8)
 
 
 def test_no_nan_in_X_gt():

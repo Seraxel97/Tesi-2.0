@@ -5,6 +5,8 @@ Classificatori: logreg-L2, RF, SVM con class_weight='balanced'.
 Metriche: balanced_accuracy, AUC-ROC.
 Permutation test (n_perm=200, shuffle y_sex).
 Output: reports/ml_sex_results.json
+
+Posizione nella pipeline: STEP 6 (classificazione/regressione ML), a valle di STEP 5.
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
+# ===== Configurazione =====
+
 FEAT_DIR = Path(__file__).parent.parent / "data" / "features" / "ds005385"
 REPORT_DIR = Path(__file__).parent.parent / "reports"
 
@@ -27,6 +31,9 @@ OUTER_K = 5
 INNER_K = 3
 N_PERM = 200
 FEAT_NAME = "X_aparc_plv_theta"
+
+
+# ===== Caricamento dati =====
 
 
 def load_data(feat_name: str = FEAT_NAME) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -47,6 +54,9 @@ def load_data(feat_name: str = FEAT_NAME) -> tuple[np.ndarray, np.ndarray, np.nd
     y_sex = y_sex_per_sub[groups]
 
     return X, y_sex, groups
+
+
+# ===== Cross-validation =====
 
 
 def run_cv(
@@ -82,9 +92,7 @@ def run_cv(
             )
             clf.fit(X_tr_s, y_tr, groups=g_tr)
         elif clf_name == "rf":
-            clf = RandomForestClassifier(
-                n_estimators=100, class_weight="balanced", random_state=42
-            )
+            clf = RandomForestClassifier(n_estimators=100, class_weight="balanced", random_state=42)
             clf.fit(X_tr_s, y_tr)
         elif clf_name == "svm":
             clf = GridSearchCV(
@@ -117,6 +125,9 @@ def run_cv(
         "ba_std": float(np.std(ba_folds)),
         "auc_mean": float(np.nanmean(auc_folds)),
     }
+
+
+# ===== Permutation test =====
 
 
 def _permute_subject_labels(y: np.ndarray, groups: np.ndarray, rng) -> np.ndarray:
@@ -154,6 +165,9 @@ def permutation_test(
     return null_bas, ba_real, p_value
 
 
+# ===== Esecuzione e salvataggio =====
+
+
 def run_ml_sex(
     feat_name: str = FEAT_NAME,
     clf_names: list[str] | None = None,
@@ -175,9 +189,7 @@ def run_ml_sex(
     }
     for clf_name in clf_names:
         cv_res = run_cv(X, y_sex, groups, clf_name)
-        null_bas, ba_real, p_value = permutation_test(
-            X, y_sex, groups, clf_name, n_perm
-        )
+        null_bas, ba_real, p_value = permutation_test(X, y_sex, groups, clf_name, n_perm)
         results["classifiers"][clf_name] = {
             **cv_res,
             "p_value": float(p_value),
@@ -195,6 +207,8 @@ def save_results(results: dict, path: Path | None = None) -> Path:
     path.write_text(json.dumps(results, indent=2))
     return path
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     res = run_ml_sex()

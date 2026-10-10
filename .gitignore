@@ -21,3 +21,9 @@ data/
 !data/features/ds005385/metadata.json
 !data/raw/ds004504/participants.tsv
 !data/raw/ds004504/dataset_description.json
+
+# Artefatti di coverage
+.coverage
+
+# Checkpoint locali di modelli
+model/

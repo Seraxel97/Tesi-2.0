@@ -1,4 +1,7 @@
-"""Genera report markdown da risultati benchmark."""
+"""Genera report markdown da risultati benchmark.
+
+Posizione nella pipeline: post STEP 7: reportistica sui risultati.
+"""
 
 import json
 from pathlib import Path
@@ -36,20 +39,22 @@ def generate_perf_report(bench_json: str | Path, output_md: str | Path) -> None:
         step_label = step.replace("_", " ").title()
         lines.append(f"| {step_label} | {elapsed:.3f} | {pct:.1f}% |")
 
-    lines.extend([
-        "",
-        f"| **Total** | **{total:.3f}** | **100%** |",
-        "",
-        "## Bottleneck Analysis",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"| **Total** | **{total:.3f}** | **100%** |",
+            "",
+            "## Bottleneck Analysis",
+            "",
+        ]
+    )
 
     # Identifica bottleneck
     bottleneck_step = max(timings, key=timings.get)
     bottleneck_time = timings[bottleneck_step]
     lines.append(
         f"**Bottleneck**: `{bottleneck_step}` ({bottleneck_time:.3f}s, "
-        f"{(bottleneck_time/total)*100:.1f}% di tempo totale)"
+        f"{(bottleneck_time / total) * 100:.1f}% di tempo totale)"
     )
 
     output_md.parent.mkdir(parents=True, exist_ok=True)

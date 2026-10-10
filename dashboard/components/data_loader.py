@@ -7,6 +7,8 @@ Carica dati da:
   - data/features/ds004504/            → matrici feature ds004504 (cross-dataset)
   - data/connectivity/ds005385/        → matrici FC per-soggetto per-condizione
   - reports/                           → risultati ML precomputed + CROSS_DATASET_TRANSFER.md
+
+Posizione nella pipeline: visualizzazione dei risultati degli STEP 1-7 (nessuna elaborazione di pipeline).
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+# ===== Configurazione =====
+
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -31,8 +35,16 @@ _REPORTS_DIR = _ROOT / "reports"
 _META_FILE = _FEAT_DIR / "metadata.json"
 
 
+# ===== Dataset ds005385 =====
+
+
 @lru_cache(maxsize=1)
 def load_metadata() -> dict[str, Any]:
+    """Carica i metadati del dataset dal file JSON.
+
+    Returns:
+        Dict dei metadati, oppure {} se il file non esiste.
+    """
     if not _META_FILE.exists():
         return {}
     return json.loads(_META_FILE.read_text())
@@ -86,13 +98,17 @@ def load_cohort_df(n_subjects: int | None = None) -> pd.DataFrame:
 
 
 def _safe_float(val: str) -> float:
+    """Converte in float; restituisce NaN se il valore non e' convertibile."""
     try:
         return float(val)
     except (ValueError, TypeError):
         return float("nan")
 
 
-def _has_conn(subject: str, cond: str, atlas: str = "aparc", metric: str = "plv", band: str = "theta") -> bool:
+def _has_conn(
+    subject: str, cond: str, atlas: str = "aparc", metric: str = "plv", band: str = "theta"
+) -> bool:
+    """True se esiste il file di connettivita' per-epoca per soggetto/condizione/atlante/metrica/banda."""
     fname = f"{subject}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-{band}_per-epoch.npz"
     return (_CONN_DIR / fname).exists()
 
@@ -305,6 +321,9 @@ def load_cross_dataset_transfer_report() -> dict[str, Any]:
     return result
 
 
+# ===== Transfer cross-dataset =====
+
+
 def run_cross_dataset_transfer(
     atlas: str = "aparc",
     metric: str = "plv",
@@ -363,12 +382,18 @@ def run_cross_dataset_transfer(
     X_test, y_test_sex, _, _ = load_feature_matrix_lemon(atlas, metric, band)
     if target == "age":
         if _PARTICIPANTS_TSV_LEMON.exists():
-            tsv_lemon = pd.read_csv(_PARTICIPANTS_TSV_LEMON, sep="\t", dtype=str).set_index("participant_id")
-            meta_lemon = json.loads(_META_FILE_LEMON.read_text()) if _META_FILE_LEMON.exists() else {}
+            tsv_lemon = pd.read_csv(_PARTICIPANTS_TSV_LEMON, sep="\t", dtype=str).set_index(
+                "participant_id"
+            )
+            meta_lemon = (
+                json.loads(_META_FILE_LEMON.read_text()) if _META_FILE_LEMON.exists() else {}
+            )
             subs_lemon = meta_lemon.get("subjects", [])
             y_test = np.array(
-                [float(tsv_lemon.loc[s, "Age"]) if s in tsv_lemon.index else float("nan")
-                 for s in subs_lemon[: X_test.shape[0]]]
+                [
+                    float(tsv_lemon.loc[s, "Age"]) if s in tsv_lemon.index else float("nan")
+                    for s in subs_lemon[: X_test.shape[0]]
+                ]
             )
         else:
             y_test = np.full(X_test.shape[0], 65.0)

@@ -2,6 +2,8 @@
 # Coverage report completo per Tesi_2.0.
 # Richiede pytest-cov: pip install pytest-cov
 set -e
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/.." && pwd))"
+cd "$ROOT"
 
 REPORT_DIR="reports"
 mkdir -p "$REPORT_DIR"

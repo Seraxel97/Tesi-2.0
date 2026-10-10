@@ -7,6 +7,8 @@ import pytest
 
 from ml_training.ml_age import load_data, run_cv
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture(scope="module")
 def data():
@@ -15,6 +17,8 @@ def data():
 
 def test_data_shape(data):
     X, y_age, groups = data
+    # invariante: 2 condizioni (EO/EC) per soggetto — robusto al variare di N
+    assert X.shape[0] == len(y_age) == len(groups) == 2 * len(np.unique(groups))
     assert X.shape[0] == len(y_age) == len(groups) == 358  # 179 soggetti × 2 condizioni (N=179)
 
 

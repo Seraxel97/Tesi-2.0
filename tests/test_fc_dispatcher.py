@@ -43,7 +43,7 @@ def test_compute_fc_symmetric(metric: str) -> None:
     fc = _run(metric)
     for band, mat in fc.items():
         assert np.allclose(mat, mat.T, atol=1e-10), (
-            f"{metric}/{band}: matrice non simmetrica, max_err={np.max(np.abs(mat-mat.T)):.2e}"
+            f"{metric}/{band}: matrice non simmetrica, max_err={np.max(np.abs(mat - mat.T)):.2e}"
         )
 
 

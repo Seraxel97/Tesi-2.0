@@ -104,7 +104,12 @@
 | 30 | aparc×plv×theta×logreg | 0.893 | [0.84, 0.94] | Scale-up |
 | 50 | aparc×plv×theta×logreg | 0.920 | [0.87, 0.97] | **Winner finale** |
 
-Trend monotono BA: 0.867 → 0.893 → 0.920. Generalizzazione confermata.
+Trend monotono BA: 0.867 → 0.893 → 0.920 al crescere del campione.
+
+> ⚠️ **Nota di rigore (F1):** N=15 ⊂ N=30 ⊂ N=50 sono **subset annidati dello stesso dataset**
+> (ds005385). Il trend mostra **stabilità su campione crescente entro-dataset**, NON
+> "generalizzazione": la generalizzazione vera richiede un dataset **indipendente** (es. LEMON,
+> attualmente non disponibile). Da non presentare come evidenza cross-dataset.
 
 ---
 

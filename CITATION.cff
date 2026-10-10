@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "Se usi questo software, citalo come indicato."
+title: "Tesi_2.0 — EEG source-space FC pipeline"
+type: software
+authors:
+  - family-names: Losio
+    given-names: Samuele
+license: MIT
+repository-code: ""

@@ -1,255 +1,173 @@
-# Tesi_2.0 — EEG Source-Space FC Pipeline
+# Tesi_2.0 — Pipeline EEG source-space: connettività funzionale e ML
 
-![tests](https://img.shields.io/badge/tests-273%20passed-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-56%25-yellow)
-![lint](https://img.shields.io/badge/lint-ruff-blue)
-![docs](https://img.shields.io/badge/docs-pdoc-blue)
-![python](https://img.shields.io/badge/python-3.13-blue)
-![mne](https://img.shields.io/badge/mne-1.11.0-green)
-![license](https://img.shields.io/badge/license-MIT-lightgrey)
+Estensione modulare di `mne-bids-pipeline` che, a partire da registrazioni EEG in formato
+BIDS, ricostruisce l'attività alla sorgente, la parcellizza con atlanti standard, calcola
+la connettività funzionale (FC) e addestra classificatori con validazione per-soggetto e
+permutation test. Progetto di tesi magistrale.
 
-Estensione modulare di `mne-bids-pipeline` con parcellazione atlastica, connettivita funzionale
-e classificazione ML. Progetto di tesi magistrale.
+**Per il relatore**: [docs/GUIDA_PROFESSORE.md](docs/GUIDA_PROFESSORE.md) (avvio in 1 minuto) e
+[reports/RISULTATI_E_LIMITI.md](reports/RISULTATI_E_LIMITI.md)
+(risultati e limiti, cosa regge e cosa no).
 
-Stato corrente: vedi [PROGRESS.md](PROGRESS.md).
+## Indice
+
+1. [Pipeline](#1-pipeline)
+2. [Installazione](#2-installazione)
+3. [Uso rapido](#3-uso-rapido)
+4. [Struttura del repository](#4-struttura-del-repository)
+5. [Dataset](#5-dataset)
+6. [Test e qualità del codice](#6-test-e-qualità-del-codice)
+7. [Dashboard interattiva](#7-dashboard-interattiva)
+8. [Documentazione e riferimenti](#8-documentazione-e-riferimenti)
 
 ---
 
-## Overview
-
-Pipeline in 7 step sequenziali che parte da dati EEG BIDS e produce classificatori ML
-con valutazione LOSO (Leave-One-Subject-Out) e permutation testing:
+## 1. Pipeline
 
 ```
-STEP 1  → preprocessing (mne-bids-pipeline)
-STEP 2  → source reconstruction (dSPM, fsaverage)
-STEP 3  → parcellazione (aparc / destrieux / schaefer100 / schaefer200)
-STEP 4  → connettivita spettrale (wpli, plv, coh, imcoh, ciplv, pli, wpli2_debiased)
-STEP 5  → feature extraction (mne-features + FC flatten)
-STEP 6  → ML classification (LogReg / SVM / MLP / RF / GB, GroupKFold)
-STEP 7  → verifica E2E + risultati finali
+STEP 1  preprocessing            (mne-bids-pipeline)            -> *_clean_epo.fif
+STEP 2  ricostruzione sorgente   (dSPM, fsaverage)              -> *-inv.fif, *.stc
+STEP 3  parcellazione            (aparc / destrieux / schaefer) -> serie temporali per ROI
+STEP 4  connettività spettrale   (wPLI, PLV, coh, imCoh, ...)   -> matrici FC per banda
+STEP 5  estrazione feature       (mne-features + FC + grafo)    -> matrice X
+STEP 6  classificazione ML       (5 algoritmi, GroupKFold)      -> metriche + CI
+STEP 7  verifica end-to-end      (dataset demo)                 -> report
 ```
 
-Diagramma dettagliato: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
-Diagramma SVG: [docs/figures/architecture.svg](docs/figures/architecture.svg).
+Diagramma dettagliato con input/output di ogni step: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
 
----
+## 2. Installazione
 
-## Current dataset
-
-**Dataset scientifico**: ds005385 (Dortmund Vital Study), 200 soggetti totali, task=RestingState, conditions=EO/EC.
-
-| Parametro | Valore |
-|-----------|--------|
-| Dataset | ds005385 (Dortmund Vital Study) |
-| Soggetti totali | 200 |
-| Subset attivo | N=15 (vincolo operatore hard), random seed=42 |
-| PILOT | 5 sub: sub-007, sub-010, sub-011, sub-026, sub-031 |
-| Task | RestingState |
-| Condizioni | EO (Eyes Open), EC (Eyes Closed) |
-| Path symlink | `data/raw/ds005385` → `~/Scrivania/Tesi/data/ds005385/` |
-| Dimensione | 21 GB |
-
-Cross-reference:
-- Whitelist soggetti: `config/subjects_whitelist.py`
-- Label mapping EO/EC: `config/labels_ds005385.py`
-- Struttura BIDS analizzata: `reports/DS005385_STRUCTURE.md`
-
-Dataset smoke tecnico: `data/eeg_matchingpennies/` (7 soggetti, 61 canali) — usato per test pipeline.
-
----
-
-## Stato
-
-| Step | Titolo | Stato | Output principale | Sprint |
-|------|--------|-------|-------------------|--------|
-| 1 | Preprocessing | DONE 2026-04-28 | `data/derivatives/.../sub-05/eeg/*_clean_epo.fif` | baseline |
-| 2 | Source reconstruction | DONE 2026-05-01 | `*-inv.fif`, `*-stc-*-dSPM-{lh,rh}.stc` | baseline |
-| 3 | Parcellazione | DONE 2026-05-01 | `parcellation/extract_label_tc.py` (4 atlanti) | S-01 |
-| 4 | FC dispatcher | DONE 2026-05-01 | `connectivity/fc_dispatcher.py` (7 metriche) | S-02 |
-| 5 | Feature extraction | DONE 2026-05-01 | `features/dispatcher.py` | S-03 |
-| 6 | ML classification | DONE 2026-05-01 | `ml_training/ml_dispatcher.py` (5 algo, LOSO) | S-04 |
-| 7 | E2E smoke | DONE 2026-05-01 | `pipeline_mne_bids/run_e2e_matchingpennies.py` | S-05 |
-| 8 | Benchmark matrix | PENDING | `reports/BENCH_MATRIX_RESULTS.json` (700 run) | S-08 |
-| — | Vault integration | DONE 2026-05-01 | `070_THESIS/RESULTS_BASELINE.md` (Obsidian) | S-12 |
-| — | CI workflows | DONE 2026-05-01 | `.github/workflows/{lint,test,eeg-smoke}.yml` | DR-VAULT |
-
-Log dettagliato: [PROGRESS.md](PROGRESS.md).
-
----
-
-## Developer setup
-
-### Pre-commit hooks
-
-Il repository usa [pre-commit](https://pre-commit.com/) per garantire qualità del codice ad ogni commit:
+Richiede Python 3.13.
 
 ```bash
-pip install pre-commit
-pre-commit install          # installa hook pre-commit (ruff check + format)
-pre-commit install --hook-type pre-push   # installa hook pre-push (pytest smoke)
-```
-
-I hook configurati in `.pre-commit-config.yaml`:
-
-| Hook | Trigger | Azione |
-|------|---------|--------|
-| `ruff` | pre-commit | Linting + autofix (`--fix`) |
-| `ruff-format` | pre-commit | Formattazione stile |
-| `pytest-fast` | pre-push | Smoke test `tests/test_smoke.py` |
-
-Esecuzione manuale su tutti i file:
-
-```bash
-pre-commit run --all-files
-```
-
-### Installazione
-
-#### Prerequisiti
-
-- conda env `base`, Python 3.13.12
-- Nessun pacchetto aggiuntivo da installare: tutto e' gia' presente nell'env.
-
-Verifica:
-
-```bash
+conda env create -f environment.yml   # crea l'ambiente `tesi_baseline`
+conda activate tesi_baseline
+make install                          # dipendenze + strumenti di sviluppo
+make data-demo                        # scarica dataset demo e fsaverage (necessari a demo e a parte dei test)
 python -c "import mne, mne_bids, mne_connectivity, mne_features, sklearn; print('ok')"
 ```
 
-Versioni attese:
+Le versioni delle librerie sono fissate in `requirements.txt` (mne 1.11.0,
+mne-bids-pipeline 1.10.1, scikit-learn 1.8.0, ...). Per la dashboard servono anche i
+pacchetti in `dashboard/requirements.txt`.
 
-| Pacchetto | Versione |
-|-----------|----------|
-| mne | 1.11.0 |
-| mne-bids | 0.18.0 |
-| mne-bids-pipeline | 1.10.1 |
-| mne-connectivity | 0.8 |
-| mne-features | 0.3.2 |
-| scikit-learn | 1.8.0 |
-| neuromaps | 0.0.5 |
+## 3. Uso rapido
 
----
-
-## Quick start
-
-I comandi piu' comuni sono disponibili tramite `make`. Eseguire `make help` per la lista completa.
+I comandi comuni sono raccolti nel `Makefile` (`make help` per l'elenco):
 
 ```bash
-make test        # pytest tests/ -v  (273 test)
-make lint        # ruff check + format --check
-make format      # ruff autofix + format
-make run-step1   # preprocessing matchingpennies sub-05
-make run-step2   # source reconstruction + finalize inverse
-make bench       # benchmark matrix 700 run (stima ~2-3h con ottimizzazioni)
-make clean       # rimuove _cache, __pycache__, .pytest_cache, .ruff_cache
+make run-step1    # STEP 1 sul dataset demo (sub-05)
+make run-step2    # STEP 2: sorgente + inverso
+python -m pipeline_mne_bids.run_e2e_matchingpennies   # STEP 3-6 in sequenza sul demo
+make test         # suite di test (i test che richiedono data/ vengono saltati se mancano)
+make lint         # ruff check + format --check
 ```
 
-### STEP 1 — Preprocessing
+Note importanti:
+
+- Gli script che importano pacchetti del repository vanno lanciati come modulo
+  (`python -m ...`) dalla radice, altrimenti si ottiene `ModuleNotFoundError`.
+- Con `noise_cov="ad-hoc"`, `mne-bids-pipeline==1.10.1` non scrive il file
+  `<sub>_proc-adhoc_rank.json` richiesto dallo step `source` (bug upstream). Il comando
+  `python -m cli.main step2` applica il workaround in automatico
+  (`source_reconstruction/adhoc_rank.py`).
+- Su server o sessioni senza display (o se `make run-step2` si interrompe con `X Error ... BadWindow`) eseguire con `DISPLAY= PYVISTA_OFF_SCREEN=true make run-step2`: il rendering 3D dei report va fatto offscreen.
+- Il CLI unificato espone gli stessi step: `python -m cli.main --help`.
+
+Esecuzione dei singoli step sul dataset demo:
 
 ```bash
-make run-step1
-# oppure direttamente:
 mne_bids_pipeline --config config/config_step1_matchingpennies.py --steps preprocessing
+python -m cli.main step2
+python -m cli.main bench --output reports/BENCH_MATRIX_RESULTS.json   # matrice di benchmark
 ```
 
-Output: `data/derivatives/mne-bids-pipeline/sub-05/eeg/*_clean_epo.fif`
+**Attenzione**: molti script sovrascrivono i risultati in `data/features/` e `reports/`; fare una copia prima di rieseguirli (vedi CONTRIBUTING.md).
 
-### STEP 2 — Source reconstruction
+Gli esperimenti sul dataset scientifico si lanciano con gli script in `scripts/`
+(es. `scripts/run_pipeline_ds004504.py`, `scripts/run_ml_age_sex_n179.py`); ogni script
+riporta nel docstring iniziale scopo, input, output ed esempio di uso.
 
-```bash
-make run-step2
-# oppure direttamente:
-mne_bids_pipeline --config config/config_step2_source_matchingpennies.py \
-    --steps preprocessing,sensor,source
-python source_reconstruction/finalize_inverse.py \
-    --subject 05 --task matchingpennies \
-    --method dSPM --loose 0.2 --depth 0.8 --lambda2 0.111
-```
-
-Output: `data/derivatives/.../sub-05/eeg/*-stc-*-dSPM-{lh,rh}.stc`
-
-### Benchmark matrix (STEP 8)
-
-```bash
-python pipeline_mne_bids/run_bench_matrix.py \
-    --subject sub-05 \
-    --deriv data/derivatives/mne-bids-pipeline \
-    --sfreq-target 500 \
-    --n-epochs-max 0
-```
-
-Output: `reports/BENCH_MATRIX_RESULTS.json` + `reports/BENCH_MATRIX_SUMMARY.md`
-
-### E2E smoke completo
-
-```bash
-python pipeline_mne_bids/run_e2e_matchingpennies.py
-```
-
-### Test suite
-
-```bash
-pytest tests/ -v                          # suite completa
-pytest tests/test_e2e_smoke_minimal.py    # smoke sintetico CI-safe (no dataset)
-```
-
-Diagramma completo con input/output per step: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md).
-
----
-
-## Struttura cartelle
+## 4. Struttura del repository
 
 ```
 Tesi_2.0/
-|-- config/                 configurazioni per ogni step (override mne-bids-pipeline)
-|-- connectivity/           fc_dispatcher.py: 7 metriche spettrali via mne-connectivity
-|-- dashboard/              plot_top_features.py: visualizzazioni figure paper (PNG headless)
-|-- data/                   dataset BIDS + derivatives (NON versionato, .gitignore)
-|   |-- eeg_matchingpennies/  dataset test tecnico (716 MB)
-|   `-- derivatives/          output pipeline (epochs, STC, report HTML)
-|-- docs/                   documentazione developer-facing
-|-- features/               dispatcher.py: mne-features + FC flatten -> vettore X
-|-- ml_training/            ml_dispatcher.py: 5 algoritmi + GroupKFold + permutation
-|-- parcellation/           extract_label_tc.py: 4 atlasi + neuromaps_helper.py
-|-- pipeline_mne_bids/      run_e2e_matchingpennies.py: orchestratore step 1-6
-|-- reports/                log esecuzione, risultati benchmark, figure
-|-- source_reconstruction/  finalize_inverse.py: forward + inverse + STC
-`-- tests/                  pytest suite (test unitari + smoke)
+|-- pipeline_mne_bids/       STEP 1 e orchestratore E2E (run_e2e_matchingpennies.py)
+|-- source_reconstruction/   STEP 2: forward, inverso, STC, workaround rank ad-hoc
+|-- parcellation/            STEP 3: serie temporali per ROI (4 atlanti), neuromaps
+|-- connectivity/            STEP 4: dispatcher delle metriche FC (mne-connectivity)
+|-- features/                STEP 5: feature (mne-features, FC, teoria dei grafi, FOOOF)
+|-- ml_training/             STEP 6: classificatori, GroupKFold, permutation test, età/sesso
+|-- analysis/                statistica di supporto (CI, effect size, valutazione cross-dataset)
+|-- common/                  utilità condivise (logger, run id, stato, helper)
+|-- config/                  configurazioni per step, dataset, whitelist soggetti, etichette
+|-- cli/                     CLI unificato (`python -m cli.main`)
+|-- scripts/                 pipeline sui dataset scientifici, validazioni, figure
+|-- dashboard/               dashboard Streamlit (app.py, pages/, components/, utils/)
+|-- tests/                   suite pytest (unitari, integrazione, smoke)
+|-- reports/                 risultati e log (indice in reports/INDICE.md)
+|-- docs/                    documentazione (guida relatore, overview, API HTML)
+|-- data/                    dataset e derivati (non versionati, vedi §5)
+`-- .github/workflows/       CI: lint, test, smoke EEG
 ```
 
----
+## 5. Dataset
 
-## Riferimenti
+| Dataset | Ruolo | Note |
+|---|---|---|
+| `ds005385` (Dortmund Vital Study) | **scientifico principale**, N=179 | task RestingState, EO/EC; risultati sesso/età |
+| LEMON | validazione esterna su coorte sana | il segnale del sesso non generalizza |
+| `ds004504` | fenotipo clinico (config etichette) | vedi `config/labels_phenotype_ds004504.py` |
+| `eeg_matchingpennies` | **demo tecnica** (7 soggetti, 61 canali) | usata da test e smoke E2E |
 
-### Documentazione progetto
+I dati (circa 50 GB tra raw e derivati) **non sono nel repository** (`.gitignore`): il dataset demo si scarica con `make data-demo`; i dataset scientifici vanno scaricati da OpenNeuro (vedi `scripts/setup_scientific_dataset.py`). Le
+whitelist dei soggetti usati sono in `config/subjects_whitelist_*.py`. La struttura del
+dataset principale è descritta in `reports/DS005385_STRUCTURE.md`.
 
-- Pipeline overview: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md)
-- Metodi step-by-step: [reports/STEP2_PROPOSAL.md](reports/STEP2_PROPOSAL.md), [reports/STEP3_PROPOSAL.md](reports/STEP3_PROPOSAL.md)
-- Benchmark design: [.planning/BENCH_DESIGN.md](.planning/BENCH_DESIGN.md)
-- Risultati baseline: `Obsidian: [[070_THESIS/RESULTS_BASELINE]]`
+## 6. Test e qualità del codice
 
-### Vault Obsidian (link professorali)
+```bash
+make test                                 # suite completa
+pytest tests/test_e2e_smoke_minimal.py    # smoke sintetico, senza dataset
+make lint                                 # ruff (regole E, F, W, I, UP; riga max 100)
+pre-commit install                        # hook ruff a ogni commit
+```
 
-`[[070_THESIS/MNE_PROFESSOR_LINKS]]` — 5 link canonici del professore su MNE,
-source reconstruction e connettivita funzionale.
+I test che richiedono `data/` vengono saltati se mancano; per eseguirli tutti serve `make data-demo`.
+La CI (`.github/workflows/`) esegue lint, test e uno smoke EEG.
 
-### Librerie
+## 7. Dashboard interattiva
 
-| Libreria | Docs |
-|----------|------|
-| MNE-Python 1.11.0 | https://mne.tools/stable/ |
-| mne-bids-pipeline 1.10.1 | https://mne-bids-pipeline.readthedocs.io/ |
-| mne-connectivity 0.8 | https://mne.tools/mne-connectivity/ |
-| mne-features 0.3.2 | https://mne.tools/mne-features/ |
-| neuromaps 0.0.5 | https://netneurolab.github.io/neuromaps/ |
-| scikit-learn 1.8.0 | https://scikit-learn.org/stable/ |
+La dashboard **legge risultati già calcolati** (non esegue gli step 1-4): servono le feature in
+`data/features/` e i risultati in `data/results/`, che non sono nel repository. Vengono
+consegnate a parte in `Tesi_2.0_dati_dashboard.zip` (174 MB): decomprimerlo nella radice del
+progetto (`unzip Tesi_2.0_dati_dashboard.zip`).
 
-Progetto sviluppato come **estensione modulare** di mne-bids-pipeline, non come pipeline standalone.
-Ogni step usa esclusivamente le librerie del vincolo 2 (PROGRESS.md §Vincoli OBBLIGATORI).
+```bash
+pip install -r dashboard/requirements.txt
+streamlit run dashboard/app.py --server.port 8501
+```
 
----
+Sei pagine (coorte, preprocessing, sorgente/parcellazione, grafo di connettività,
+predizioni ML, cross-dataset). Dettagli in [dashboard/README.md](dashboard/README.md).
 
-## Keywords
+## 8. Documentazione e riferimenti
 
-eeg, source-reconstruction, functional-connectivity, machine-learning, mne-python, mne-bids-pipeline, classification, eyes-closed, eyes-open, wpli, plv, coherence, group-kfold, permutation-testing, neuromaps, schaefer-atlas, freesurfer, dspm, parcellation
+- Guida per il relatore: [docs/GUIDA_PROFESSORE.md](docs/GUIDA_PROFESSORE.md)
+- Panoramica pipeline: [docs/PIPELINE_OVERVIEW.md](docs/PIPELINE_OVERVIEW.md)
+- Indice dei report: [reports/INDICE.md](reports/INDICE.md)
+- Contribuire: [CONTRIBUTING.md](CONTRIBUTING.md)
+- API (HTML generato con pdoc): `docs/api/index.html`
+
+| Libreria | Documentazione |
+|---|---|
+| MNE-Python | https://mne.tools/stable/ |
+| mne-bids-pipeline | https://mne-bids-pipeline.readthedocs.io/ |
+| mne-connectivity | https://mne.tools/mne-connectivity/ |
+| mne-features | https://mne.tools/mne-features/ |
+| neuromaps | https://netneurolab.github.io/neuromaps/ |
+| scikit-learn | https://scikit-learn.org/stable/ |
+
+**Parole chiave**: eeg, source-reconstruction, functional-connectivity, machine-learning,
+mne-python, mne-bids-pipeline, wpli, plv, group-kfold, permutation-testing, schaefer-atlas, dspm.

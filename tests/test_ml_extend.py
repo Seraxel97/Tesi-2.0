@@ -20,7 +20,7 @@ from ml_training.aggregate_n15 import (
 )
 
 _N_SUB = _N_SUBJECTS_FULL  # 15
-_N_SAMP = _N_SUB * 2       # 30
+_N_SAMP = _N_SUB * 2  # 30
 _N_FEAT = 60
 
 
@@ -43,6 +43,7 @@ def _make_features(tmp_path, *, band: str = "alpha", separable: bool = False):
 # ---------------------------------------------------------------------------
 # Smoke — 6 classifiers
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.slow
 def test_six_classifiers_smoke(tmp_path):
@@ -93,6 +94,7 @@ def test_six_classifiers_all_pass(tmp_path):
 # Multi-band support
 # ---------------------------------------------------------------------------
 
+
 def test_multi_band_support(tmp_path):
     """bands=['alpha','beta'] → 2× results compared to single band."""
     _make_features(tmp_path, band="alpha")
@@ -100,8 +102,10 @@ def test_multi_band_support(tmp_path):
     out = tmp_path / "results"
 
     r_alpha = aggregate_classify_n15(
-        features_dir=tmp_path, out_dir=out,
-        atlases=["aparc"], metrics=["coh"],
+        features_dir=tmp_path,
+        out_dir=out,
+        atlases=["aparc"],
+        metrics=["coh"],
         band="alpha",
         classifiers=["logreg"],
         n_permutations=10,
@@ -109,8 +113,10 @@ def test_multi_band_support(tmp_path):
     n_single = len(r_alpha["results"])
 
     r_both = aggregate_classify_n15(
-        features_dir=tmp_path, out_dir=out,
-        atlases=["aparc"], metrics=["coh"],
+        features_dir=tmp_path,
+        out_dir=out,
+        atlases=["aparc"],
+        metrics=["coh"],
         bands=["alpha", "beta"],
         classifiers=["logreg"],
         n_permutations=10,
@@ -119,7 +125,7 @@ def test_multi_band_support(tmp_path):
     n_multi = len(r_both["results"])
 
     assert n_multi == 2 * n_single, (
-        f"multi-band devrebbe produrre {2*n_single} risultati, trovati {n_multi}"
+        f"multi-band devrebbe produrre {2 * n_single} risultati, trovati {n_multi}"
     )
     bands_in_results = {r["band"] for r in r_both["results"]}
     assert bands_in_results == {"alpha", "beta"}
@@ -129,6 +135,7 @@ def test_multi_band_support(tmp_path):
 # No-regression: original 3 classifiers unchanged at seed=42
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.slow
 def test_no_regression_original_3(tmp_path):
     """logreg/svm_rbf/lda: ba_mean matches between 3-clf and 6-clf runs (same seed)."""
@@ -137,16 +144,22 @@ def test_no_regression_original_3(tmp_path):
     out6 = tmp_path / "out6"
 
     r3 = aggregate_classify_n15(
-        features_dir=tmp_path, out_dir=out3,
-        atlases=["aparc"], metrics=["coh"],
+        features_dir=tmp_path,
+        out_dir=out3,
+        atlases=["aparc"],
+        metrics=["coh"],
         classifiers=["logreg", "svm_rbf", "lda"],
-        n_permutations=20, random_state=42,
+        n_permutations=20,
+        random_state=42,
     )
     r6 = aggregate_classify_n15(
-        features_dir=tmp_path, out_dir=out6,
-        atlases=["aparc"], metrics=["coh"],
+        features_dir=tmp_path,
+        out_dir=out6,
+        atlases=["aparc"],
+        metrics=["coh"],
         classifiers=["logreg", "svm_rbf", "lda", "rf", "mlp", "gb"],
-        n_permutations=20, random_state=42,
+        n_permutations=20,
+        random_state=42,
     )
 
     ba3 = {r["classifier"]: r["ba_mean"] for r in r3["results"]}
@@ -162,19 +175,23 @@ def test_no_regression_original_3(tmp_path):
 # _build_pipeline — rf, mlp, gb
 # ---------------------------------------------------------------------------
 
+
 def test_build_pipeline_rf():
     from sklearn.ensemble import RandomForestClassifier
+
     pipe = _build_pipeline("rf")
     assert any(isinstance(s, RandomForestClassifier) for _, s in pipe.steps)
 
 
 def test_build_pipeline_mlp():
     from sklearn.neural_network import MLPClassifier
+
     pipe = _build_pipeline("mlp")
     assert any(isinstance(s, MLPClassifier) for _, s in pipe.steps)
 
 
 def test_build_pipeline_gb():
     from sklearn.ensemble import GradientBoostingClassifier
+
     pipe = _build_pipeline("gb")
     assert any(isinstance(s, GradientBoostingClassifier) for _, s in pipe.steps)

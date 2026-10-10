@@ -6,6 +6,8 @@ Uso:
     python -m cli.main step2
     python -m cli.main bench --output reports/BENCH_MATRIX_RESULTS.json
     python -m cli.main e2e --subject sub-05 --atlas aparc --metric wpli
+
+Posizione nella pipeline: entry point unico che orchestra gli STEP 1-7.
 """
 
 from __future__ import annotations
@@ -21,6 +23,9 @@ app = typer.Typer(
     help="Pipeline EEG source-level FC — Tesi_2.0",
     add_completion=False,
 )
+
+
+# ===== Comandi =====
 
 
 @app.command()
@@ -63,22 +68,44 @@ def step2(
     typer.echo(f"[STEP 2] source recon — config: {config}, subject: {subject}")
 
     r1 = subprocess.run(
-        ["mne_bids_pipeline", "--config", config, "--steps", "preprocessing,sensor,source"],
+        ["mne_bids_pipeline", "--config", config, "--steps", "preprocessing,sensor"],
         check=False,
     )
     if r1.returncode != 0:
         typer.echo(f"[STEP 2a] FAIL (exit code {r1.returncode})", err=True)
         raise typer.Exit(r1.returncode)
 
+    # Workaround bug upstream mne-bids-pipeline==1.10.1: con noise_cov="ad-hoc"
+    # sensor/_06_make_cov non scrive mai il rank.json richiesto da
+    # source/_05_make_inverse. Vedi source_reconstruction/adhoc_rank.py.
+    from source_reconstruction.adhoc_rank import ensure_adhoc_rank_json
+
+    ensure_adhoc_rank_json(config, subject, task)
+
+    r1b = subprocess.run(
+        ["mne_bids_pipeline", "--config", config, "--steps", "source"],
+        check=False,
+    )
+    if r1b.returncode != 0:
+        typer.echo(f"[STEP 2a] FAIL (exit code {r1b.returncode})", err=True)
+        raise typer.Exit(r1b.returncode)
+
     r2 = subprocess.run(
         [
-            sys.executable, "source_reconstruction/finalize_inverse.py",
-            "--subject", subject,
-            "--task", task,
-            "--method", method,
-            "--loose", str(loose),
-            "--depth", str(depth),
-            "--lambda2", str(lambda2),
+            sys.executable,
+            "source_reconstruction/finalize_inverse.py",
+            "--subject",
+            subject,
+            "--task",
+            task,
+            "--method",
+            method,
+            "--loose",
+            str(loose),
+            "--depth",
+            str(depth),
+            "--lambda2",
+            str(lambda2),
         ],
         check=False,
     )
@@ -113,12 +140,19 @@ def bench(
 
     result = subprocess.run(
         [
-            sys.executable, "-m", "pipeline_mne_bids.run_bench_matrix",
-            "--subject", subject,
-            "--deriv", deriv,
-            "--sfreq-target", str(sfreq_target),
-            "--n-epochs-max", str(n_epochs_max),
-            "--out-json", output,
+            sys.executable,
+            "-m",
+            "pipeline_mne_bids.run_bench_matrix",
+            "--subject",
+            subject,
+            "--deriv",
+            deriv,
+            "--sfreq-target",
+            str(sfreq_target),
+            "--n-epochs-max",
+            str(n_epochs_max),
+            "--out-json",
+            output,
         ],
         check=False,
     )
@@ -151,13 +185,21 @@ def e2e(
 
     result = subprocess.run(
         [
-            sys.executable, "-m", "pipeline_mne_bids.run_e2e_matchingpennies",
-            "--subject", subject,
-            "--deriv", deriv,
-            "--atlas", atlas,
-            "--metric", metric,
-            "--n-epochs-max", str(n_epochs_max),
-            "--out", output,
+            sys.executable,
+            "-m",
+            "pipeline_mne_bids.run_e2e_matchingpennies",
+            "--subject",
+            subject,
+            "--deriv",
+            deriv,
+            "--atlas",
+            atlas,
+            "--metric",
+            metric,
+            "--n-epochs-max",
+            str(n_epochs_max),
+            "--out",
+            output,
         ],
         check=False,
     )
@@ -166,6 +208,8 @@ def e2e(
         raise typer.Exit(result.returncode)
     typer.echo(f"[E2E] DONE → {output}")
 
+
+# ===== Entry point =====
 
 if __name__ == "__main__":
     app()

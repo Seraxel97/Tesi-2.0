@@ -17,6 +17,8 @@ import pytest
 
 FEAT_DIR = Path(__file__).parent.parent / "data" / "features" / "ds005385"
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture
 def meta() -> dict:
@@ -44,9 +46,7 @@ def test_n_subjects_matches_unique_groups(meta: dict, groups: np.ndarray) -> Non
 
 def test_n_samples_matches_y_length(meta: dict, y: np.ndarray) -> None:
     """meta['n_samples'] deve corrispondere alla lunghezza di y."""
-    assert meta["n_samples"] == len(y), (
-        f"n_samples={meta['n_samples']} != len(y)={len(y)}"
-    )
+    assert meta["n_samples"] == len(y), f"n_samples={meta['n_samples']} != len(y)={len(y)}"
 
 
 def test_row_order_length_matches_y(meta: dict, y: np.ndarray) -> None:

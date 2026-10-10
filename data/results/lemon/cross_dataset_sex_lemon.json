@@ -1,0 +1,46 @@
+{
+  "train": "ds005385 (N=179, 358 sample)",
+  "test": "LEMON (coorte sana, 47 sogg/94 sample)",
+  "method": "no-leakage scaler-su-train, LogReg-L2 GridSearchCV GroupKFold-inner, inference-only",
+  "in_dataset_cv_ba_plv": 0.795,
+  "results": {
+    "plv": {
+      "feature": "X_aparc_plv_theta",
+      "ba_transfer": 0.5831818181818182,
+      "best_C": 0.1,
+      "n_train_samples": 358,
+      "n_test_samples": 94,
+      "test_sex_balance": {
+        "0": 44,
+        "1": 50
+      }
+    },
+    "wpli": {
+      "feature": "X_aparc_wpli_theta",
+      "ba_transfer": 0.5081818181818182,
+      "best_C": 0.1,
+      "n_train_samples": 358,
+      "n_test_samples": 94,
+      "test_sex_balance": {
+        "0": 44,
+        "1": 50
+      }
+    },
+    "imcoh": {
+      "feature": "X_aparc_imcoh_theta",
+      "ba_transfer": 0.5059090909090909,
+      "best_C": 0.01,
+      "n_train_samples": 358,
+      "n_test_samples": 94,
+      "test_sex_balance": {
+        "0": 44,
+        "1": 50
+      }
+    }
+  },
+  "plv_transfer_ba": 0.5831818181818182,
+  "robust_transfer_mean_ba": 0.5070454545454546,
+  "generalizes": false,
+  "verdict": "GENERALIZZAZIONE DEBOLE/ASSENTE su coorte sana: BA transfer=0.583 (PLV) vicino al caso \u2192 la classificazione del sesso \u00e8 in gran parte specifica di ds005385, non trasferibile; da dichiarare come limite (risultato dataset-specifico)",
+  "timestamp": "2026-07-11T12:57:44+00:00"
+}

@@ -8,6 +8,8 @@ import pytest
 from config.labels_phenotype import load_phenotype
 from config.subjects_whitelist_n50 import SUBJECT_WHITELIST_N50
 
+pytestmark = pytest.mark.needs_data
+
 
 @pytest.fixture(scope="module")
 def phenotype():

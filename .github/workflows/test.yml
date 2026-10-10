@@ -1,0 +1,63 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "reports/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "reports/**"
+
+# Cancel redundant runs on the same branch/PR (pattern da CLMForecast)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Test suite (Python ${{ matrix.python }} / ${{ matrix.os }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13"]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-py${{ matrix.python }}-pip-${{ hashFiles('pyproject.toml', 'requirements.txt', 'requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ matrix.python }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run pytest with coverage
+        # Soglia 30%: in CI mancano data/ e fsaverage (test saltati); con i dati la copertura locale è molto più alta
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov --cov-report=html:htmlcov \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=30
+
+      - name: Upload coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-py${{ matrix.python }}
+          path: htmlcov/
+          retention-days: 14

@@ -1,11 +1,20 @@
-"""
-STEP 4 pilot — functional connectivity ds005385 (5 sub × 2 atlas × 2 cond × 2 metric = 40 npz).
+"""STEP 4 pilota — connettività funzionale su ds005385 (5 sub x 2 atlanti x 2 cond x 2 metriche = 40 npz).
 
-Carica label_tc da STEP 3, calcola FC con wPLI + coherence, banda alpha.
-Output: data/connectivity/ds005385/sub-XXX_atlas-XXX_cond-XXX_metric-XXX_band-alpha.npz
+Scopo:
+    Carica i label_tc dello step 3 (serie da evoked medio) e calcola la FC con
+    wPLI e coerenza in banda alpha (8-13 Hz, multitaper) tramite
+    connectivity.fc_dispatcher.compute_fc.
 
-Usage:
+Input:
+    data/label_ts/ds005385/<sub>_atlas-<atlante>_cond-<cond>.npz
+
+Output:
+    - data/connectivity/ds005385/<sub>_atlas-<atlante>_cond-<cond>_metric-<metrica>_band-alpha.npz
+    - reports/STEP4_DS005385_PILOT.md
+
+Esempio:
     python scripts/pilot_step4_connectivity.py
+
 """
 
 from __future__ import annotations
@@ -18,10 +27,13 @@ from pathlib import Path
 
 import numpy as np
 
+# Rende importabili i pacchetti del repository dalla cartella scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 warnings.filterwarnings("ignore")
 
 from connectivity.fc_dispatcher import compute_fc  # noqa: E402
+
+# ===== 1. Configurazione =====
 
 LABEL_TS_DIR = Path("data/label_ts/ds005385")
 OUT_DIR = Path("data/connectivity/ds005385")
@@ -37,15 +49,50 @@ SFREQ = 250.0
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# ===== 2. Percorsi =====
+
+
 def npz_in(sub: str, atlas: str, cond: str) -> Path:
+    """Percorso del file label_ts di input.
+
+    Args:
+        sub: id soggetto.
+        atlas: atlante.
+        cond: 'EO' o 'EC'.
+
+    Returns:
+        Path del file.
+    """
     return LABEL_TS_DIR / f"{sub}_atlas-{atlas}_cond-{cond}.npz"
 
 
 def npz_out(sub: str, atlas: str, cond: str, metric: str) -> Path:
+    """Percorso del file FC di output.
+
+    Args:
+        sub: id soggetto.
+        atlas: atlante.
+        cond: 'EO' o 'EC'.
+        metric: metrica FC.
+
+    Returns:
+        Path del file.
+    """
     return OUT_DIR / f"{sub}_atlas-{atlas}_cond-{cond}_metric-{metric}_band-alpha.npz"
 
 
+# ===== 3. Calcolo FC =====
+
+
 def run_all() -> list[dict]:
+    """Calcola la FC per tutte le combinazioni soggetto x atlante x condizione x metrica.
+
+    Returns:
+        lista di dict con forma, media/std del triangolo superiore, NaN, tempi e file.
+
+    Side effects:
+        Scrive 40 file .npz in OUT_DIR.
+    """
     results = []
     total = len(SUBJECTS) * len(ATLASES) * len(CONDITIONS) * len(METRICS)
     done = 0
@@ -56,18 +103,20 @@ def run_all() -> list[dict]:
                 # Load label_tc once per (sub, atlas, cond) — reuse for both metrics
                 npz = npz_in(sub, atlas, cond)
                 d = np.load(npz, allow_pickle=True)
-                label_tc_2d = d["label_tc"]                  # (n_labels, n_times)
+                label_tc_2d = d["label_tc"]  # (n_labels, n_times)
                 label_names = list(d["label_names"])
-                label_tc = label_tc_2d[np.newaxis, :, :]     # (1, n_labels, n_times)
+                # compute_fc richiede (n_epoche, n_ROI, n_tempi): qui una sola "epoca"
+                label_tc = label_tc_2d[np.newaxis, :, :]  # (1, n_labels, n_times)
 
                 for metric in METRICS:
                     out = npz_out(sub, atlas, cond, metric)
                     t0 = time.perf_counter()
 
                     fc_dict = compute_fc(label_tc, SFREQ, metric, bands=BAND, mode="multitaper")
-                    mat = fc_dict["alpha"]                     # (n_labels, n_labels)
+                    mat = fc_dict["alpha"]  # (n_labels, n_labels)
 
                     # Compute stats for report
+                    # Statistiche sul triangolo superiore (esclusa la diagonale), ignorando i NaN
                     upper_idx = np.triu_indices(mat.shape[0], k=1)
                     upper = mat[upper_idx]
                     n_nan = int(np.isnan(upper).sum())
@@ -96,20 +145,40 @@ def run_all() -> list[dict]:
                         f"mean={mean_upper:.4f} std={std_upper:.4f} "
                         f"nan={n_nan} {elapsed:.2f}s"
                     )
-                    results.append({
-                        "sub": sub, "atlas": atlas, "cond": cond, "metric": metric,
-                        "shape": mat.shape,
-                        "mean_upper": round(mean_upper, 4),
-                        "std_upper": round(std_upper, 4),
-                        "n_nan": n_nan,
-                        "elapsed_s": round(elapsed, 3),
-                        "out": str(out),
-                    })
+                    results.append(
+                        {
+                            "sub": sub,
+                            "atlas": atlas,
+                            "cond": cond,
+                            "metric": metric,
+                            "shape": mat.shape,
+                            "mean_upper": round(mean_upper, 4),
+                            "std_upper": round(std_upper, 4),
+                            "n_nan": n_nan,
+                            "elapsed_s": round(elapsed, 3),
+                            "out": str(out),
+                        }
+                    )
 
     return results
 
 
+# ===== 4. Report =====
+
+
 def write_report(results: list[dict], total_elapsed: float) -> None:
+    """Scrive il report Markdown dello step 4.
+
+    Args:
+        results: output di run_all.
+        total_elapsed: durata in secondi.
+
+    Returns:
+        None.
+
+    Side effects:
+        Scrive reports/STEP4_DS005385_PILOT.md.
+    """
     ts = datetime.now(UTC).isoformat(timespec="seconds")
     n_nan_total = sum(r["n_nan"] for r in results)
     all_ok = n_nan_total == 0
@@ -118,7 +187,6 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         "# STEP 4 Functional Connectivity — ds005385 PILOT",
         "",
         f"**Timestamp**: {ts}",
-        "**Sprint**: S-104 (sonnet1-ts)",
         f"**Soggetti**: {SUBJECTS}",
         "**Metriche**: wpli, coh",
         "**Banda**: alpha (8-13 Hz)",
@@ -172,13 +240,21 @@ def write_report(results: list[dict], total_elapsed: float) -> None:
         f"| File .npz prodotti | {len(results)} / 40 |",
         f"| NaN totali (upper triangle) | {n_nan_total} |",
         f"| Wall-clock totale | {total_elapsed:.1f}s |",
-        f"| Verdict | {'**PASS** ✅' if all_ok else '**WARN** ⚠️ (NaN presenti)'} |",
+        f"| Verdict | {'**PASS** [OK]' if all_ok else '**WARN** [WARNING] (NaN presenti)'} |",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
 
 
+# ===== 5. Main =====
+
+
 def main() -> None:
+    """Punto di ingresso: calcola la FC e scrive il report.
+
+    Side effects:
+        Scrive i file .npz e il report.
+    """
     print("STEP 4 Connectivity pilot — 5 sub × 2 atlas × 2 cond × 2 metric = 40 file")
     print(f"Band: alpha (8-13 Hz) | Mode: multitaper | sfreq: {SFREQ} Hz")
     t0 = time.perf_counter()

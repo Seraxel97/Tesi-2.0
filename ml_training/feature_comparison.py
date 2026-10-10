@@ -2,6 +2,8 @@
 
 Rigore: stesso nested GroupKFold, permutation, FDR-BH su confronto multiplo.
 Output: reports/feature_comparison_n50.json
+
+Posizione nella pipeline: STEP 6 (classificazione/regressione ML), a valle di STEP 5.
 """
 
 from __future__ import annotations
@@ -17,6 +19,8 @@ from ml_training.ml_age import load_data as load_age_data
 from ml_training.ml_age import run_cv as run_cv_age
 from ml_training.ml_sex import load_data as load_sex_data
 from ml_training.ml_sex import run_cv as run_cv_sex
+
+# ===== Configurazione =====
 
 FEAT_DIR = Path(__file__).parent.parent / "data" / "features" / "ds005385"
 REPORT_DIR = Path(__file__).parent.parent / "reports"
@@ -34,6 +38,9 @@ GT_FEATURE_ORDER = [
     "path_length",
     "small_worldness",
 ]
+
+
+# ===== Costruzione feature graph-theory =====
 
 
 def build_X_graphtheory(
@@ -70,9 +77,10 @@ def build_X_graphtheory(
     return X_gt
 
 
-def _permute_subject_labels(
-    y: np.ndarray, groups: np.ndarray, rng
-) -> np.ndarray:
+# ===== Permutation test =====
+
+
+def _permute_subject_labels(y: np.ndarray, groups: np.ndarray, rng) -> np.ndarray:
     """Permuta label a livello soggetto (non sample) — stessa logica di ml_sex/ml_age."""
     unique_groups = np.unique(groups)
     y_per_sub = np.array([y[groups == g][0] for g in unique_groups])
@@ -98,9 +106,7 @@ def _permutation_cv(
         rng = np.random.default_rng(42)
         for _ in range(n_perm):
             y_shuf = _permute_subject_labels(y, groups, rng)
-            null_scores.append(
-                run_cv_sex(X, y_shuf, groups, "logreg", outer_k=OUTER_K)["ba_mean"]
-            )
+            null_scores.append(run_cv_sex(X, y_shuf, groups, "logreg", outer_k=OUTER_K)["ba_mean"])
     else:
         # RF invece di ElasticNet: converge su p≫n, R²>0 dimostrato su N=50
         real_res = run_cv_age(X, y, groups, "rf", outer_k=OUTER_K)
@@ -109,13 +115,14 @@ def _permutation_cv(
         rng = np.random.default_rng(42)
         for _ in range(n_perm):
             y_shuf = _permute_subject_labels(y, groups, rng)
-            null_scores.append(
-                run_cv_age(X, y_shuf, groups, "rf", outer_k=OUTER_K)["r2"]
-            )
+            null_scores.append(run_cv_age(X, y_shuf, groups, "rf", outer_k=OUTER_K)["r2"])
 
     null_mean = float(np.mean(null_scores))
     p_value = (sum(1 for s in null_scores if s >= score_real) + 1) / (n_perm + 1)
     return score_real, null_mean, p_value
+
+
+# ===== Confronto e salvataggio =====
 
 
 def run_comparison(
@@ -182,13 +189,15 @@ def save_results(results: dict, path: Path | None = None) -> Path:
     return path
 
 
+# ===== Entry point =====
+
 if __name__ == "__main__":
     res = run_comparison()
     p = save_results(res)
     print(f"\nSalvato: {p}")
     print("\n=== CONFRONTO FEATURE ===")
     for name, r in res["comparisons"].items():
-        sig = "✓ sig" if r["significant_fdr"] else "  ns"
+        sig = "[OK] sig" if r["significant_fdr"] else "  ns"
         print(
             f"  {name}: {r['metric']}={r['score']:.3f} "
             f"p_raw={r['p_raw']:.4f} p_fdr={r['p_fdr']:.4f} {sig}"
